@@ -1,4 +1,20 @@
 #!/bin/bash
+# Script de despliegue automatizado para Maestro Inventario
+
+set -e
+
+echo "Construyendo y levantando servicios con Docker Compose..."
+docker compose down -v
+
+docker compose pull
+
+docker compose up -d --build
+
+echo "Despliegue completado."
+echo "Backend:     http://localhost:8030"
+echo "Frontend:    http://localhost"
+echo "Postgres:    localhost:5434"
+#!/bin/bash
 
 # Script de despliegue para VPS
 echo "🚀 Iniciando despliegue de Maestro Inventario..."
