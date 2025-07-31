@@ -1,0 +1,42 @@
+version: '3.9'
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: maestro_backend
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8030"
+    volumes:
+      - .:/app
+    ports:
+      - "8030:8030"
+    env_file:
+      - .env
+    depends_on:
+      - db
+  db:
+    image: postgres:15
+    container_name: maestro_db
+    environment:
+      POSTGRES_DB: maestro
+      POSTGRES_USER: maestro
+      POSTGRES_PASSWORD: maestro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+  frontend:
+    build:
+      context: ./dbackf
+      dockerfile: Dockerfile
+    container_name: maestro_frontend
+    volumes:
+      - ./dbackf:/app
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    depends_on:
+      - backend
+volumes:
+  postgres_data:
