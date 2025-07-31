@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Almacenes{% endblock %}
+
+{% block content %}
+{% if user_id %}
+  <div class="alert alert-success mb-3" role="alert">
+    <i class="fas fa-user-check"></i> Usuario autenticado: <strong>{{ user_id }}</strong>
+  </div>
+  
+{% else %}
+  <div class="alert alert-danger mb-3" role="alert">
+    <i class="fas fa-user-times"></i> No has iniciado sesión. El menú está deshabilitado.
+  </div>
+  <div class="alert alert-warning mb-3" role="alert">
+    <i class="fas fa-bug"></i> <strong>DEBUG:</strong> Cookie user_id no encontrada o vacía.
+  </div>
+{% endif %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-warehouse"></i> Gestión de Almacenes</h1>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search }}" placeholder="Nombre, código o dirección...">
+            </div>
+            <div class="col-md-3">
+                <label for="business_id" class="form-label">Negocio</label>
+                <select class="form-select" name="business_id">
+                    <option value="">Todos los negocios</option>
+                    {% for business in businesses %}
+                        <option value="{{ business.id }}" {% if business_id == business.id %}selected{% endif %}>
+                            {{ business.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="per_page" class="form-label">Por página</label>
+                <select class="form-select" name="per_page">
+                    <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                <a href="/admin/warehouses" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de Almacenes -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Almacenes ({{ total }} total)</h5>
+    </div>
+    <div class="card-body">
+        {% if warehouses %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Negocio</th>
+                            <th>Dirección</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for warehouse in warehouses %}
+                        <tr>
+                            <td>{{ warehouse.id }}</td>
+                            <td><strong>{{ warehouse.code }}</strong></td>
+                            <td>{{ warehouse.name }}</td>
+                            <td>{{ warehouse.business.name if warehouse.business else '-' }}</td>
+                            <td>{{ warehouse.address or '-' }}</td>
+                            <td>
+                                {% if warehouse.is_active %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page - 1 }}&search={{ search }}&business_id={{ business_id or '' }}&per_page={{ per_page }}">Anterior</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ p }}</span>
+                            </li>
+                        {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 2 and p <= page + 2) %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ p }}&search={{ search }}&business_id={{ business_id or '' }}&per_page={{ per_page }}">{{ p }}</a>
+                            </li>
+                        {% elif p == 4 or p == total_pages - 3 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < total_pages %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page + 1 }}&search={{ search }}&business_id={{ business_id or '' }}&per_page={{ per_page }}">Siguiente</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-warehouse fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No se encontraron almacenes</h5>
+                <p class="text-muted">Los almacenes se gestionan desde el sistema principal</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

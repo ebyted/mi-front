@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard de Almacén{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-warehouse"></i> Dashboard de Almacén</h1>
+    <div>
+        <span class="badge bg-info fs-6">{{ current_user.role }}</span>
+        <span class="badge bg-primary fs-6 ms-1">Actualizado: {{ today.strftime('%d/%m/%Y') }}</span>
+        <a href="/admin" class="btn btn-outline-secondary ms-2">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<!-- Métricas del Usuario -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-gradient-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h2>{{ user_metrics.total_movements }}</h2>
+                        <p class="mb-1">Mis Movimientos</p>
+                        <small>Total registrados</small>
+                    </div>
+                    <i class="fas fa-exchange-alt fa-3x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-gradient-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h2>{{ user_metrics.entries_today }}</h2>
+                        <p class="mb-1">Entradas Hoy</p>
+                        <small>{{ user_metrics.total_entries }} total</small>
+                    </div>
+                    <i class="fas fa-arrow-down fa-3x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-gradient-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h2>{{ user_metrics.exits_today }}</h2>
+                        <p class="mb-1">Salidas Hoy</p>
+                        <small>{{ user_metrics.total_exits }} total</small>
+                    </div>
+                    <i class="fas fa-arrow-up fa-3x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-gradient-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h2>{{ warehouses | length }}</h2>
+                        <p class="mb-1">Almacenes</p>
+                        <small>Asignados</small>
+                    </div>
+                    <i class="fas fa-building fa-3x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Registro de Movimientos -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Registrar Entrada</h5>
+            </div>
+            <div class="card-body">
+                <form id="entryForm" method="POST" action="/warehouse-movement">
+                    <input type="hidden" name="movement_type" value="IN">
+                    <div class="mb-3">
+                        <label for="entry_warehouse" class="form-label">Almacén</label>
+                        <select class="form-select" id="entry_warehouse" name="warehouse_id" required>
+                            <option value="">Seleccionar almacén</option>
+                            {% for warehouse in warehouses %}
+                            <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="entry_product" class="form-label">Producto</label>
+                        <select class="form-select" id="entry_product" name="product_id" required>
+                            <option value="">Seleccionar producto</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}">{{ product.name }} - {{ product.sku }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="entry_quantity" class="form-label">Cantidad</label>
+                        <input type="number" class="form-control" id="entry_quantity" name="quantity" min="1" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="entry_reference" class="form-label">Referencia</label>
+                        <input type="text" class="form-control" id="entry_reference" name="reference" placeholder="Número de factura, orden, etc.">
+                    </div>
+                    <div class="mb-3">
+                        <label for="entry_notes" class="form-label">Notas</label>
+                        <textarea class="form-control" id="entry_notes" name="notes" rows="2" placeholder="Información adicional..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-save"></i> Registrar Entrada
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-minus-circle"></i> Registrar Salida</h5>
+            </div>
+            <div class="card-body">
+                <form id="exitForm" method="POST" action="/warehouse-movement">
+                    <input type="hidden" name="movement_type" value="OUT">
+                    <div class="mb-3">
+                        <label for="exit_warehouse" class="form-label">Almacén</label>
+                        <select class="form-select" id="exit_warehouse" name="warehouse_id" required>
+                            <option value="">Seleccionar almacén</option>
+                            {% for warehouse in warehouses %}
+                            <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exit_product" class="form-label">Producto</label>
+                        <select class="form-select" id="exit_product" name="product_id" required>
+                            <option value="">Seleccionar producto</option>
+                            {% for product in products %}
+                            <option value="{{ product.id }}">{{ product.name }} - {{ product.sku }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exit_quantity" class="form-label">Cantidad</label>
+                        <input type="number" class="form-control" id="exit_quantity" name="quantity" min="1" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exit_reference" class="form-label">Referencia</label>
+                        <input type="text" class="form-control" id="exit_reference" name="reference" placeholder="Orden de venta, transferencia, etc.">
+                    </div>
+                    <div class="mb-3">
+                        <label for="exit_notes" class="form-label">Notas</label>
+                        <textarea class="form-control" id="exit_notes" name="notes" rows="2" placeholder="Información adicional..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">
+                        <i class="fas fa-save"></i> Registrar Salida
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mis Movimientos Recientes -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Mis Movimientos Recientes</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="filterMovements('all')">Todos</button>
+                        <button class="btn btn-sm btn-outline-success" onclick="filterMovements('IN')">Entradas</button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="filterMovements('OUT')">Salidas</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_movements %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="movementsTable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Producto</th>
+                                    <th>Almacén</th>
+                                    <th>Cantidad</th>
+                                    <th>Referencia</th>
+                                    <th>Notas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for movement in recent_movements %}
+                                <tr data-movement-type="{{ movement.movement_type }}">
+                                    <td>
+                                        <small>{{ movement.created_at.strftime('%d/%m/%Y') }}</small><br>
+                                        <small class="text-muted">{{ movement.created_at.strftime('%H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        {% if movement.movement_type == 'IN' %}
+                                            <span class="badge bg-success">ENTRADA</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">SALIDA</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <strong>{{ movement.product.name }}</strong><br>
+                                        <small class="text-muted">{{ movement.product.sku }}</small>
+                                    </td>
+                                    <td>{{ movement.warehouse.name }}</td>
+                                    <td>
+                                        <strong>{{ movement.quantity }}</strong>
+                                        {% if movement.product.unit %}
+                                            <small class="text-muted">{{ movement.product.unit.abbreviation }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ movement.reference or '-' }}</td>
+                                    <td>{{ movement.notes or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No tienes movimientos registrados aún.</p>
+                        <p class="text-muted">Utiliza los formularios de arriba para registrar entradas y salidas.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen por Almacén -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Resumen por Almacén</h5>
+            </div>
+            <div class="card-body">
+                {% if warehouses %}
+                    <div class="row">
+                        {% for warehouse in warehouses %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">{{ warehouse.name }}</h6>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <h4 class="text-success">{{ warehouse_stats.get(warehouse.id, {}).get('entries', 0) }}</h4>
+                                            <small>Entradas</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h4 class="text-warning">{{ warehouse_stats.get(warehouse.id, {}).get('exits', 0) }}</h4>
+                                            <small>Salidas</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No tienes almacenes asignados.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para funcionalidades -->
+<script>
+// Funciones para filtrar movimientos
+function filterMovements(type) {
+    const table = document.getElementById('movementsTable');
+    const rows = table.getElementsByTagName('tr');
+    
+    for (let i = 1; i < rows.length; i++) { // Skip header row
+        const row = rows[i];
+        const movementType = row.getAttribute('data-movement-type');
+        
+        if (type === 'all' || movementType === type) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+    
+    // Update button states
+    const buttons = document.querySelectorAll('button[onclick^="filterMovements"]');
+    buttons.forEach(btn => btn.classList.remove('btn-primary'));
+    buttons.forEach(btn => btn.classList.add('btn-outline-primary'));
+    
+    event.target.classList.remove('btn-outline-primary');
+    event.target.classList.add('btn-primary');
+}
+
+// Validaciones de formulario
+document.getElementById('entryForm').addEventListener('submit', function(e) {
+    const quantity = document.getElementById('entry_quantity').value;
+    if (parseFloat(quantity) <= 0) {
+        e.preventDefault();
+        alert('La cantidad debe ser mayor a 0');
+        return;
+    }
+});
+
+document.getElementById('exitForm').addEventListener('submit', function(e) {
+    const quantity = document.getElementById('exit_quantity').value;
+    if (parseFloat(quantity) <= 0) {
+        e.preventDefault();
+        alert('La cantidad debe ser mayor a 0');
+        return;
+    }
+});
+
+// Auto-refresh cada 5 minutos
+setTimeout(function() {
+    location.reload();
+}, 300000);
+</script>
+
+<!-- CSS adicional -->
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+}
+.bg-gradient-success {
+    background: linear-gradient(45deg, #28a745, #1e7e34);
+}
+.bg-gradient-warning {
+    background: linear-gradient(45deg, #ffc107, #e0a800);
+}
+.bg-gradient-info {
+    background: linear-gradient(45deg, #17a2b8, #138496);
+}
+.opacity-75 {
+    opacity: 0.75;
+}
+.card-body h2 {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+</style>
+{% endblock %}

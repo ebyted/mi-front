@@ -1,0 +1,4 @@
+sku,name,category,brand,base_unit,description,minimum_stock,maximum_stock,image_url
+SKU001,Producto de prueba,Categoria1,Marca1,Unidad1,Producto de ejemplo,10,100,
+SKU002,Producto dos,Categoria2,Marca2,Unidad2,Segundo producto,5,50,
+SKU003,Producto tres,Categoria1,Marca1,Unidad1,Tercer producto,0,20,

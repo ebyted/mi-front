@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Movimiento Manual | Maestro Inventario{% endblock %}
+
+{% block content %}
+<div class="container py-4 animate__animated animate__fadeIn">
+    <h1 class="fw-bold text-primary mb-4"><i class="fas fa-exchange-alt"></i> Registrar Movimiento Manual</h1>
+    <form id="manualMovementForm" class="card shadow p-4 mb-4">
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="movement_type" class="form-label">Tipo de Movimiento</label>
+                <select class="form-select" id="movement_type" name="movement_type" required>
+                    <option value="entry">Entrada</option>
+                    <option value="exit">Salida</option>
+                    <option value="adjustment">Ajuste</option>
+                    <option value="transfer">Transferencia</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="warehouse_id" class="form-label">Almacén</label>
+                <select class="form-select" id="warehouse_id" name="warehouse_id" required>
+                    {% for warehouse in warehouses %}
+                    <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="reference_number" class="form-label">Referencia</label>
+                <input type="text" class="form-control" id="reference_number" name="reference_number">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="notes" class="form-label">Notas</label>
+            <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+        </div>
+        <hr>
+        <h5>Artículos</h5>
+        <div id="itemsList">
+            <div class="row mb-2 item-row">
+                <div class="col-md-4">
+                    <select class="form-select" name="product_variant_id[]" required>
+                        <option value="">Selecciona producto/variante</option>
+                        {% for variant in product_variants %}
+                        <option value="{{ variant.id }}">{{ variant.product.name }}{% if variant.name %} - {{ variant.name }}{% endif %} {% if variant.sku %}[{{ variant.sku }}]{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control" name="quantity[]" min="0.01" step="0.01" placeholder="Cantidad" required>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="unit_id[]" required>
+                        {% for unit in units %}
+                        <option value="{{ unit.id }}">{{ unit.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-center">
+                    <button type="button" class="btn btn-danger btn-sm remove-item" title="Quitar"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="addItemBtn">
+            <i class="fas fa-plus"></i> Agregar Artículo
+        </button>
+        <div class="text-end">
+            <button type="submit" class="btn btn-primary">Registrar Movimiento</button>
+        </div>
+    </form>
+    <div id="movementResult" class="alert d-none"></div>
+</div>
+<script>
+document.getElementById('addItemBtn').onclick = function() {
+    const row = document.querySelector('.item-row').cloneNode(true);
+    row.querySelectorAll('input, select').forEach(el => el.value = '');
+    document.getElementById('itemsList').appendChild(row);
+    row.querySelector('.remove-item').onclick = function() {
+        row.remove();
+    };
+};
+document.querySelectorAll('.remove-item').forEach(btn => {
+    btn.onclick = function() {
+        btn.closest('.item-row').remove();
+    };
+});
+document.getElementById('manualMovementForm').onsubmit = async function(e) {
+    e.preventDefault();
+    const form = e.target;
+    const items = [];
+    form.querySelectorAll('.item-row').forEach(row => {
+        items.push({
+            product_variant_id: parseInt(row.querySelector('[name="product_variant_id[]"]').value),
+            quantity: parseFloat(row.querySelector('[name="quantity[]"]').value),
+            unit_id: parseInt(row.querySelector('[name="unit_id[]"]').value)
+        });
+    });
+    const payload = {
+        movement_type: form.movement_type.value,
+        warehouse_id: parseInt(form.warehouse_id.value),
+        reference_number: form.reference_number.value,
+        notes: form.notes.value,
+        items: items
+    };
+    const res = await fetch('/api/v1/inventory-movements/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const resultDiv = document.getElementById('movementResult');
+    if (res.ok) {
+        const data = await res.json();
+        resultDiv.className = 'alert alert-success mt-3';
+        resultDiv.textContent = `Movimiento registrado (ID: ${data.id})`;
+        form.reset();
+    } else {
+        const err = await res.json();
+        resultDiv.className = 'alert alert-danger mt-3';
+        resultDiv.textContent = err.detail || 'Error al registrar movimiento';
+    }
+    resultDiv.classList.remove('d-none');
+};
+</script>
+{% endblock %}

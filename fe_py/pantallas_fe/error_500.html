@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Error del servidor{% endblock %}
+{% block content %}
+<div class="container text-center py-5">
+    <h1 class="display-4 text-danger"><i class="fas fa-bug"></i> 500</h1>
+    <h2 class="mb-3">Error interno del servidor</h2>
+    <p class="lead">{{ detail or 'Ocurrió un error inesperado. Por favor, intenta más tarde.' }}</p>
+    <a href="/" class="btn btn-primary mt-3">Ir al inicio</a>
+</div>
+{% endblock %}

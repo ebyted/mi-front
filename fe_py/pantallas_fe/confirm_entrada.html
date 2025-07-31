@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Confirmar Entrada de Almacén{% endblock %}
+{% block content %}
+<div class="container py-4 animate__animated animate__fadeIn">
+    {% if request.cookies.user_id %}
+        <div class="alert alert-success mb-3" role="alert">
+            <i class="fas fa-user-check"></i> Usuario autenticado: <strong>{{ request.cookies.user_id }}</strong>
+        </div>
+    {% else %}
+        <div class="alert alert-danger mb-3" role="alert">
+            <i class="fas fa-user-times"></i> No has iniciado sesión. Debes iniciar sesión para registrar movimientos.
+        </div>
+    {% endif %}
+    <div class="card shadow-lg mb-4">
+        <div class="card-body">
+            <h2 class="mb-4 text-primary"><i class="fas fa-warehouse me-2"></i> Confirmar Movimiento de Almacén</h2>
+            <form method="post" action="/entrada/registrar" id="entradaForm">
+                <input type="hidden" name="movement_type" value="{{ movement_type }}">
+                <input type="hidden" name="movement_date" value="{{ movement_date }}">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de movimiento:</label>
+                        <input type="text" class="form-control" name="movement_type" value="{{ movement_type }}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha de movimiento:</label>
+                        <input type="date" class="form-control" name="movement_date" value="{{ movement_date }}" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="warehouse_id" class="form-label">Almacén destino</label>
+                        {% if warehouses and warehouses|length > 0 %}
+                        <select class="form-select border border-primary shadow-sm" id="warehouse_id" name="warehouse_id" required>
+                            <option value="">Selecciona almacén...</option>
+                            {% for warehouse in warehouses %}
+                            <option value="{{ warehouse.id }}">{{ warehouse.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <div class="alert alert-warning mt-2">No hay almacenes disponibles. Por favor crea uno primero.</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="nota" class="form-label">Nota u observación</label>
+                    <textarea name="nota" id="nota" rows="2" class="form-control" placeholder="Agrega una nota o comentario sobre la entrada..."></textarea>
+                </div>
+                <h5 class="mb-3 mt-4 text-secondary"><i class="fas fa-list me-2"></i> Artículos seleccionados</h5>
+                <div class="table-responsive table-container">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Cantidad</th>
+                                <th>Unidad Base</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+<tbody id="productsTable">
+    <!-- Las filas se llenan por JS si no hay productos del backend -->
+</tbody>
+                    </table>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <label for="addProductId" class="form-label">Agregar producto por ID</label>
+                        <div class="input-group">
+                            <input type="number" id="addProductId" class="form-control" placeholder="ID de producto">
+                            <button type="button" class="btn btn-secondary" onclick="addProductById()"><i class="fas fa-plus"></i> Agregar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end mt-4 gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-check"></i> Confirmar Entrada</button>
+                    <a href="/entrada" class="btn btn-secondary btn-lg"><i class="fas fa-times"></i> Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+function removeProductRow(btn) {
+    btn.closest('tr').remove();
+}
+function addProductById() {
+    const id = document.getElementById('addProductId').value;
+    if (!id) return;
+    const tbody = document.getElementById('productsTable');
+    const tr = document.createElement('tr');
+    tr.className = 'animate__animated animate__fadeInUp';
+    tr.innerHTML = `<td class="fw-bold text-primary">${id}<input type="hidden" name="product_ids" value="${id}"></td>
+        <td>Nuevo producto</td>
+        <td><input type="number" name="quantity_${id}" value="1" min="1" class="form-control form-control-sm" required></td>
+        <td><input type="text" name="unit_${id}" value="pieza" class="form-control form-control-sm" required></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeProductRow(this)"><i class="fas fa-trash"></i> Eliminar</button></td>`;
+    tbody.appendChild(tr);
+    document.getElementById('addProductId').value = '';
+}
+
+// Si no hay productos del backend, muestra los seleccionados desde localStorage
+document.addEventListener('DOMContentLoaded', function() {
+    var backendProducts = {{ products|length if products is defined else 0 }};
+    if (backendProducts === 0) {
+        var productos = localStorage.getItem('productos_seleccionados');
+        if (productos) {
+            try {
+                productos = JSON.parse(productos);
+            } catch(e) { productos = []; }
+        } else {
+            productos = [];
+        }
+        var tbody = document.getElementById('productsTable');
+        productos.forEach(function(prod) {
+            var tr = document.createElement('tr');
+            tr.className = 'animate__animated animate__fadeInUp';
+            tr.innerHTML = `<td class="fw-bold text-primary">${prod.id}<input type="hidden" name="product_ids" value="${prod.id}"></td>
+                <td>${prod.name}</td>
+                <td><input type="number" name="quantity_${prod.id}" value="1" min="1" class="form-control form-control-sm" required></td>
+                <td><input type="text" name="unit_${prod.id}" value="PIEZA" class="form-control form-control-sm" readonly></td>
+                <td><button type="button" class="btn btn-danger btn-sm" onclick="removeProductRow(this)"><i class="fas fa-trash"></i> Eliminar</button></td>`;
+            tbody.appendChild(tr);
+        });
+        // Limpia localStorage para evitar duplicados en futuras entradas
+        localStorage.removeItem('productos_seleccionados');
+    }
+
+    // Validación al enviar el formulario
+    var form = document.getElementById('entradaForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var rows = document.querySelectorAll('#productsTable tr');
+            if (rows.length === 0) {
+                e.preventDefault();
+                alert('Debes agregar al menos un producto para confirmar la entrada.');
+                return false;
+            }
+            // Validar que todos los campos requeridos estén llenos
+            for (var i = 0; i < rows.length; i++) {
+                var cantidad = rows[i].querySelector('input[type="number"]');
+                if (!cantidad || cantidad.value === '' || parseFloat(cantidad.value) <= 0) {
+                    e.preventDefault();
+                    alert('La cantidad de cada producto debe ser mayor a 0.');
+                    return false;
+                }
+            }
+        });
+
+        // Manejo de error transaccional en la respuesta
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(form);
+            fetch('/entrada/registrar', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                if (html.includes('No hay usuario autenticado')) {
+                    alert('Debes iniciar sesión para registrar movimientos.');
+                } else if (html.includes('Error transaccional al guardar movimientos')) {
+                    alert('Ocurrió un error al registrar la entrada. Verifica que todos los productos tengan variante y unidad válida.');
+                } else {
+                    document.body.innerHTML = html;
+                }
+            })
+            .catch(err => {
+                alert('Error de red o servidor: ' + err);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+</div>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Test Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1>Dashboard Administrativo - Test</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3>Test</h3>
+                    <p>Sistema funcionando</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Enlaces Principales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="/admin/suppliers" class="list-group-item list-group-item-action">
+                            <i class="fas fa-handshake"></i> Gestión de Proveedores
+                        </a>
+                        <a href="/admin/warehouses" class="list-group-item list-group-item-action">
+                            <i class="fas fa-warehouse"></i> Gestión de Almacenes
+                        </a>
+                        <a href="/admin/purchase-orders" class="list-group-item list-group-item-action">
+                            <i class="fas fa-shopping-cart"></i> Análisis de Órdenes de Compra
+                        </a>
+                        <a href="/admin/inventory-movements" class="list-group-item list-group-item-action">
+                            <i class="fas fa-exchange-alt"></i> Análisis de Movimientos de Inventario
+                        </a>
+                        <a href="/admin/articles" class="list-group-item list-group-item-action">
+                            <i class="fas fa-chart-bar"></i> Análisis de Artículos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

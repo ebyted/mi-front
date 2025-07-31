@@ -1,0 +1,133 @@
+# Maestro Inventario - Backend Django REST API
+
+Este backend gestiona inventarios, ventas, compras, cotizaciones, pedidos de clientes, movimientos de almacén y más para negocios multiempresa, multialmacén y multiusuario.  
+El modelo de datos está unificado y cubre usuarios, empresas, productos, variantes, almacenes, proveedores, ventas, cotizaciones, pedidos y movimientos.
+
+---
+
+## 🚀 Instrucciones para crear el nuevo backend
+
+### 1. **Crea el proyecto Django y la app principal**
+
+```bash
+django-admin startproject maestro_inventario_backend
+cd maestro_inventario_backend
+python -m venv venv
+venv\Scripts\activate
+pip install django djangorestframework django-filter
+python manage.py startapp core
+```
+
+### 2. **Agrega la app y DRF al settings**
+
+En `maestro_inventario_backend/settings.py`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'rest_framework',
+    'django_filters',
+    'core',
+]
+```
+
+### 3. **Configura el modelo de usuarios personalizado**
+
+En `core/models.py`, crea el modelo `User` con email y roles.  
+Usa `AbstractBaseUser` y `PermissionsMixin` para autenticación.
+
+### 4. **Crea los modelos según la estructura de tablas**
+
+Define los modelos en `core/models.py` siguiendo la estructura y tipos de datos del prompt.  
+Incluye relaciones ForeignKey, ManyToMany y campos extra (lote, fecha de caducidad, aux1).
+
+### 5. **Crea el superusuario inicial**
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser --email admin@maestro.com --username admin --password admin123
+```
+*(Si usas un modelo personalizado, adapta el comando según tu modelo)*
+
+### 6. **Crea los serializers y viewsets**
+
+En `core/serializers.py` y `core/views.py`, crea los serializers y viewsets para cada modelo.  
+Usa `ModelSerializer` y `ModelViewSet` para CRUD automático.
+
+### 7. **Configura las rutas de la API**
+
+En `core/urls.py` y el principal, registra los routers DRF para cada endpoint:
+
+```python
+from rest_framework import routers
+from core.views import (
+    UserViewSet, BusinessViewSet, CategoryViewSet, BrandViewSet, UnitViewSet,
+    ProductViewSet, ProductVariantViewSet, WarehouseViewSet, SupplierViewSet,
+    PurchaseOrderViewSet, InventoryMovementViewSet, SalesOrderViewSet, QuotationViewSet
+)
+
+router = routers.DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'businesses', BusinessViewSet)
+router.register(r'categories', CategoryViewSet)
+router.register(r'brands', BrandViewSet)
+router.register(r'units', UnitViewSet)
+router.register(r'products', ProductViewSet)
+router.register(r'product-variants', ProductVariantViewSet)
+router.register(r'warehouses', WarehouseViewSet)
+router.register(r'suppliers', SupplierViewSet)
+router.register(r'purchase-orders', PurchaseOrderViewSet)
+router.register(r'inventory-movements', InventoryMovementViewSet)
+router.register(r'sales-orders', SalesOrderViewSet)
+router.register(r'quotations', QuotationViewSet)
+
+urlpatterns = [
+    path('api/v1/', include(router.urls)),
+]
+```
+
+### 8. **Implementa la lógica para convertir pedidos/cotizaciones en movimientos de almacén**
+
+- En los viewsets de `SalesOrder` y `Quotation`, agrega una acción personalizada (`@action`) que cree un `InventoryMovement` a partir de los datos del pedido/cotización.
+- Permite modificar antes de confirmar y aplicar al inventario.
+
+### 9. **Agrega autenticación y permisos**
+
+- Usa JWT o Token Authentication de DRF.
+- Configura permisos por rol y por empresa.
+
+### 10. **Prueba la API**
+
+- Accede a `/api/v1/` para ver los endpoints.
+- Usa `/admin/` para el panel de administración Django.
+
+---
+
+## 🗂️ Estructura de Tablas y Campos
+
+*(Ver estructura detallada en el prompt anterior. Usa los tipos de datos y relaciones indicadas.)*
+
+---
+
+## 📝 Notas
+
+- El backend es multiempresa, multiusuario y multialmacén.
+- Los movimientos de inventario incluyen **lote**, **fecha de caducidad** y **aux1**.
+- Los pedidos y cotizaciones u ordenes de compra, pueden convertirse en movimientos de almacén oficiales .
+- El usuario inicial es:  
+  **Email:** admin@maestro.com  
+  **Password:** admin123
+
+---
+
+## 📚 Referencias
+
+- [Django](https://docs.djangoproject.com/)
+- [Django REST Framework](https://www.django-rest-framework.org/)
+- [django-filter](https://django-filter.readthedocs.io/en/stable/)
+
+---
+
+**¿Listo para comenzar?  
+Sigue estos pasos y tendrás un backend robusto, escalable y compatible con

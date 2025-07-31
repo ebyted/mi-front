@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Panel de Administración - Maestro Inventario{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        body {
+            background: #f4f6fb;
+        }
+        .dashboard-bg {
+            background: linear-gradient(120deg, #f8fafc 70%, #e3f2fd 100%);
+            min-height: 100vh;
+            box-shadow: 0 2px 24px rgba(0,0,0,0.07);
+            border-radius: 24px;
+            padding-bottom: 40px;
+            transition: background 0.5s;
+        }
+        .navbar-brand {
+            font-weight: bold;
+        }
+        .sidebar {
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .sidebar .nav-link {
+            color: #495057;
+            border-radius: 5px;
+            margin: 2px 0;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stats-card .stats-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .card, .table-container {
+            border-radius: 18px !important;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.13) !important;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .card:hover, .table-container:hover {
+            box-shadow: 0 12px 32px rgba(0,0,0,0.18) !important;
+            transform: translateY(-2px) scale(1.03);
+        }
+        .btn, .btn-lg {
+            border-radius: 50rem !important;
+            font-size: 1.08em;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+        }
+        .btn:hover, .btn-lg:hover {
+            background: #f8f9fa;
+            color: #212529;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        }
+        .dashboard-footer {
+            background: linear-gradient(90deg, #f8fafc 80%, #e3f2fd 100%);
+            border-radius: 0 0 24px 24px;
+            box-shadow: 0 -2px 18px rgba(0,0,0,0.07);
+            font-size: 1.08em;
+            position: relative;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            z-index: 10;
+        }
+        .pagination-info {
+            margin-top: 20px;
+            text-align: center;
+            color: #6c757d;
+        }
+        .sidebar.disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .sidebar.disabled .nav-link {
+            cursor: not-allowed;
+        }
+        .animate__fadeInDown { animation: fadeInDown 0.7s; }
+        .animate__fadeInUp { animation: fadeInUp 0.7s; }
+        /* Fix: Asegura que los modales y su backdrop estén siempre por encima de cualquier layer */
+        .modal-backdrop {
+            z-index: 2050 !important;
+        }
+        .modal {
+            z-index: 2100 !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin/">
+                <i class="fas fa-boxes"></i> Maestro Inventario - Admin
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+    <div class="col-md-2 sidebar{% if not user_id %} disabled{% endif %}">
+                <nav class="nav flex-column p-3">
+                    <a class="nav-link {% if request.url.path == '/admin/' %}active{% endif %}" href="/admin/">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                    <a class="nav-link {% if 'executive-dashboard' in request.url.path %}active{% endif %}" href="/admin/executive-dashboard">
+                        <i class="fas fa-chart-line"></i> Dashboard Ejecutivo
+                    </a>
+                    {% if current_user and current_user.role in ['almacenista', 'capturista'] %}
+                    <a class="nav-link {% if 'warehouse-dashboard' in request.url.path %}active{% endif %}" href="/warehouse-dashboard">
+                        <i class="fas fa-warehouse"></i> Dashboard de Almacén
+                    </a>
+                    {% endif %}
+                    
+                    <hr>
+                    <small class="text-muted px-3">PRODUCTOS</small>
+                    <a class="nav-link {% if 'products' in request.url.path %}active{% endif %}" href="/admin/products">
+                        <i class="fas fa-box"></i> Productos
+                    </a>
+                    <a class="nav-link {% if 'articles' in request.url.path %}active{% endif %}" href="/admin/articles">
+                        <i class="fas fa-chart-bar"></i> Análisis Artículos
+                    </a>
+                    <a class="nav-link {% if 'categories' in request.url.path %}active{% endif %}" href="/admin/categories">
+                        <i class="fas fa-tags"></i> Categorías
+                    </a>
+                    <a class="nav-link {% if 'brands' in request.url.path %}active{% endif %}" href="/admin/brands">
+                        <i class="fas fa-trademark"></i> Marcas
+                    </a>
+                    
+                    <hr>
+                    <small class="text-muted px-3">OPERACIONES</small>
+                    <a class="nav-link {% if 'suppliers' in request.url.path %}active{% endif %}" href="/admin/suppliers">
+                        <i class="fas fa-handshake"></i> Proveedores
+                    </a>
+                    <a class="nav-link {% if 'warehouses' in request.url.path %}active{% endif %}" href="/admin/warehouses">
+                        <i class="fas fa-warehouse"></i> Almacenes
+                    </a>
+                    <a class="nav-link {% if 'purchase-orders' in request.url.path %}active{% endif %}" href="/admin/purchase-orders">
+                        <i class="fas fa-shopping-cart"></i> Órdenes de Compra
+                    </a>
+                    <a class="nav-link {% if 'entrada' in request.url.path %}active{% endif %}" href="/entrada">
+                        <i class="fas fa-arrow-down"></i> Entradas de Almacén
+                    </a>
+                    
+                    <hr>
+                    <small class="text-muted px-3">INVENTARIO</small>
+                    <a class="nav-link {% if 'inventory-movements' in request.url.path %}active{% endif %}" href="/admin/inventory-movements">
+                        <i class="fas fa-exchange-alt"></i> Movimientos
+                    </a>
+                    <a class="nav-link {% if 'ocr-inventory' in request.url.path %}active{% endif %}" href="/ocr/ocr-inventory">
+                        <i class="fas fa-file-alt"></i> Registros OCR de inventario
+                    </a>
+                    
+                    <hr>
+                    <small class="text-muted px-3">ADMINISTRACIÓN</small>
+                    {% if current_user and current_user.role.value == 'ADMIN' %}
+                    <a class="nav-link fw-bold text-uppercase {% if 'users' in request.url.path %}active{% endif %}" href="/admin/users">
+                        <i class="fas fa-users-cog"></i> ADMINISTRACIÓN
+                    </a>
+                    {% endif %}
+                    
+                    <hr>
+                    <small class="text-muted px-3">SISTEMA</small>
+                </nav>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 main-content">
+                <div class="d-flex justify-content-end align-items-center mb-2">
+                    {% if request.cookies.user_id %}
+                        <span class="me-2 text-muted">Usuario activo</span>
+                        <a href="/logout" class="btn btn-sm btn-outline-danger">Cerrar sesión</a>
+                    {% endif %}
+                </div>
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery and Select2 (must be before Bootstrap and before block scripts) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script>
+        // Función para mostrar alertas
+        function showAlert(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.main-content');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Auto dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Función para confirmar eliminación
+        function confirmDelete(entityType, entityName, deleteUrl) {
+            if (confirm(`¿Está seguro de que desea eliminar ${entityType}: "${entityName}"?`)) {
+                fetch(deleteUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert(`${entityType} eliminado exitosamente`, 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showAlert(`Error al eliminar ${entityType}: ${data.detail}`, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert(`Error: ${error}`, 'danger');
+                });
+            }
+        }
+
+        // Función para enviar formularios AJAX
+        function submitForm(formId, successMessage) {
+            const form = document.getElementById(formId);
+            const formData = new FormData(form);
+            
+            fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(successMessage, 'success');
+                    // Cerrar modal si existe
+                    const modal = bootstrap.Modal.getInstance(document.querySelector('.modal.show'));
+                    if (modal) modal.hide();
+                    // Recargar página después de un breve delay
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(`Error: ${data.detail}`, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert(`Error: ${error}`, 'danger');
+            });
+        }
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

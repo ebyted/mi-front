@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Análisis Avanzado de Artículos{% endblock %}
+
+{% block content %}
+<!-- Barra de usuario autenticado -->
+{% if user_id %}
+  <div class="alert alert-success mb-3" role="alert">
+    <i class="fas fa-user-check"></i> Usuario autenticado: <strong>{{ user_id }}</strong>
+  </div>
+{% else %}
+  <div class="alert alert-danger mb-3" role="alert">
+    <i class="fas fa-user-times"></i> No has iniciado sesión. El menú está deshabilitado.
+  </div>
+{% endif %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1><i class="fas fa-chart-bar"></i> Análisis Avanzado de Artículos</h1>
+    <form method="get" class="d-flex align-items-center" id="articleFiltersForm">
+        <div class="me-2">
+            <label for="warehouse_id" class="form-label mb-0">Almacén</label>
+            <select class="form-select" id="warehouse_id" name="warehouse_id">
+                <option value="">Todos</option>
+                {% for warehouse in warehouses %}
+                    <option value="{{ warehouse.id }}" {% if warehouse_id == warehouse.id %}selected{% endif %}>{{ warehouse.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary ms-2">Filtrar</button>
+    </form>
+    <a href="/admin/articles/export{% if search or category_id or brand_id or stock_status or price_range %}?search={{ search }}&category_id={{ category_id }}&brand_id={{ brand_id }}&stock_status={{ stock_status }}&price_range={{ price_range }}{% endif %}" 
+       class="btn btn-success ms-2">
+        <i class="fas fa-file-excel"></i> Exportar Análisis
+    </a>
+</div>
+
+<!-- Métricas Clave -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ stats.total_products }}</h3>
+                        <p class="mb-0">Total Productos</p>
+                    </div>
+                    <i class="fas fa-boxes fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ stats.active_products }}</h3>
+                        <p class="mb-0">Activos</p>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ stats.total_variants }}</h3>
+                        <p class="mb-0">Variantes</p>
+                    </div>
+                    <i class="fas fa-layer-group fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3>{{ stats.total_categories }}</h3>
+                        <p class="mb-0">Categorías</p>
+                    </div>
+                    <i class="fas fa-tags fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas de Valor -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <h4 class="text-info">{{ stats.total_inventory_value | currency }}</h4>
+                <p class="mb-0">Valor Total Inventario</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <h4 class="text-success">{{ stats.avg_product_price | currency }}</h4>
+                <p class="mb-0">Precio Promedio</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <h4 class="text-warning">{{ stats.total_categories }}</h4>
+                <p class="mb-0">Categorías / {{ stats.total_brands }} Marcas</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros Inteligentes -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Filtros Inteligentes</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search }}" placeholder="Nombre, código o código de barras...">
+            </div>
+            <div class="col-md-2">
+                <label for="category_id" class="form-label">Categoría</label>
+                <select class="form-select" name="category_id">
+                    <option value="">Todas</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_id == category.id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="brand_id" class="form-label">Marca</label>
+                <select class="form-select" name="brand_id">
+                    <option value="">Todas</option>
+                    {% for brand in brands %}
+                        <option value="{{ brand.id }}" {% if brand_id == brand.id %}selected{% endif %}>
+                            {{ brand.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="stock_status" class="form-label">Estado Stock</label>
+                <select class="form-select" name="stock_status">
+                    <option value="">Todos</option>
+                    <option value="good" {% if stock_status == 'good' %}selected{% endif %}>Buen Stock</option>
+                    <option value="low" {% if stock_status == 'low' %}selected{% endif %}>Stock Bajo</option>
+                    <option value="out" {% if stock_status == 'out' %}selected{% endif %}>Sin Stock</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="price_range" class="form-label">Rango Precio</label>
+                <select class="form-select" name="price_range">
+                    <option value="">Todos</option>
+                    <option value="low" {% if price_range == 'low' %}selected{% endif %}>≤ $100</option>
+                    <option value="medium" {% if price_range == 'medium' %}selected{% endif %}>$100 - $1,000</option>
+                    <option value="high" {% if price_range == 'high' %}selected{% endif %}>≥ $1,000</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-12">
+                <a href="/admin/articles" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Limpiar Filtros
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de Análisis -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Análisis de Productos ({{ total }} total)</h5>
+    </div>
+    <div class="card-body">
+        {% if products %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Marca</th>
+                            <th>Existencia Actual</th>
+                            <th>Estado</th>
+                            <th>Precios</th>
+                            <th>Margen</th>
+                            <th>Valor Inv.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr data-product-id="{{ product.id }}">
+                            <td><strong>{{ product.code }}</strong></td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm name-input" value="{{ product.name }}" readonly>
+                                {% if product.barcode %}
+                                    <br><small class="text-muted">{{ product.barcode }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.category %}
+                                    <span class="badge bg-secondary">{{ product.category.name }}</span>
+                                {% else %}
+                                    <span class="text-muted">Sin categoría</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.brand %}
+                                    <span class="badge bg-info">{{ product.brand.name }}</span>
+                                {% else %}
+                                    <span class="text-muted">Sin marca</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ product.current_stock if product.current_stock is not none else '0' }}
+                                {% if product.minimum_stock %}
+                                    <br><small class="text-muted">Stock Min: {{ product.minimum_stock }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.is_active %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="#" class="btn btn-sm btn-outline-primary" title="Ver variantes">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary edit-btn" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-success save-btn d-none" title="Guardar">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary cancel-btn d-none" title="Cancelar">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.edit-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const tr = btn.closest('tr');
+      tr.querySelector('.name-input').removeAttribute('readonly');
+      tr.querySelector('.save-btn').classList.remove('d-none');
+      tr.querySelector('.cancel-btn').classList.remove('d-none');
+      btn.classList.add('d-none');
+    });
+  });
+  document.querySelectorAll('.cancel-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const tr = btn.closest('tr');
+      const input = tr.querySelector('.name-input');
+      input.value = input.defaultValue;
+      input.setAttribute('readonly', true);
+      tr.querySelector('.save-btn').classList.add('d-none');
+      tr.querySelector('.edit-btn').classList.remove('d-none');
+      btn.classList.add('d-none');
+    });
+  });
+  document.querySelectorAll('.save-btn').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      const tr = btn.closest('tr');
+      const productId = tr.getAttribute('data-product-id');
+      const name = tr.querySelector('.name-input').value;
+      btn.disabled = true;
+      try {
+        const response = await fetch(`/api/v1/admin/products/${productId}/update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        if (response.ok) {
+          tr.querySelector('.name-input').setAttribute('readonly', true);
+          tr.querySelector('.save-btn').classList.add('d-none');
+          tr.querySelector('.edit-btn').classList.remove('d-none');
+          tr.querySelector('.cancel-btn').classList.add('d-none');
+          tr.querySelector('.name-input').defaultValue = name;
+          alert('Producto actualizado');
+        } else {
+          alert('Error al guardar: ' + (await response.text()));
+        }
+      } catch (err) {
+        alert('Error de red: ' + err);
+      }
+      btn.disabled = false;
+    });
+  });
+});
+</script>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if total_pages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page - 1 }}&search={{ search }}&category_id={{ category_id or '' }}&brand_id={{ brand_id or '' }}&stock_status={{ stock_status }}&price_range={{ price_range }}&per_page={{ per_page }}">Anterior</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for p in range(1, total_pages + 1) %}
+                        {% if p == page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ p }}</span>
+                            </li>
+                        {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 2 and p <= page + 2) %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ p }}&search={{ search }}&category_id={{ category_id or '' }}&brand_id={{ brand_id or '' }}&stock_status={{ stock_status }}&price_range={{ price_range }}&per_page={{ per_page }}">{{ p }}</a>
+                            </li>
+                        {% elif p == 4 or p == total_pages - 3 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page < total_pages %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page + 1 }}&search={{ search }}&category_id={{ category_id or '' }}&brand_id={{ brand_id or '' }}&stock_status={{ stock_status }}&price_range={{ price_range }}&per_page={{ per_page }}">Siguiente</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No se encontraron productos</h5>
+                <p class="text-muted">No hay productos que coincidan con los filtros aplicados</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Análisis Rápido -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Insights de Negocio</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>📊 Distribución de Productos:</h6>
+                        <ul class="list-unstyled">
+                            <li><span class="badge bg-success me-2">Productos Activos:</span> {{ stats.active_products }} productos</li>
+                            <li><span class="badge bg-secondary me-2">Productos Inactivos:</span> {{ stats.inactive_products }} productos</li>
+                            <li><span class="badge bg-info me-2">Total Variantes:</span> {{ stats.total_variants }} variantes</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>🏷️ Organización:</h6>
+                        <ul class="list-unstyled">
+                            <li><span class="badge bg-primary me-2">Categorías:</span> {{ stats.total_categories }} categorías</li>
+                            <li><span class="badge bg-warning me-2">Marcas:</span> {{ stats.total_brands }} marcas</li>
+                            <li><span class="badge bg-info me-2">Con Stock Mínimo:</span> {{ stats.products_with_minimum_stock }} productos</li>
+                        </ul>
+                            <li><strong>Valor Total Inventario:</strong> {{ stats.total_inventory_value | currency }}</li>
+                            <li><strong>Precio Promedio:</strong> {{ stats.avg_product_price | currency }}</li>
+                            <li><strong>Diversificación:</strong> {{ stats.total_categories }} categorías, {{ stats.total_brands }} marcas</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

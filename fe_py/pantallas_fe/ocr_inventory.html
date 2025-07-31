@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="container mt-4">
+  <h2>Registros OCR de inventario</h2>
+  <ol class="mb-4">
+    <li><b>Sube una imagen de remisión/factura</b> (debe ser clara y legible).</li>
+    <li><b>Edita los productos detectados</b> (puedes corregir cantidad, SKU, descripción, etc.).</li>
+    <li><b>Selecciona el almacén destino</b> para la entrada.</li>
+    <li><b>Marca/desmarca</b> los productos a procesar.</li>
+    <li><b>Haz clic en "Procesar entrada de almacén"</b>.</li>
+    <li><b>Revisa el resumen de proceso</b> al final.</li>
+  </ol>
+  <form id="ocr-form" method="post" enctype="multipart/form-data" action="/ocr/ocr-inventory/upload">
+    <div class="mb-3">
+      <label for="file" class="form-label">Subir imagen de remisión/factura</label>
+      <input class="form-control" type="file" id="file" name="file" required>
+    </div>
+    <button type="submit" class="btn btn-primary" id="btn-ocr">Procesar imagen</button>
+  </form>
+  <div id="progress-bar-container" class="mt-3 text-center" style="display:none;">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+      <span class="visually-hidden">Procesando...</span>
+    </div>
+    <div class="mt-2 fw-bold" id="progress-text">Procesando imagen, por favor espera...</div>
+  </div>
+  <script>
+    document.getElementById('ocr-form').onsubmit = function(e) {
+      document.getElementById('btn-ocr').style.display = 'none';
+      document.getElementById('progress-bar-container').style.display = 'block';
+    };
+  </script>
+  {% if result %}
+    <hr>
+    <h4>Encabezado</h4>
+    <ul>
+      <li>Cliente: {{ result.encabezado.cliente }}</li>
+      <li>Folio: {{ result.encabezado.folio }}</li>
+      <li>Fecha: {{ result.encabezado.fecha }}</li>
+      <li>Referencia: {{ result.encabezado.referencia }}</li>
+      <li>Creador: {{ result.encabezado.creador }}</li>
+    </ul>
+    <h4>Productos detectados</h4>
+    <form id="ocr-productos-form">
+      <div class="mb-3">
+        <label for="warehouse_id" class="form-label">Selecciona almacén destino</label>
+        <select class="form-select" id="warehouse_id" name="warehouse_id" required>
+          <option value="">-- Selecciona almacén --</option>
+          {% for w in warehouses %}
+            <option value="{{ w.id }}">{{ w.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <table class="table table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th></th>
+            <th>Cantidad</th>
+            <th>SKU</th>
+            <th>SKU 4D</th>
+            <th>Descripción</th>
+            <th>Precio</th>
+            <th>Importe</th>
+            <th>Estado</th>
+            <th>Mensaje</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in result.productos %}
+          <tr class="{% if p.status == 'error' %}table-danger{% else %}table-success{% endif %}">
+            <td><input type="checkbox" class="producto-checkbox" checked></td>
+            <td><input type="number" class="form-control form-control-sm" name="cantidad" value="{{ p.cantidad }}"></td>
+            <td><input type="text" class="form-control form-control-sm" name="sku" value="{{ p.sku }}"></td>
+            <td><input type="text" class="form-control form-control-sm" name="sku_4d" value="{{ p.sku_4d }}"></td>
+            <td><input type="text" class="form-control form-control-sm" name="descripcion" value="{{ p.descripcion }}"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm" name="precio" value="{{ p.precio }}"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm" name="importe" value="{{ p.importe }}"></td>
+            <td>{% if p.status == 'error' %}No encontrado{% else %}OK{% endif %}</td>
+            <td>{{ p.mensaje or p.message or '' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <button type="button" id="procesar-entrada-btn" class="btn btn-success mt-3">Procesar entrada de almacén</button>
+    </form>
+    <script>
+      document.getElementById('procesar-entrada-btn').onclick = function() {
+        const rows = document.querySelectorAll('#ocr-productos-form tbody tr');
+        const productos = [];
+        rows.forEach(row => {
+          const checked = row.querySelector('.producto-checkbox').checked;
+          if (checked) {
+            const inputs = row.querySelectorAll('input');
+            const prod = {};
+            inputs.forEach(input => {
+              prod[input.name] = input.value;
+            });
+            productos.push(prod);
+          }
+        });
+        const warehouse_id = document.getElementById('warehouse_id').value;
+        if (!warehouse_id) {
+          alert('Selecciona un almacén destino.');
+          return;
+        }
+        fetch('/ocr/ocr-inventory/process-entry', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ productos, warehouse_id }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert(data.message || 'Entrada procesada');
+          window.location.reload();
+        })
+        .catch(err => alert('Error al procesar entrada: ' + err));
+      };
+    </script>
+
+    {% if result.productos %}
+      {% set total = result.productos|length %}
+      {% set total_ok = result.productos|selectattr('status', 'equalto', 'ok')|list|length %}
+      {% set total_error = result.productos|selectattr('status', 'equalto', 'error')|list|length %}
+      {% set total_no_encontrado = result.advertencias|length if result.advertencias else 0 %}
+      <div class="mt-4">
+        <h5 class="text-primary">Resumen de Proceso</h5>
+        <table class="table table-bordered w-auto">
+          <tr><th>Total de productos</th><td>{{ total }}</td></tr>
+          <tr><th>Total procesados con éxito</th><td class="text-success fw-bold">{{ total_ok }}</td></tr>
+          <tr><th>Total productos no encontrados</th><td class="text-warning fw-bold">{{ total_no_encontrado }}</td></tr>
+          <tr><th>Total con error</th><td class="text-danger fw-bold">{{ total_error }}</td></tr>
+        </table>
+      </div>
+    {% endif %}
+    {% if result.advertencias %}
+      <div class="alert alert-warning">
+        <ul>
+        {% for adv in result.advertencias %}
+          <li>{{ adv }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
