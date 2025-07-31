@@ -11,7 +11,3 @@ EXPOSE 8030
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8030"]
 
-frontend:
-    build:
-      context: ./dbackf
-      dockerfile: ../Dockerfile
