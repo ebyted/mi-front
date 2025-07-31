@@ -27,7 +27,7 @@ services:
   frontend:
     build:
       context: ./dbackf
-      dockerfile: Dockerfile
+      dockerfile: ../dbackf/Dockerfile
     container_name: maestro_frontend
     ports:
       - "80:80"
