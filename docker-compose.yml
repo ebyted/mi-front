@@ -24,16 +24,5 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     ports:
       - "5434:5432"
-  frontend:
-    build:
-      context: ./dbackf
-      dockerfile: ../dbackf/Dockerfile
-    container_name: maestro_frontend
-    ports:
-      - "80:80"
-    env_file:
-      - .env
-    depends_on:
-      - backend
 volumes:
   postgres_data:
