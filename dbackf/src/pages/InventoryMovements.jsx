@@ -75,8 +75,9 @@ const InventoryMovements = () => {
   });
   
   // Estado para debug
-  const [debugMode, setDebugMode] = useState(false);
+  const [debugMode, setDebugMode] = useState(true); // Activar debug por defecto
   const [apiLogs, setApiLogs] = useState([]);
+  const [connectivityStatus, setConnectivityStatus] = useState({});
 
   // Estados de filtros
   const [page, setPage] = useState(1);
@@ -442,6 +443,45 @@ const InventoryMovements = () => {
     }
   };
 
+  // Función para probar conectividad de endpoints
+  const testApiConnectivity = async () => {
+    const endpoints = [
+      'product-warehouse-stocks/',
+      'current-inventory/',
+      'inventory-movements/',
+      'products/',
+      'warehouses/'
+    ];
+    
+    const results = {};
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`🔍 Probando endpoint: ${endpoint}`);
+        const startTime = Date.now();
+        const response = await api.get(endpoint);
+        const endTime = Date.now();
+        
+        results[endpoint] = {
+          status: '✅ Funcionando',
+          responseTime: `${endTime - startTime}ms`,
+          statusCode: response.status,
+          dataLength: Array.isArray(response.data) ? response.data.length : 'N/A'
+        };
+      } catch (error) {
+        results[endpoint] = {
+          status: '❌ Error',
+          error: error.response?.status || 'Error de conexión',
+          message: error.response?.data?.message || error.message,
+          details: error.response?.data
+        };
+      }
+    }
+    
+    setConnectivityStatus(results);
+    console.log('📊 Resultados de conectividad:', results);
+  };
+
   // Cargar inventario actual para la pestaña
   const loadInventoryTab = async () => {
     setLoadingCurrentInventory(true);
@@ -625,14 +665,23 @@ const InventoryMovements = () => {
       
       // Mostrar error específico según el código de estado
       if (err.response?.status === 500) {
-        const serverError = `Error del servidor (500). El backend tiene problemas internos.
-        
-Detalles técnicos:
-• Endpoint: ${err.config?.url || 'Desconocido'}
-• Mensaje: ${err.response?.data?.detail || err.response?.data?.message || 'Sin detalles'}
-• Hora: ${new Date().toLocaleString()}
+        const serverError = `🚨 Error del Servidor (500)
 
-Contacta al administrador del sistema.`;
+❌ PROBLEMA: El backend tiene un error interno
+📍 Endpoint: ${err.config?.url || 'current-inventory/'}
+⏰ Hora: ${new Date().toLocaleString()}
+
+🔧 SOLUCIONES DISPONIBLES:
+✅ La aplicación continuará funcionando con datos de respaldo
+✅ Usa el Panel de Diagnóstico arriba para más opciones
+✅ Puedes cargar datos demo mientras se soluciona el problema
+
+💡 DATOS TÉCNICOS:
+• Mensaje: ${err.response?.data?.detail || err.response?.data?.message || 'Error interno del servidor'}
+• Estado HTTP: ${err.response?.status}
+• URL: ${err.config?.url}
+
+El inventario se ha cargado con datos de ejemplo para que puedas seguir trabajando.`;
         setError(serverError);
       } else if (err.response?.status === 404) {
         setError('Endpoint no encontrado (404). Verifica la configuración de la API.');
@@ -1219,6 +1268,148 @@ Cantidad: ${movement.total_quantity || 0}
           </button>
         </li>
       </ul>
+
+      {/* Panel de Debug */}
+      {debugMode && (
+        <div className="card mb-4 border-warning">
+          <div className="card-header bg-warning text-dark">
+            <div className="d-flex justify-content-between align-items-center">
+              <h5 className="mb-0">
+                <i className="bi bi-bug me-2"></i>
+                Panel de Diagnóstico
+              </h5>
+              <button 
+                className="btn btn-sm btn-outline-dark"
+                onClick={() => setDebugMode(false)}
+              >
+                <i className="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+          <div className="card-body">
+            <div className="row">
+              <div className="col-md-4">
+                <h6 className="text-primary">📊 Estado de la Aplicación</h6>
+                <ul className="list-unstyled small">
+                  <li><strong>API Base:</strong> {api.defaults.baseURL}</li>
+                  <li><strong>Movimientos:</strong> {movements.length} registros</li>
+                  <li><strong>Inventario:</strong> {currentInventory.length} items</li>
+                  <li><strong>Última actualización:</strong> {lastRefresh.toLocaleTimeString()}</li>
+                  <li><strong>Auto-refresh:</strong> {autoRefresh ? '✅ Activo' : '❌ Inactivo'}</li>
+                  <li><strong>Pestaña activa:</strong> {activeTab}</li>
+                </ul>
+              </div>
+              <div className="col-md-4">
+                <h6 className="text-success">🌐 Conectividad API</h6>
+                <div className="mb-2">
+                  <button 
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={testApiConnectivity}
+                  >
+                    <i className="bi bi-wifi me-1"></i>
+                    Probar Conectividad
+                  </button>
+                </div>
+                {Object.keys(connectivityStatus).length > 0 && (
+                  <div className="small">
+                    {Object.entries(connectivityStatus).map(([endpoint, status]) => (
+                      <div key={endpoint} className="mb-1">
+                        <strong>{endpoint}:</strong> {status.status}
+                        {status.responseTime && <span className="text-muted"> ({status.responseTime})</span>}
+                        {status.error && <div className="text-danger">Error {status.error}: {status.message}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="col-md-4">
+                <h6 className="text-info">🔧 Acciones de Diagnóstico</h6>
+                <div className="d-grid gap-2">
+                  <button 
+                    className="btn btn-sm btn-outline-info"
+                    onClick={() => loadInventoryTab()}
+                  >
+                    <i className="bi bi-arrow-clockwise me-1"></i>
+                    Recargar Inventario
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-outline-warning"
+                    onClick={() => {
+                      console.clear();
+                      console.log('🧹 Consola limpiada - Iniciando diagnóstico...');
+                      loadInventoryTab();
+                    }}
+                  >
+                    <i className="bi bi-terminal me-1"></i>
+                    Diagnóstico Completo
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() => {
+                      setCurrentInventory([
+                        {
+                          product_name: 'Producto Demo 1',
+                          product_code: 'DEMO001',
+                          warehouse_name: 'Almacén Principal',
+                          total_stock: 100,
+                          product_price: 50.00,
+                          min_stock: 10
+                        },
+                        {
+                          product_name: 'Producto Demo 2', 
+                          product_code: 'DEMO002',
+                          warehouse_name: 'Almacén Secundario',
+                          total_stock: 25,
+                          product_price: 75.50,
+                          min_stock: 5
+                        }
+                      ]);
+                    }}
+                  >
+                    <i className="bi bi-database me-1"></i>
+                    Cargar Datos Demo
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {error && (
+              <div className="alert alert-danger mt-3">
+                <h6 className="alert-heading">❌ Error Detectado:</h6>
+                <pre className="mb-0 small">{error}</pre>
+                <hr />
+                <div className="d-flex gap-2">
+                  <button 
+                    className="btn btn-sm btn-outline-danger"
+                    onClick={() => setError('')}
+                  >
+                    Limpiar Error
+                  </button>
+                  <button 
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => loadInventoryTab()}
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Botón para mostrar debug si está oculto */}
+      {!debugMode && (
+        <div className="position-fixed bottom-0 end-0 p-3" style={{zIndex: 1000}}>
+          <button 
+            className="btn btn-warning btn-sm"
+            onClick={() => setDebugMode(true)}
+            title="Mostrar panel de diagnóstico"
+          >
+            <i className="bi bi-bug"></i>
+          </button>
+        </div>
+      )}
 
       {/* Contenido según la pestaña activa */}
       {activeTab === 'movements' ? (
