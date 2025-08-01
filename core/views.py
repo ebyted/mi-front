@@ -533,6 +533,87 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     
+    def create(self, request, *args, **kwargs):
+        """
+        Crear un nuevo usuario
+        """
+        data = request.data.copy()
+        
+        # Validar campos requeridos
+        required_fields = ['email', 'first_name', 'last_name']
+        for field in required_fields:
+            if not data.get(field):
+                return Response(
+                    {'error': f'El campo {field} es requerido.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Verificar que el email no exista
+        if User.objects.filter(email=data['email']).exists():
+            return Response(
+                {'error': 'Ya existe un usuario con este email.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Crear el usuario
+            user = User.objects.create_user(
+                email=data['email'],
+                first_name=data['first_name'],
+                last_name=data['last_name'],
+                is_active=data.get('is_active', True),
+                is_staff=data.get('is_staff', False)
+            )
+            
+            # Establecer contraseña por defecto
+            user.set_password('123456')  # Contraseña temporal
+            user.save()
+            
+            serializer = self.get_serializer(user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al crear usuario: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Actualizar usuario existente
+        """
+        user = self.get_object()
+        data = request.data.copy()
+        
+        # Actualizar campos permitidos
+        if 'first_name' in data:
+            user.first_name = data['first_name']
+        if 'last_name' in data:
+            user.last_name = data['last_name']
+        if 'email' in data:
+            # Verificar que el email no exista en otro usuario
+            if User.objects.filter(email=data['email']).exclude(id=user.id).exists():
+                return Response(
+                    {'error': 'Ya existe otro usuario con este email.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.email = data['email']
+        if 'is_active' in data:
+            user.is_active = data['is_active']
+        if 'is_staff' in data:
+            user.is_staff = data['is_staff']
+        
+        try:
+            user.save()
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al actualizar usuario: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def reset_password(self, request, pk=None):
         """
@@ -571,11 +652,11 @@ class UserViewSet(viewsets.ModelViewSet):
                 action='RESET_PASSWORD',
                 model='User',
                 object_id=user.id,
-                details=f'Contraseña restablecida para usuario: {user.username}'
+                details=f'Contraseña restablecida para usuario: {user.email}'
             )
             
             return Response({
-                'message': f'Contraseña restablecida exitosamente para {user.username}.',
+                'message': f'Contraseña restablecida exitosamente para {user.email}.',
                 'user_id': user.id
             }, status=status.HTTP_200_OK)
             

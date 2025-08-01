@@ -28,10 +28,11 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     role = RoleSerializer(read_only=True)
+    username = serializers.CharField(source='email', read_only=True)  # Campo virtual para compatibilidad
     
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_active', 'is_staff']
         
 class UserMenuOptionsSerializer(serializers.ModelSerializer):
     """Serializer específico para obtener las opciones de menú del usuario"""

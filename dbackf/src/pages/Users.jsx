@@ -14,7 +14,6 @@ function Users() {
   const [newPassword, setNewPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [formData, setFormData] = useState({ 
-    username: '', 
     email: '', 
     first_name: '', 
     last_name: '',
@@ -61,8 +60,8 @@ function Users() {
   };
 
   const filteredUsers = users.filter(u =>
-    (u.username?.toLowerCase() || '').includes(search.toLowerCase()) ||
     (u.email?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (u.username?.toLowerCase() || '').includes(search.toLowerCase()) ||
     (u.first_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
     (u.last_name?.toLowerCase() || '').includes(search.toLowerCase())
   );
@@ -78,7 +77,6 @@ function Users() {
 
   const resetForm = () => {
     setFormData({ 
-      username: '', 
       email: '', 
       first_name: '', 
       last_name: '',
@@ -103,7 +101,7 @@ function Users() {
     e.preventDefault();
     setFormError('');
     
-    if (!formData.username || !formData.email || !formData.first_name || !formData.last_name) {
+    if (!formData.email || !formData.first_name || !formData.last_name) {
       setFormError('Todos los campos son obligatorios.');
       return;
     }
@@ -124,7 +122,7 @@ function Users() {
       resetForm();
       loadUsers();
     } catch (err) {
-      const errorMsg = err.response?.data?.detail || 
+      const errorMsg = err.response?.data?.error || err.response?.data?.detail || 
                       (editMode ? 'Error al actualizar usuario.' : 'Error al crear usuario.');
       setFormError(errorMsg);
     }
@@ -133,7 +131,6 @@ function Users() {
   const handleEdit = (user) => {
     setSelectedUser(user);
     setFormData({
-      username: user.username || '',
       email: user.email || '',
       first_name: user.first_name || '',
       last_name: user.last_name || '',
@@ -145,7 +142,7 @@ function Users() {
   };
 
   const handleDelete = async (user) => {
-    if (!window.confirm(`¿Estás seguro de que deseas eliminar al usuario "${user.username}"?`)) {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar al usuario "${user.email}"?`)) {
       return;
     }
 
@@ -199,7 +196,7 @@ function Users() {
         new_password: newPassword
       });
       
-      alert(`Contraseña restablecida exitosamente para ${selectedUserForPassword.username}`);
+      alert(`Contraseña restablecida exitosamente para ${selectedUserForPassword.email || selectedUserForPassword.username}`);
       resetPasswordModal();
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Error al restablecer contraseña.';
@@ -304,8 +301,7 @@ function Users() {
             <table className="table table-hover mb-0 align-middle" style={{ borderRadius: 12, minWidth: 700, fontSize: 'clamp(13px, 2vw, 15px)' }}>
               <thead className="table-primary text-center" style={{ fontSize: 15 }}>
                 <tr style={{ background: 'linear-gradient(90deg, #e3f2fd 0%, #fff 100%)' }}>
-                  <th>Usuario <i className="bi bi-person-badge text-primary"></i></th>
-                  <th>Email <i className="bi bi-envelope text-primary"></i></th>
+                  <th>Email/Usuario <i className="bi bi-envelope text-primary"></i></th>
                   <th>Nombre Completo <i className="bi bi-person text-primary"></i></th>
                   <th>Estado <i className="bi bi-toggle-on text-primary"></i></th>
                   <th>Tipo <i className="bi bi-shield text-primary"></i></th>
@@ -319,12 +315,16 @@ function Users() {
                       <div className="d-flex align-items-center">
                         <div className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" 
                              style={{ width: 35, height: 35, fontSize: 14, fontWeight: 'bold' }}>
-                          {(u.username || '?').charAt(0).toUpperCase()}
+                          {(u.email || '?').charAt(0).toUpperCase()}
                         </div>
-                        <strong>{u.username}</strong>
+                        <div>
+                          <strong>{u.email}</strong>
+                          {u.username && u.username !== u.email && (
+                            <div className="text-muted small">@{u.username}</div>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td>{u.email}</td>
                     <td>{`${u.first_name || ''} ${u.last_name || ''}`.trim() || '-'}</td>
                     <td>
                       <button
@@ -412,23 +412,7 @@ function Users() {
               <div className="modal-body" style={{ background: '#fff', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: '20px', overflow: 'auto', flexGrow: 1 }}>
                 <form onSubmit={handleSubmit}>
                   <div className="row mb-3">
-                    <div className="col-md-6">
-                      <label className="form-label">Usuario *</label>
-                      <div className="input-group">
-                        <span className="input-group-text"><i className="bi bi-person-badge"></i></span>
-                        <input
-                          type="text"
-                          name="username"
-                          className="form-control"
-                          placeholder="Nombre de usuario"
-                          value={formData.username}
-                          onChange={handleChange}
-                          required
-                          disabled={editMode} // No permitir cambio de username en edición
-                        />
-                      </div>
-                    </div>
-                    <div className="col-md-6">
+                    <div className="col-md-12">
                       <label className="form-label">Email *</label>
                       <div className="input-group">
                         <span className="input-group-text"><i className="bi bi-envelope"></i></span>
@@ -441,6 +425,10 @@ function Users() {
                           onChange={handleChange}
                           required
                         />
+                      </div>
+                      <div className="form-text">
+                        <i className="bi bi-info-circle me-1"></i>
+                        El email será usado como nombre de usuario
                       </div>
                     </div>
                   </div>
@@ -558,7 +546,7 @@ function Users() {
               <div className="modal-body" style={{ background: '#fff', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: '20px', overflow: 'auto', flexGrow: 1 }}>
                 <div className="alert alert-info mb-3">
                   <i className="bi bi-info-circle me-2"></i>
-                  Vas a restablecer la contraseña para: <strong>{selectedUserForPassword?.username}</strong>
+                  Vas a restablecer la contraseña para: <strong>{selectedUserForPassword?.email || selectedUserForPassword?.username}</strong>
                 </div>
                 
                 <form onSubmit={handlePasswordSubmit}>
