@@ -67,26 +67,14 @@ class UnitSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProductSerializer(serializers.ModelSerializer):
-    price = serializers.SerializerMethodField(read_only=True)
-    
     class Meta:
         model = Product
-        fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
-                 'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
-                 'is_active', 'group', 'created_at', 'updated_at', 'price']
+        fields = ['id', 'name', 'sku', 'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
+                 'is_active', 'group', 'created_at', 'updated_at']
     
-    def get_price(self, obj):
-        """Obtener el precio del primer ProductVariant asociado"""
-        try:
-            # Buscar el primer ProductVariant asociado a este Product
-            product_variant = ProductVariant.objects.filter(product=obj).first()
-            if product_variant and product_variant.sale_price:
-                return float(product_variant.sale_price)
-            return 0.0
-        except Exception as e:
-            return 0.0
 
 class ProductVariantSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
     class Meta:
         model = ProductVariant
         fields = '__all__'
