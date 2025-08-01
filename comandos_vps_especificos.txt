@@ -1,0 +1,36 @@
+# COMANDOS ESPECÍFICOS PARA TU VPS
+# ==================================
+# Ejecuta estos comandos uno por uno en tu VPS (ya estás conectado como root@arkano-ia)
+
+echo "🔍 Verificando bases de datos disponibles:"
+docker exec maestro_db psql -U maestro -l
+
+echo ""
+echo "🔍 Probando base de datos 'maestro':"
+docker exec maestro_db psql -U maestro -d maestro -c "SELECT COUNT(*) as productos FROM core_product;"
+
+echo ""
+echo "🔍 Probando base de datos 'maestro_inventario':"
+docker exec maestro_db psql -U maestro -d maestro_inventario -c "SELECT COUNT(*) as productos FROM core_product;"
+
+echo ""
+echo "🔍 Probando base de datos 'postgres':"
+docker exec maestro_db psql -U maestro -d postgres -c "SELECT COUNT(*) as productos FROM core_product;"
+
+echo ""
+echo "🔍 Si alguna funciona, ver más detalles:"
+# Reemplaza 'NOMBRE_BD' con la base que funcione
+# docker exec maestro_db psql -U maestro -d NOMBRE_BD -c "
+# SELECT 
+#     'Productos' as tabla, COUNT(*) as registros FROM core_product
+# UNION ALL
+# SELECT 
+#     'Variantes' as tabla, COUNT(*) as registros FROM core_productvariant
+# UNION ALL  
+# SELECT
+#     'Usuarios' as tabla, COUNT(*) as registros FROM core_user;
+# "
+
+echo ""
+echo "🔍 Ver usuarios disponibles:"
+# docker exec maestro_db psql -U maestro -d NOMBRE_BD -c "SELECT email, first_name FROM core_user;"

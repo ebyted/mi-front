@@ -49,23 +49,26 @@ def restore_on_vps(backup_file):
     """Ejecutar restauracion en VPS"""
     print("Ejecutando restauracion en VPS...")
     
-    # Comandos para ejecutar en el VPS con contenedor maestro_db
-    restore_commands = f"""
-    echo "Eliminando base de datos existente..." &&
-    docker exec -i maestro_db psql -U maestro -c "DROP DATABASE IF EXISTS maestro_inventario;" &&
-    echo "Creando base de datos nueva..." &&
-    docker exec -i maestro_db psql -U maestro -c "CREATE DATABASE maestro_inventario;" &&
-    echo "Restaurando backup..." &&
-    docker exec -i maestro_db psql -U maestro -d maestro_inventario < /tmp/{backup_file} &&
-    echo "Limpiando archivo temporal..." &&
-    rm /tmp/{backup_file} &&
-    echo "Restauracion completada!"
-    """
+    # Ejecutar comandos uno por uno
+    commands = [
+        f'ssh {VPS_USER}@{VPS_HOST} "docker exec -i maestro_db psql -U maestro -c \\"DROP DATABASE IF EXISTS maestro_inventario;\\""',
+        f'ssh {VPS_USER}@{VPS_HOST} "docker exec -i maestro_db psql -U maestro -c \\"CREATE DATABASE maestro_inventario;\\""',
+        f'ssh {VPS_USER}@{VPS_HOST} "docker exec -i maestro_db psql -U maestro -d maestro_inventario < /tmp/{backup_file}"',
+        f'ssh {VPS_USER}@{VPS_HOST} "rm /tmp/{backup_file}"'
+    ]
     
-    cmd = f"ssh {VPS_USER}@{VPS_HOST} '{restore_commands}'"
+    steps = [
+        "Eliminando base de datos existente...",
+        "Creando base de datos nueva...",
+        "Restaurando backup...",
+        "Limpiando archivo temporal..."
+    ]
     
     try:
-        result = subprocess.run(cmd, shell=True, check=True)
+        for i, (cmd, step) in enumerate(zip(commands, steps)):
+            print(f"Paso {i+1}: {step}")
+            result = subprocess.run(cmd, shell=True, check=True)
+        
         print("Restauracion completada en VPS")
         return True
     except subprocess.CalledProcessError as e:
@@ -76,17 +79,7 @@ def verify_sync():
     """Verificar que la sincronización fue exitosa"""
     print("Verificando sincronización en VPS...")
     
-    verify_commands = f"""
-    echo "Verificando datos en VPS..." &&
-    docker exec maestro_db psql -U maestro -d maestro_inventario -c "
-    SELECT 
-        (SELECT COUNT(*) FROM core_product) as productos,
-        (SELECT COUNT(*) FROM core_productvariant) as variantes,
-        (SELECT COUNT(*) FROM core_brand) as marcas,
-        (SELECT COUNT(*) FROM core_category) as categorias,
-        (SELECT COUNT(*) FROM core_user) as usuarios;
-    "
-    """
+    verify_commands = f'echo "Verificando datos en VPS..." && docker exec maestro_db psql -U maestro -d maestro_inventario -c "SELECT (SELECT COUNT(*) FROM core_product) as productos, (SELECT COUNT(*) FROM core_productvariant) as variantes, (SELECT COUNT(*) FROM core_brand) as marcas, (SELECT COUNT(*) FROM core_category) as categorias, (SELECT COUNT(*) FROM core_user) as usuarios;"'
     
     cmd = f"ssh {VPS_USER}@{VPS_HOST} '{verify_commands}'"
     

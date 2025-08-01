@@ -1,0 +1,107 @@
+# COMANDOS PARA VERIFICAR VPS MANUALMENTE
+# =====================================
+# Copia y pega estos comandos uno por uno en tu VPS
+
+# 1. CONECTAR AL VPS
+# ssh root@168.231.67.221
+
+# 2. UNA VEZ CONECTADO, EJECUTAR ESTOS COMANDOS:
+
+echo "🚀 VERIFICANDO DOCKER Y BASE DE DATOS EN VPS"
+echo "=============================================="
+
+# Verificar contenedores en ejecución
+echo "🐳 CONTENEDORES EN EJECUCIÓN:"
+docker ps
+
+echo ""
+echo "📋 TODOS LOS CONTENEDORES:"
+docker ps -a
+
+# Buscar contenedor de base de datos
+echo ""
+echo "🔍 BUSCANDO CONTENEDORES DE BASE DE DATOS:"
+docker ps | grep -i postgres
+docker ps | grep -i db
+docker ps | grep -i maestro
+
+# Si encuentras el contenedor correcto, reemplaza CONTAINER_NAME con el nombre real
+CONTAINER_NAME="maestro_db"  # Cambia este nombre si es diferente
+
+echo ""
+echo "🗄️ VERIFICANDO BASE DE DATOS EN CONTENEDOR: $CONTAINER_NAME"
+
+# Verificar si el contenedor existe
+if docker ps | grep -q $CONTAINER_NAME; then
+    echo "✅ Contenedor $CONTAINER_NAME encontrado"
+    
+    # Listar bases de datos
+    echo ""
+    echo "📊 BASES DE DATOS DISPONIBLES:"
+    docker exec $CONTAINER_NAME psql -U maestro -l
+    
+    # Si la base de datos maestro_inventario existe, verificar datos
+    echo ""
+    echo "🔍 VERIFICANDO DATOS EN maestro_inventario:"
+    docker exec $CONTAINER_NAME psql -U maestro -d maestro_inventario -c "
+    SELECT 
+        'Productos' as tabla, COUNT(*) as registros FROM core_product
+    UNION ALL
+    SELECT 
+        'Variantes' as tabla, COUNT(*) as registros FROM core_productvariant
+    UNION ALL
+    SELECT 
+        'Marcas' as tabla, COUNT(*) as registros FROM core_brand
+    UNION ALL
+    SELECT 
+        'Categorias' as tabla, COUNT(*) as registros FROM core_category
+    UNION ALL
+    SELECT 
+        'Usuarios' as tabla, COUNT(*) as registros FROM core_user;
+    "
+    
+    # Mostrar algunos productos de ejemplo
+    echo ""
+    echo "📦 PRODUCTOS DE EJEMPLO:"
+    docker exec $CONTAINER_NAME psql -U maestro -d maestro_inventario -c "
+    SELECT id, name, brand_id, category_id FROM core_product LIMIT 5;
+    "
+    
+    # Mostrar usuarios
+    echo ""
+    echo "👤 USUARIOS REGISTRADOS:"
+    docker exec $CONTAINER_NAME psql -U maestro -d maestro_inventario -c "
+    SELECT id, email, first_name, last_name, is_active FROM core_user;
+    "
+    
+else
+    echo "❌ Contenedor $CONTAINER_NAME no encontrado"
+    echo "Contenedores disponibles:"
+    docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+fi
+
+# Verificar puertos en uso
+echo ""
+echo "🌐 PUERTOS EN USO:"
+netstat -tlnp | grep -E ":(80|3000|8000|5432)"
+
+echo ""
+echo "✅ VERIFICACIÓN COMPLETADA"
+
+# COMANDOS ADICIONALES ÚTILES:
+# ============================
+
+# Si necesitas verificar con otro usuario de base de datos:
+# docker exec CONTAINER_NAME psql -U postgres -l
+
+# Si la base de datos tiene otro nombre:
+# docker exec CONTAINER_NAME psql -U maestro -d NOMBRE_BD -c "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+
+# Para ver las variables de entorno del contenedor:
+# docker exec CONTAINER_NAME env | grep POSTGRES
+
+# Para ver los logs del contenedor:
+# docker logs CONTAINER_NAME
+
+# Para entrar al contenedor:
+# docker exec -it CONTAINER_NAME bash

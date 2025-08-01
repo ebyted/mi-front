@@ -7,12 +7,14 @@ import subprocess
 VPS_HOST = "168.231.67.221"
 VPS_USER = "root"
 VPS_CONTAINER = "maestro_db"
+VPS_PASSWORD = "Arkano-IA2025+"
 
 def ejecutar_en_vps(comando, descripcion):
-    """Ejecutar comando en VPS"""
+    """Ejecutar comando en VPS usando sshpass"""
     print(f"🔍 {descripcion}...")
     
-    ssh_cmd = f"ssh {VPS_USER}@{VPS_HOST} '{comando}'"
+    # Usar sshpass para autenticación automática
+    ssh_cmd = f"sshpass -p '{VPS_PASSWORD}' ssh -o StrictHostKeyChecking=no {VPS_USER}@{VPS_HOST} '{comando}'"
     
     try:
         result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True, timeout=30)
