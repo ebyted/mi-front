@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Usar variable de entorno para la URL del API
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8030/api/';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8030';
 
 console.log('API URL configurada:', API_URL); // Para debug
 
