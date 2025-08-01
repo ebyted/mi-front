@@ -67,14 +67,28 @@ class UnitSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProductSerializer(serializers.ModelSerializer):
+    price = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = Product
-        fields = ['id', 'name', 'sku', 'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
-                 'is_active', 'group', 'created_at', 'updated_at']
+        fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
+                 'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
+                 'is_active', 'group', 'created_at', 'updated_at', 'price']
     
+    def get_price(self, obj):
+        """Obtener el precio del primer ProductVariant asociado"""
+        try:
+            # Buscar el primer ProductVariant asociado a este Product
+            product_variant = ProductVariant.objects.filter(product=obj).first()
+            if product_variant and product_variant.sale_price:
+                return float(product_variant.sale_price)
+            return 0.0
+        except Exception as e:
+            return 0.0
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
+    
     class Meta:
         model = ProductVariant
         fields = '__all__'
@@ -137,6 +151,8 @@ class PurchaseOrderReceiptItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class InventoryMovementDetailSerializer(serializers.ModelSerializer):
+    product_variant = ProductVariantSerializer(read_only=True)
+    
     class Meta:
         model = InventoryMovementDetail
         fields = ['id', 'product_variant', 'quantity', 'price', 'total', 'lote', 'expiration_date']
@@ -326,37 +342,14 @@ class QuotationItemSerializer(serializers.ModelSerializer):
 
 # Serializers para Role y MenuOption
 
-class RoleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Role
-        fields = '__all__'
-
-    def validate(self, data):
-        name = data.get('name')
-        business = data.get('business')
-        if Role.objects.filter(name=name, business=business).exists():
-            raise serializers.ValidationError({
-                'name': f'El rol "{name}" ya existe en la empresa seleccionada.'
-            })
-        return data
-
 class MenuOptionSerializer(serializers.ModelSerializer):
-    roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True)
-
-    def validate(self, data):
-        name = data.get('name')
-        business = data.get('business')
-        if MenuOption.objects.filter(name=name, business=business).exists():
-            raise serializers.ValidationError({
-                'name': f'La opción de menú "{name}" ya existe en la empresa seleccionada.'
-            })
-        return data
-
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        rep['roles'] = RoleSerializer(instance.roles.all(), many=True).data
-        return rep
-
     class Meta:
         model = MenuOption
-        fields = '__all__'
+        fields = ['id', 'name', 'label']
+
+class RoleSerializer(serializers.ModelSerializer):
+    menu_options = MenuOptionSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Role
+        fields = ['id', 'name', 'menu_options']
