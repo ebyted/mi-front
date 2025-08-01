@@ -10,8 +10,7 @@ function Products() {
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [businesses, setBusinesses] = useState([]);
-  const [defaultBusinessId, setDefaultBusinessId] = useState(null);
+  // Eliminado manejo de múltiples negocios
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -33,30 +32,13 @@ function Products() {
   });
 
   useEffect(() => {
-    fetchBusinesses();
     fetchProducts();
     // Cargar marcas y categorías
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
   }, []);
 
-  const fetchBusinesses = async () => {
-    try {
-      const response = await api.get('businesses/');
-      const businessData = Array.isArray(response.data) ? response.data : (response.data.results || []);
-      setBusinesses(businessData);
-      
-      // Set the first business as default
-      if (businessData.length > 0) {
-        const firstBusinessId = businessData[0].id;
-        setDefaultBusinessId(firstBusinessId);
-        console.log('Default business ID set to:', firstBusinessId);
-      }
-    } catch (error) {
-      console.error('Error fetching businesses:', error);
-      setBusinesses([]);
-    }
-  };
+  // Eliminada función fetchBusinesses
 
   const fetchProducts = () => {
     setLoading(true);
@@ -77,26 +59,21 @@ function Products() {
     const matchesSearch = (p.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
       (p.sku?.toLowerCase() || '').includes(search.toLowerCase()) ||
       (typeof p.brand === 'object' ? (p.brand?.name?.toLowerCase() || '') : (typeof p.brand === 'string' ? p.brand.toLowerCase() : String(p.brand || '').toLowerCase())).includes(search.toLowerCase()) ||
-      (typeof p.category === 'object' ? (p.category?.name?.toLowerCase() || '') : (typeof p.category === 'string' ? p.category.toLowerCase() : String(p.category || '').toLowerCase())).includes(search.toLowerCase());
-    
+      (typeof p.category === 'object' ? (p.category?.name?.toLowerCase() || '') : (typeof p.category === 'string' ? p.category.toLowerCase() : String(p.category || '').toLowerCase()));
     // Filtros específicos
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
-    const matchesBusiness = !filters.business || String(typeof p.business === 'object' ? p.business?.id : p.business) === filters.business;
     const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active : !p.is_active);
-    
     // Filtro de estado de stock
     let matchesStock = true;
     if (filters.stockStatus) {
       if (filters.stockStatus === 'low' && p.minimum_stock) {
-        // Aquí necesitaríamos el stock actual, por ahora usamos minimum_stock como referencia
         matchesStock = (p.minimum_stock || 0) < 10;
       } else if (filters.stockStatus === 'ok') {
         matchesStock = (p.minimum_stock || 0) >= 10;
       }
     }
-    
-    return matchesSearch && matchesBrand && matchesCategory && matchesBusiness && matchesActive && matchesStock;
+    return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
   });
 
   // Paginación
@@ -121,18 +98,19 @@ function Products() {
   };
 
   const handleFilterChange = (filterName, value) => {
+    // Ignorar cambios en filtro de negocio
+    if (filterName === 'business') return;
     setFilters(prev => ({
       ...prev,
       [filterName]: value
     }));
-    setPage(1); // Reset pagination when filtering
+    setPage(1);
   };
 
   const clearFilters = () => {
     setFilters({
       brand: '',
       category: '',
-      business: '',
       isActive: '',
       stockStatus: ''
     });
@@ -141,15 +119,13 @@ function Products() {
   };
 
   const getActiveFiltersCount = () => {
-    return Object.values(filters).filter(value => value !== '').length + (search ? 1 : 0);
+    return Object.entries(filters).filter(([k, value]) => k !== 'business' && value !== '').length + (search ? 1 : 0);
   };
 
   const handleEdit = product => {
-    console.log('Editando producto:', product);
     setFormError('');
     setEditId(product.id);
-    
-    // Preparar datos del formulario con validación
+    // Preparar datos del formulario sin negocio
     const editFormData = {
       name: product.name || '',
       sku: product.sku || '',
@@ -159,14 +135,10 @@ function Products() {
       minimum_stock: product.minimum_stock || '',
       maximum_stock: product.maximum_stock || '',
       is_active: product.is_active ?? true,
-      group: product.group || '',
-      business: typeof product.business === 'object' && product.business !== null ? product.business.id : product.business || defaultBusinessId || ''
+      group: product.group || ''
     };
-    
-    console.log('Datos del formulario preparados:', editFormData);
     setFormData(editFormData);
     setShowForm(true);
-    
     setTimeout(() => {
       if (formRef.current) {
         formRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -186,8 +158,7 @@ function Products() {
       minimum_stock: '', 
       maximum_stock: '', 
       is_active: true, 
-      group: '', 
-      business: defaultBusinessId || '' // Use default business ID for new products
+      group: ''
     });
     setShowForm(true);
   };
@@ -199,36 +170,25 @@ function Products() {
 
   const validateForm = () => {
     const errors = [];
-    
     if (!formData.name.trim()) {
       errors.push('El nombre del producto es requerido');
     }
-    
     if (!formData.sku.trim()) {
       errors.push('El SKU es requerido');
     }
-    
     if (!formData.brand) {
       errors.push('La marca es requerida');
     }
-    
     if (!formData.category) {
       errors.push('La categoría es requerida');
     }
-    
-    if (!formData.business) {
-      errors.push('El negocio es requerido');
-    }
-    
     // Validar números positivos
     if (formData.minimum_stock && (isNaN(formData.minimum_stock) || parseFloat(formData.minimum_stock) < 0)) {
       errors.push('Stock mínimo debe ser un número positivo');
     }
-    
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) {
       errors.push('Stock máximo debe ser un número positivo');
     }
-    
     // Validar que stock máximo sea mayor que mínimo
     if (formData.minimum_stock && formData.maximum_stock) {
       const minStock = parseFloat(formData.minimum_stock);
@@ -237,72 +197,42 @@ function Products() {
         errors.push('Stock máximo debe ser mayor que stock mínimo');
       }
     }
-    
     if (errors.length > 0) {
       setFormError(errors.join('. '));
       return false;
     }
-    
     return true;
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
     setFormError('');
-    
-    console.log('Datos del formulario a enviar:', formData);
-    console.log('EditId:', editId);
-    
-    // Usar la función de validación mejorada
-    if (!validateForm()) {
-      console.log('Validación del formulario falló');
-      return;
-    }
-    
+    if (!validateForm()) return;
     setIsSubmitting(true);
-    
     try {
-      // Preparar datos para envío
+      // Preparar datos para envío (sin negocio)
       const dataToSend = {
         ...formData,
-        // Asegurar que los campos numéricos sean números o null
         minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
         maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
         group: formData.group ? Number(formData.group) : null,
-        // Asegurar que brand, category y business sean números
         brand: Number(formData.brand),
-        category: Number(formData.category),
-        business: Number(formData.business || defaultBusinessId)
+        category: Number(formData.category)
       };
-      
-      console.log('Datos procesados para envío:', dataToSend);
-      
       let response;
       if (editId) {
-        console.log(`Editando producto con ID: ${editId}`);
         response = await api.put(`products/${editId}/`, dataToSend);
       } else {
-        console.log('Creando nuevo producto');
         response = await api.post('products/', dataToSend);
       }
-      
-      console.log('Respuesta del servidor:', response.data);
-      
       setShowForm(false);
       setEditId(null);
-      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '', business: defaultBusinessId || '' });
+      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
       fetchProducts();
     } catch (err) {
-      console.error('Error al guardar producto:', err);
-      
       let errorMessage = 'Error al guardar producto.';
-      
       if (err.response) {
-        console.error('Respuesta de error:', err.response.data);
-        console.error('Status:', err.response.status);
-        
         if (err.response.status === 400) {
-          // Error de validación
           if (err.response.data) {
             if (typeof err.response.data === 'string') {
               errorMessage = err.response.data;
@@ -326,7 +256,6 @@ function Products() {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
       setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -411,13 +340,13 @@ function Products() {
         </div>
       </div>
       
-      {/* Panel de filtros avanzados */}
+      {/* Panel de filtros avanzados (sin negocio) */}
       {showFilters && (
         <div className="card mb-3">
           <div className="card-body">
             <h6 className="card-title">Filtros Avanzados</h6>
             <div className="row g-3">
-              <div className="col-md-3">
+              <div className="col-md-4">
                 <label className="form-label">Marca</label>
                 <select 
                   className="form-select form-select-sm"
@@ -436,7 +365,7 @@ function Products() {
                     ))}
                 </select>
               </div>
-              <div className="col-md-3">
+              <div className="col-md-4">
                 <label className="form-label">Categoría</label>
                 <select 
                   className="form-select form-select-sm"
@@ -455,22 +384,7 @@ function Products() {
                     ))}
                 </select>
               </div>
-              <div className="col-md-3">
-                <label className="form-label">Negocio</label>
-                <select 
-                  className="form-select form-select-sm"
-                  value={filters.business}
-                  onChange={e => handleFilterChange('business', e.target.value)}
-                >
-                  <option value="">Todos los negocios</option>
-                  {businesses
-                    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-                    .map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                </select>
-              </div>
-              <div className="col-md-3">
+              <div className="col-md-4">
                 <label className="form-label">Estado</label>
                 <select 
                   className="form-select form-select-sm"
@@ -550,23 +464,6 @@ function Products() {
                 })
                 .map(c => (
                   <option key={c.id} value={c.id}>{c.description || c.name || c.id}</option>
-                ))}
-            </select>
-          </div>
-          <div className="mb-3">
-            <label className="form-label">Negocio*</label>
-            <select
-              name="business"
-              className="form-select"
-              value={formData.business}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Selecciona negocio</option>
-              {businesses
-                .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-                .map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
             </select>
           </div>

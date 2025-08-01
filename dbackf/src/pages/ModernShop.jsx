@@ -562,8 +562,13 @@ const ModernShop = ({ user }) => {
       .slice(0, 5);
   }, [customers, debouncedCustomerSearch]);
 
-  // Paginación
-  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+  // Paginación robusta
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize));
+  // Si el filtro cambia y la página actual queda fuera de rango, regresa a la primera página
+  useEffect(() => {
+    if (page > totalPages) setPage(1);
+  }, [filteredProducts, totalPages]);
+
   const currentPage = Math.max(1, Math.min(page, totalPages));
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * pageSize,
