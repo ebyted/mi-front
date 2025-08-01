@@ -59,6 +59,20 @@ const InventoryMovements = () => {
   const [error, setError] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  
+  // Estado para alternar entre vistas
+  const [activeTab, setActiveTab] = useState('movements'); // 'movements' o 'inventory'
+  const [currentInventory, setCurrentInventory] = useState([]);
+  const [loadingCurrentInventory, setLoadingCurrentInventory] = useState(false);
+  
+  // Filtros específicos para inventario
+  const [inventoryFiltersTab, setInventoryFiltersTab] = useState({
+    warehouse: '',
+    stockStatus: '', // 'low', 'out', 'normal', 'all'
+    search: '',
+    minStock: '',
+    maxStock: ''
+  });
 
   // Estados de filtros
   const [page, setPage] = useState(1);
@@ -166,13 +180,25 @@ const InventoryMovements = () => {
         const movementsRes = await api.get('inventory-movements/');
         setMovements(movementsRes.data || []);
         setLastRefresh(new Date());
+        
+        // Si estamos en la pestaña de inventario, también actualizarlo
+        if (activeTab === 'inventory') {
+          await loadInventoryTab();
+        }
       } catch (err) {
         console.error('Error en auto-refresh:', err);
       }
     }, 30000); // 30 segundos
 
     return () => clearInterval(interval);
-  }, [autoRefresh]);
+  }, [autoRefresh, activeTab]);
+
+  // Cargar inventario cuando se cambie a esa pestaña
+  useEffect(() => {
+    if (activeTab === 'inventory') {
+      loadInventoryTab();
+    }
+  }, [activeTab]);
 
   // Función para refrescar manualmente
   const refreshData = async () => {
@@ -412,6 +438,66 @@ const InventoryMovements = () => {
     }
   };
 
+  // Cargar inventario actual para la pestaña
+  const loadInventoryTab = async () => {
+    if (currentInventory.length > 0) return; // Ya está cargado
+    
+    setLoadingCurrentInventory(true);
+    try {
+      console.log('Cargando inventario para pestaña...');
+      
+      // Intentar diferentes endpoints
+      let inventoryData = [];
+      
+      try {
+        // Primero intentar con product-warehouse-stocks
+        const stockResponse = await api.get('product-warehouse-stocks/');
+        const stockData = Array.isArray(stockResponse.data) ? stockResponse.data : (stockResponse.data.results || []);
+        
+        if (stockData.length > 0) {
+          // Agrupar por producto y almacén
+          const groupedInventory = stockData.reduce((acc, stock) => {
+            const key = `${stock.product || stock.product_id}_${stock.warehouse?.id || stock.warehouse_id}`;
+            if (!acc[key]) {
+              acc[key] = {
+                id: key,
+                product_id: stock.product || stock.product_id,
+                warehouse_id: stock.warehouse?.id || stock.warehouse_id,
+                warehouse: stock.warehouse || { id: stock.warehouse_id, name: `Almacén ${stock.warehouse_id}` },
+                quantity: 0,
+                price: stock.price || 0,
+                last_updated: stock.updated_at || stock.last_updated
+              };
+            }
+            acc[key].quantity += (stock.quantity || 0);
+            return acc;
+          }, {});
+          
+          inventoryData = Object.values(groupedInventory).filter(item => item.quantity > 0);
+        }
+      } catch (stockErr) {
+        console.log('Error con product-warehouse-stocks, intentando current-inventory:', stockErr);
+        
+        // Fallback a current-inventory
+        try {
+          const inventoryResponse = await api.get('current-inventory/');
+          inventoryData = Array.isArray(inventoryResponse.data) ? inventoryResponse.data : (inventoryResponse.data.results || []);
+        } catch (inventoryErr) {
+          console.log('Error con current-inventory:', inventoryErr);
+        }
+      }
+      
+      setCurrentInventory(inventoryData);
+      console.log('Inventario cargado para pestaña:', inventoryData.length, 'items');
+      
+    } catch (err) {
+      console.error('Error cargando inventario para pestaña:', err);
+      setError('Error al cargar el inventario actual.');
+    } finally {
+      setLoadingCurrentInventory(false);
+    }
+  };
+
   // Exportar inventario a Excel
   const exportInventoryToExcel = () => {
     const filteredInventory = getFilteredInventory();
@@ -432,6 +518,37 @@ const InventoryMovements = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Inventario Actual');
     XLSX.writeFile(wb, 'inventario_actual.xlsx');
+  };
+
+  // Exportar inventario de la pestaña a Excel
+  const exportInventoryTabToExcel = () => {
+    const filteredInventory = getFilteredInventoryTab();
+    const data = filteredInventory.map(item => ({
+      Producto: item.product_name || 'N/A',
+      Codigo: item.product_code || 'N/A',
+      Almacen: item.warehouse_name || 'N/A',
+      Stock: item.total_stock || 0,
+      StockMinimo: item.min_stock || 0,
+      Precio: item.product_price || 0,
+      ValorTotal: (parseFloat(item.total_stock || 0) * parseFloat(item.product_price || 0)),
+      Estado: parseFloat(item.total_stock || 0) === 0 ? 'Sin Stock' : 
+              parseFloat(item.total_stock || 0) <= parseFloat(item.min_stock || 0) ? 'Stock Bajo' : 'Normal'
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Inventario Actual');
+    
+    // Agregar información de filtros aplicados
+    const filterInfo = [];
+    if (inventoryFiltersTab.warehouse) filterInfo.push(`Almacén: ${inventoryFiltersTab.warehouse}`);
+    if (inventoryFiltersTab.stockStatus) filterInfo.push(`Estado: ${inventoryFiltersTab.stockStatus}`);
+    if (inventoryFiltersTab.search) filterInfo.push(`Búsqueda: ${inventoryFiltersTab.search}`);
+    if (inventoryFiltersTab.minStock) filterInfo.push(`Stock mín.: ${inventoryFiltersTab.minStock}`);
+    if (inventoryFiltersTab.maxStock) filterInfo.push(`Stock máx.: ${inventoryFiltersTab.maxStock}`);
+    
+    const fileName = `inventario_${filterInfo.length > 0 ? 'filtrado_' : ''}${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   // Cerrar modal de inventario
@@ -467,6 +584,47 @@ const InventoryMovements = () => {
           item.product_variant?.name || '',
           item.product_variant?.sku || '',
           item.warehouse?.name || ''
+        ].join(' ').toLowerCase();
+        if (!searchFields.includes(searchLower)) return false;
+      }
+      
+      return true;
+    });
+  };
+
+  // Filtrar inventario para la pestaña
+  const getFilteredInventoryTab = () => {
+    return currentInventory.filter(item => {
+      // Filtro por almacén
+      if (inventoryFiltersTab.warehouse && item.warehouse_name !== inventoryFiltersTab.warehouse) {
+        return false;
+      }
+      
+      // Filtro por estado de stock
+      if (inventoryFiltersTab.stockStatus) {
+        const stock = parseFloat(item.total_stock || 0);
+        const minStock = parseFloat(item.min_stock || 0);
+        
+        if (inventoryFiltersTab.stockStatus === 'out' && stock > 0) return false;
+        if (inventoryFiltersTab.stockStatus === 'low' && (stock === 0 || stock > minStock)) return false;
+        if (inventoryFiltersTab.stockStatus === 'normal' && (stock === 0 || stock <= minStock)) return false;
+      }
+      
+      // Filtro por rango de stock
+      if (inventoryFiltersTab.minStock && parseFloat(item.total_stock || 0) < parseFloat(inventoryFiltersTab.minStock)) {
+        return false;
+      }
+      if (inventoryFiltersTab.maxStock && parseFloat(item.total_stock || 0) > parseFloat(inventoryFiltersTab.maxStock)) {
+        return false;
+      }
+      
+      // Filtro por búsqueda
+      if (inventoryFiltersTab.search) {
+        const searchLower = inventoryFiltersTab.search.toLowerCase();
+        const searchFields = [
+          item.product_name || '',
+          item.product_code || '',
+          item.warehouse_name || ''
         ].join(' ').toLowerCase();
         if (!searchFields.includes(searchLower)) return false;
       }
@@ -839,7 +997,7 @@ Cantidad: ${movement.total_quantity || 0}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="text-primary fw-bold">
           <i className="bi bi-box-seam me-2"></i>
-          Movimientos de Inventario
+          {activeTab === 'movements' ? 'Movimientos de Inventario' : 'Inventario Actual'}
         </h2>
         <div className="btn-group">
           <button 
@@ -887,29 +1045,56 @@ Cantidad: ${movement.total_quantity || 0}
         </div>
       </div>
 
-      {/* Ayuda de shortcuts */}
-      <div className="alert alert-light border-0 py-2 fade-in">
-        <small className="text-muted">
-          <i className="bi bi-keyboard me-1"></i>
-          <strong>Atajos:</strong> 
-          <span className="mx-2">Ctrl+N (Nuevo)</span>
-          <span className="mx-2">Ctrl+U (Importar CSV)</span>
-          <span className="mx-2">Ctrl+R (Refrescar)</span>
-          <span className="mx-2">Ctrl+I (Inventario)</span>
-          <span className="mx-2">Ctrl+E (Excel)</span>
-          <span className="mx-2">Ctrl+P (PDF)</span>
-          <span className="mx-2">Ctrl+F (Buscar)</span>
-          <span className="mx-2">Esc (Cerrar modal)</span>
-        </small>
-      </div>
+      {/* Pestañas de navegación */}
+      <ul className="nav nav-tabs mb-4">
+        <li className="nav-item">
+          <button 
+            className={`nav-link ${activeTab === 'movements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('movements')}
+          >
+            <i className="bi bi-arrow-left-right me-2"></i>
+            Movimientos
+            <span className="badge bg-primary ms-2">{movements.length}</span>
+          </button>
+        </li>
+        <li className="nav-item">
+          <button 
+            className={`nav-link ${activeTab === 'inventory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('inventory')}
+          >
+            <i className="bi bi-boxes me-2"></i>
+            Inventario Actual
+            <span className="badge bg-success ms-2">{currentInventory.length}</span>
+          </button>
+        </li>
+      </ul>
 
-      {/* Última actualización */}
-      <div className="text-end mb-2">
-        <small className="text-muted">
-          <i className="bi bi-clock me-1"></i>
-          Última actualización: {lastRefresh.toLocaleTimeString()}
-        </small>
-      </div>
+      {/* Contenido según la pestaña activa */}
+      {activeTab === 'movements' ? (
+        <>
+          {/* Ayuda de shortcuts */}
+          <div className="alert alert-light border-0 py-2 fade-in">
+            <small className="text-muted">
+              <i className="bi bi-keyboard me-1"></i>
+              <strong>Atajos:</strong> 
+              <span className="mx-2">Ctrl+N (Nuevo)</span>
+              <span className="mx-2">Ctrl+U (Importar CSV)</span>
+              <span className="mx-2">Ctrl+R (Refrescar)</span>
+              <span className="mx-2">Ctrl+I (Inventario)</span>
+              <span className="mx-2">Ctrl+E (Excel)</span>
+              <span className="mx-2">Ctrl+P (PDF)</span>
+              <span className="mx-2">Ctrl+F (Buscar)</span>
+              <span className="mx-2">Esc (Cerrar modal)</span>
+            </small>
+          </div>
+
+          {/* Última actualización */}
+          <div className="text-end mb-2">
+            <small className="text-muted">
+              <i className="bi bi-clock me-1"></i>
+              Última actualización: {lastRefresh.toLocaleTimeString()}
+            </small>
+          </div>
 
       {/* Info */}
       <div className="row mb-4">
@@ -2698,6 +2883,188 @@ Cantidad: ${movement.total_quantity || 0}
               </div>
             </div>
           </div>
+        </div>
+      )}
+        </>
+      ) : (
+        /* Contenido del inventario */
+        <div className="fade-in">
+          {/* Panel de filtros para inventario */}
+          <div className="card mb-3">
+            <div className="card-body py-2">
+              <div className="row g-2 align-items-center">
+                <div className="col-md-3">
+                  <select 
+                    className="form-select form-select-sm"
+                    value={inventoryFiltersTab.warehouse}
+                    onChange={(e) => setInventoryFiltersTab(prev => ({...prev, warehouse: e.target.value}))}
+                  >
+                    <option value="">🏪 Todos los almacenes</option>
+                    {warehouses.map(w => (
+                      <option key={w.id} value={w.name}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-2">
+                  <select 
+                    className="form-select form-select-sm"
+                    value={inventoryFiltersTab.stockStatus}
+                    onChange={(e) => setInventoryFiltersTab(prev => ({...prev, stockStatus: e.target.value}))}
+                  >
+                    <option value="">📦 Todo el stock</option>
+                    <option value="out">❌ Sin stock</option>
+                    <option value="low">⚠️ Stock bajo</option>
+                    <option value="normal">✅ Stock normal</option>
+                  </select>
+                </div>
+                <div className="col-md-2">
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    placeholder="Stock mín."
+                    value={inventoryFiltersTab.minStock}
+                    onChange={(e) => setInventoryFiltersTab(prev => ({...prev, minStock: e.target.value}))}
+                  />
+                </div>
+                <div className="col-md-2">
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    placeholder="Stock máx."
+                    value={inventoryFiltersTab.maxStock}
+                    onChange={(e) => setInventoryFiltersTab(prev => ({...prev, maxStock: e.target.value}))}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <div className="input-group input-group-sm">
+                    <span className="input-group-text">🔍</span>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Buscar producto..."
+                      value={inventoryFiltersTab.search}
+                      onChange={(e) => setInventoryFiltersTab(prev => ({...prev, search: e.target.value}))}
+                    />
+                    {inventoryFiltersTab.search && (
+                      <button 
+                        className="btn btn-outline-secondary"
+                        onClick={() => setInventoryFiltersTab(prev => ({...prev, search: ''}))}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="col-md-12 mt-2">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <small className="text-muted">
+                      Mostrando {getFilteredInventoryTab().length} de {currentInventory.length} productos
+                    </small>
+                    <div>
+                      <button 
+                        className="btn btn-success btn-sm me-2"
+                        onClick={() => exportInventoryTabToExcel()}
+                        title="Exportar inventario filtrado a Excel"
+                      >
+                        <i className="bi bi-file-earmark-excel me-1"></i>
+                        Exportar Excel
+                      </button>
+                      <button 
+                        className="btn btn-primary btn-sm"
+                        onClick={() => loadInventoryTab()}
+                        title="Refrescar inventario"
+                      >
+                        <i className="bi bi-arrow-clockwise me-1"></i>
+                        Refrescar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {loadingCurrentInventory ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Cargando inventario...</span>
+              </div>
+              <div className="mt-2">
+                <small className="text-muted">Cargando inventario...</small>
+              </div>
+            </div>
+          ) : currentInventory.length === 0 ? (
+            <div className="text-center py-5">
+              <i className="bi bi-box text-muted" style={{ fontSize: '3rem' }}></i>
+              <h4 className="text-muted mt-3">Sin stock</h4>
+              <p className="text-muted">No hay productos con stock disponible</p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-striped table-hover">
+                <thead className="table-dark">
+                  <tr>
+                    <th>Producto</th>
+                    <th>Almacén</th>
+                    <th className="text-end">Stock</th>
+                    <th className="text-end">Precio</th>
+                    <th className="text-end">Valor Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getFilteredInventoryTab().map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <div>
+                          <strong>{item.product_name}</strong>
+                          {item.product_code && (
+                            <div className="text-muted small">
+                              Código: {item.product_code}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="badge bg-primary">
+                          {item.warehouse_name}
+                        </span>
+                      </td>
+                      <td className="text-end">
+                        <div className="d-flex align-items-center justify-content-end">
+                          <span className="fw-bold me-2">{item.total_stock}</span>
+                          {parseFloat(item.total_stock || 0) === 0 && (
+                            <span className="badge bg-danger">Sin stock</span>
+                          )}
+                          {parseFloat(item.total_stock || 0) > 0 && 
+                           parseFloat(item.total_stock || 0) <= parseFloat(item.min_stock || 0) && (
+                            <span className="badge bg-warning">Stock bajo</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="text-end">
+                        ${parseFloat(item.product_price || 0).toFixed(2)}
+                      </td>
+                      <td className="text-end">
+                        <strong>
+                          ${(parseFloat(item.total_stock) * parseFloat(item.product_price || 0)).toFixed(2)}
+                        </strong>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="table-light">
+                  <tr>
+                    <th colSpan="4" className="text-end">Total General:</th>
+                    <th className="text-end">
+                      ${getFilteredInventoryTab().reduce((total, item) => 
+                        total + (parseFloat(item.total_stock) * parseFloat(item.product_price || 0)), 0
+                      ).toFixed(2)}
+                    </th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
