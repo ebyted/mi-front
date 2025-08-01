@@ -1,7 +1,10 @@
 
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8030/api/'; // Cambia el puerto si tu backend usa otro
+// Usar variable de entorno para la URL del API
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8030/api/';
+
+console.log('API URL configurada:', API_URL); // Para debug
 
 const api = axios.create({
   baseURL: API_URL,
