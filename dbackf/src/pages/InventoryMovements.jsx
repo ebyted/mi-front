@@ -2346,6 +2346,333 @@ Cantidad: ${movement.total_quantity || 0}
           </div>
         </div>
       )}
+
+      {/* Modal de Importación CSV */}
+      {showImportModal && (
+        <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+          <div className="modal-dialog modal-xl">
+            <div className="modal-content">
+              <div className="modal-header bg-success text-white">
+                <h5 className="modal-title">
+                  <i className="bi bi-file-earmark-arrow-up me-2"></i>
+                  Importar Movimientos desde CSV - Paso {importStep} de 3
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={resetImportModal}></button>
+              </div>
+              
+              <div className="modal-body">
+                {/* Paso 1: Configuración */}
+                {importStep === 1 && (
+                  <div className="fade-in">
+                    <div className="row">
+                      <div className="col-md-8">
+                        <h6 className="text-success mb-3">📋 Configuración del Movimiento</h6>
+                        
+                        <div className="row">
+                          <div className="col-md-6 mb-3">
+                            <label htmlFor="import-warehouse" className="form-label">
+                              <i className="bi bi-building me-2"></i>Almacén *
+                            </label>
+                            <select
+                              id="import-warehouse"
+                              className="form-select"
+                              value={importForm.warehouse_id}
+                              onChange={(e) => setImportForm({...importForm, warehouse_id: e.target.value})}
+                            >
+                              <option value="">Seleccionar almacén...</option>
+                              {warehouses.map(w => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="col-md-6 mb-3">
+                            <label htmlFor="import-type" className="form-label">
+                              <i className="bi bi-arrow-left-right me-2"></i>Tipo de Movimiento *
+                            </label>
+                            <select
+                              id="import-type"
+                              className="form-select"
+                              value={importForm.movement_type}
+                              onChange={(e) => setImportForm({...importForm, movement_type: e.target.value})}
+                            >
+                              <option value="Entrada">Entrada</option>
+                              <option value="Salida">Salida</option>
+                              <option value="Ajuste">Ajuste</option>
+                              <option value="Traspaso">Traspaso</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-3">
+                          <label htmlFor="import-notes" className="form-label">
+                            <i className="bi bi-chat-text me-2"></i>Notas del Movimiento
+                          </label>
+                          <textarea
+                            id="import-notes"
+                            className="form-control"
+                            rows="3"
+                            placeholder="Información adicional sobre este movimiento..."
+                            value={importForm.notes}
+                            onChange={(e) => setImportForm({...importForm, notes: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="col-md-4">
+                        <div className="alert alert-info">
+                          <h6><i className="bi bi-info-circle me-2"></i>Formato CSV Requerido</h6>
+                          <p className="mb-2">El archivo debe contener las siguientes columnas:</p>
+                          <ul className="list-unstyled">
+                            <li><code>nombre</code> - Nombre del producto</li>
+                            <li><code>cantidad</code> - Cantidad numérica</li>
+                            <li><code>precio</code> - Precio (ej: $15,50)</li>
+                          </ul>
+                          <p className="small text-muted">
+                            <strong>Ejemplo:</strong><br/>
+                            nombre,cantidad,precio<br/>
+                            Acetaminofen 500mg,50,$15,50
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {importError && (
+                      <div className="alert alert-danger">
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        {importError}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Paso 2: Subida de Archivo */}
+                {importStep === 2 && (
+                  <div className="fade-in">
+                    <h6 className="text-success mb-3">📁 Seleccionar Archivo CSV</h6>
+                    
+                    <div className="row">
+                      <div className="col-md-8">
+                        <div className="mb-3">
+                          <label htmlFor="csv-file" className="form-label">
+                            <i className="bi bi-file-earmark-csv me-2"></i>Archivo CSV
+                          </label>
+                          <input
+                            type="file"
+                            id="csv-file"
+                            className="form-control"
+                            accept=".csv"
+                            onChange={handleFileChange}
+                          />
+                          <div className="form-text">
+                            Máximo 5MB. Solo archivos .csv
+                          </div>
+                        </div>
+                        
+                        {importFile && (
+                          <div className="alert alert-success">
+                            <i className="bi bi-check-circle me-2"></i>
+                            <strong>Archivo seleccionado:</strong> {importFile.name}<br/>
+                            <small>Tamaño: {(importFile.size / 1024).toFixed(2)} KB</small>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="col-md-4">
+                        <div className="alert alert-warning">
+                          <h6><i className="bi bi-exclamation-triangle me-2"></i>Importante</h6>
+                          <ul className="mb-0 small">
+                            <li>El sistema buscará productos por nombre</li>
+                            <li>Los productos no encontrados serán reportados</li>
+                            <li>Solo se importarán productos existentes</li>
+                            <li>Revise los resultados antes de confirmar</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {importError && (
+                      <div className="alert alert-danger">
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        {importError}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Paso 3: Resultados */}
+                {importStep === 3 && importValidation && (
+                  <div className="fade-in">
+                    <h6 className="text-success mb-3">📊 Resultados de Validación</h6>
+                    
+                    {/* Resumen en tarjetas */}
+                    <div className="row mb-4">
+                      <div className="col-md-3">
+                        <div className="card bg-primary text-white">
+                          <div className="card-body text-center">
+                            <h4>{importValidation.resumen.total_filas}</h4>
+                            <small>Total Filas</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card bg-success text-white">
+                          <div className="card-body text-center">
+                            <h4>{importValidation.resumen.encontrados}</h4>
+                            <small>Encontrados</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card bg-warning text-white">
+                          <div className="card-body text-center">
+                            <h4>{importValidation.resumen.no_encontrados}</h4>
+                            <small>No Encontrados</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card bg-info text-white">
+                          <div className="card-body text-center">
+                            <h4>${importValidation.resumen.total_calculado.toFixed(2)}</h4>
+                            <small>Total</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="row">
+                      {/* Productos encontrados */}
+                      <div className="col-md-6">
+                        <h6 className="text-success">
+                          <i className="bi bi-check-circle me-2"></i>
+                          Productos Encontrados ({importValidation.productos_encontrados.length})
+                        </h6>
+                        <div className="table-responsive" style={{maxHeight: '300px', overflowY: 'auto'}}>
+                          <table className="table table-sm">
+                            <thead className="table-success">
+                              <tr>
+                                <th>Producto</th>
+                                <th>Cant.</th>
+                                <th>Precio</th>
+                                <th>Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importValidation.productos_encontrados.map((item, idx) => (
+                                <tr key={idx}>
+                                  <td>
+                                    <small>{item.producto_encontrado}</small><br/>
+                                    <code className="text-muted">{item.sku}</code>
+                                  </td>
+                                  <td>{item.cantidad}</td>
+                                  <td>${item.precio.toFixed(2)}</td>
+                                  <td><strong>${item.subtotal.toFixed(2)}</strong></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Productos no encontrados */}
+                      <div className="col-md-6">
+                        <h6 className="text-warning">
+                          <i className="bi bi-exclamation-triangle me-2"></i>
+                          Productos No Encontrados ({importValidation.productos_no_encontrados.length})
+                        </h6>
+                        <div className="table-responsive" style={{maxHeight: '300px', overflowY: 'auto'}}>
+                          <table className="table table-sm">
+                            <thead className="table-warning">
+                              <tr>
+                                <th>Fila</th>
+                                <th>Nombre</th>
+                                <th>Error</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importValidation.productos_no_encontrados.map((item, idx) => (
+                                <tr key={idx}>
+                                  <td>{item.fila}</td>
+                                  <td><small>{item.nombre}</small></td>
+                                  <td><small className="text-danger">{item.error}</small></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {importError && (
+                      <div className="alert alert-danger mt-3">
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        {importError}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="modal-footer">
+                {importStep > 1 && (
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary"
+                    onClick={() => setImportStep(importStep - 1)}
+                    disabled={importLoading}
+                  >
+                    <i className="bi bi-arrow-left me-2"></i>Anterior
+                  </button>
+                )}
+                
+                <button type="button" className="btn btn-outline-secondary" onClick={resetImportModal}>
+                  Cancelar
+                </button>
+                
+                {importStep < 3 ? (
+                  <button 
+                    type="button" 
+                    className="btn btn-success"
+                    onClick={handleImportNext}
+                    disabled={importLoading}
+                  >
+                    {importLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        {importStep === 2 ? 'Validando...' : 'Cargando...'}
+                      </>
+                    ) : (
+                      <>
+                        Siguiente <i className="bi bi-arrow-right ms-2"></i>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    className="btn btn-success"
+                    onClick={confirmImport}
+                    disabled={importLoading || !importValidation?.productos_encontrados?.length}
+                  >
+                    {importLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Importando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-circle me-2"></i>
+                        Confirmar Importación
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
