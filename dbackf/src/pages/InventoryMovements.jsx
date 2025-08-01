@@ -91,6 +91,10 @@ const InventoryMovements = () => {
   const [expandedRows, setExpandedRows] = useState([]);
   const [selectedMovement, setSelectedMovement] = useState(null);
   const [details, setDetails] = useState([]);
+  
+  // Estados para edición
+  const [editingMovement, setEditingMovement] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -206,6 +210,8 @@ const InventoryMovements = () => {
       if (e.key === 'Escape') {
         if (showModal) {
           resetModal();
+        } else if (showEditModal) {
+          resetEditModal();
         } else if (showInventoryModal) {
           closeInventoryModal();
         }
@@ -573,6 +579,94 @@ Cantidad: ${movement.total_quantity || 0}
       console.error('Error al eliminar movimiento:', err);
       alert('❌ Error al eliminar el movimiento: ' + (err.response?.data?.message || err.message));
     }
+  };
+
+  // Editar movimiento
+  const editMovement = (movement) => {
+    setEditingMovement(movement);
+    setForm({
+      warehouse: movement.warehouse?.id || '',
+      movement_type: movement.movement_type || '',
+      reference_document: movement.reference_document || '',
+      notes: movement.notes || ''
+    });
+    
+    // Cargar detalles del movimiento
+    const movementDetails = movement.details?.map(detail => ({
+      product_variant: detail.product_variant?.id || '',
+      quantity: detail.quantity || '',
+      price: detail.price || '',
+      lote: detail.lote || '',
+      expiration_date: detail.expiration_date || ''
+    })) || [{ product_variant: '', quantity: '', price: '', lote: '', expiration_date: '' }];
+    
+    setModalDetails(movementDetails);
+    setShowEditModal(true);
+  };
+
+  // Actualizar movimiento
+  const updateMovement = async (e) => {
+    e.preventDefault();
+    setFormError('');
+    
+    if (!form.warehouse || !form.movement_type) {
+      setFormError('El almacén y tipo de movimiento son obligatorios.');
+      return;
+    }
+
+    // Validar detalles
+    const invalidDetails = modalDetails.some(d => 
+      !d.product_variant || !d.quantity || d.quantity <= 0 || !d.price || d.price < 0
+    );
+    
+    if (invalidDetails) {
+      setFormError('Todos los productos deben tener variante, cantidad y precio válidos.');
+      return;
+    }
+
+    try {
+      const cleanedDetails = modalDetails.map(d => ({
+        product_variant: parseInt(d.product_variant),
+        quantity: parseFloat(d.quantity),
+        price: parseFloat(d.price),
+        total: parseFloat(d.quantity) * parseFloat(d.price),
+        lote: d.lote || null,
+        expiration_date: d.expiration_date || null
+      }));
+
+      const payload = {
+        warehouse_id: parseInt(form.warehouse),
+        movement_type: form.movement_type,
+        reference_document: form.reference_document || null,
+        notes: form.notes || null,
+        details: cleanedDetails
+      };
+
+      await api.put(`inventory-movements/${editingMovement.id}/`, payload);
+      
+      // Recargar movimientos
+      const movementsRes = await api.get('inventory-movements/');
+      setMovements(movementsRes.data || []);
+      setLastRefresh(new Date());
+      
+      resetEditModal();
+      
+      // Mostrar notificación de éxito
+      alert('✅ Movimiento actualizado exitosamente');
+      
+    } catch (err) {
+      console.error('Error actualizando movimiento:', err);
+      setFormError('❌ Error al actualizar el movimiento: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  // Resetear modal de edición
+  const resetEditModal = () => {
+    setShowEditModal(false);
+    setEditingMovement(null);
+    setForm({ warehouse: '', movement_type: '', reference_document: '', notes: '' });
+    setModalDetails([{ product_variant: '', quantity: '', price: '', lote: '', expiration_date: '' }]);
+    setFormError('');
   };
 
   if (loading) {
@@ -956,6 +1050,15 @@ Cantidad: ${movement.total_quantity || 0}
                             )}
                             {!movement.authorized && (
                               <button 
+                                className="btn btn-outline-primary"
+                                onClick={() => editMovement(movement)}
+                                title="Editar"
+                              >
+                                <i className="bi bi-pencil"></i>
+                              </button>
+                            )}
+                            {!movement.authorized && (
+                              <button 
                                 className="btn btn-outline-danger"
                                 onClick={() => deleteMovement(movement.id)}
                                 title="Eliminar"
@@ -1321,6 +1424,203 @@ Cantidad: ${movement.total_quantity || 0}
                     className="btn btn-primary"
                   >
                     Crear movimiento
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para editar movimiento */}
+      {showEditModal && editingMovement && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Editar Movimiento de Inventario #{editingMovement.id}</h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={resetEditModal}
+                ></button>
+              </div>
+              <form onSubmit={updateMovement}>
+                <div className="modal-body">
+                  {formError && (
+                    <div className="alert alert-danger">{formError}</div>
+                  )}
+                  
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label">Almacén *</label>
+                      <select 
+                        className="form-select" 
+                        value={form.warehouse}
+                        onChange={(e) => setForm({...form, warehouse: e.target.value})}
+                        required
+                      >
+                        <option value="">Seleccionar almacén</option>
+                        {warehouses.map(w => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Tipo de movimiento *</label>
+                      <select 
+                        className="form-select" 
+                        value={form.movement_type}
+                        onChange={(e) => setForm({...form, movement_type: e.target.value})}
+                        required
+                      >
+                        <option value="">Seleccionar tipo</option>
+                        <option value="entrada">Entrada</option>
+                        <option value="salida">Salida</option>
+                        <option value="ajuste">Ajuste</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label">Documento de referencia</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={form.reference_document}
+                        onChange={(e) => setForm({...form, reference_document: e.target.value})}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Notas</label>
+                      <input 
+                        type="text" 
+                        className="form-control" 
+                        value={form.notes}
+                        onChange={(e) => setForm({...form, notes: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  
+                  <hr />
+                  <h6>Detalles del movimiento</h6>
+                  
+                  {modalDetails.map((detail, idx) => (
+                    <div key={idx} className="card mb-3">
+                      <div className="card-body">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <h6 className="mb-0">Producto #{idx + 1}</h6>
+                          {modalDetails.length > 1 && (
+                            <button 
+                              type="button" 
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => removeModalDetail(idx)}
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="row g-2">
+                          <div className="col-md-6">
+                            <label className="form-label">Producto variante *</label>
+                            <select 
+                              className="form-select" 
+                              value={detail.product_variant}
+                              onChange={(e) => handleModalDetailChange(idx, 'product_variant', e.target.value)}
+                              required
+                            >
+                              <option value="">Seleccionar producto</option>
+                              {productVariants.map(pv => (
+                                <option key={pv.id} value={pv.id}>
+                                  {pv.name} - {pv.sku}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="col-md-2">
+                            <label className="form-label">Cantidad *</label>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              value={detail.quantity}
+                              onChange={(e) => handleModalDetailChange(idx, 'quantity', e.target.value)}
+                              min="1"
+                              step="1"
+                              required
+                            />
+                          </div>
+                          <div className="col-md-2">
+                            <label className="form-label">Precio *</label>
+                            <input 
+                              type="number" 
+                              className="form-control" 
+                              value={detail.price}
+                              onChange={(e) => handleModalDetailChange(idx, 'price', e.target.value)}
+                              min="0"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+                          <div className="col-md-2">
+                            <label className="form-label">Total</label>
+                            <input 
+                              type="text" 
+                              className="form-control bg-light" 
+                              value={`$${((detail.quantity || 0) * (detail.price || 0)).toFixed(2)}`}
+                              readOnly
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="row g-2 mt-2">
+                          <div className="col-md-6">
+                            <label className="form-label">Lote</label>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              value={detail.lote}
+                              onChange={(e) => handleModalDetailChange(idx, 'lote', e.target.value)}
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">Fecha de expiración</label>
+                            <input 
+                              type="date" 
+                              className="form-control" 
+                              value={detail.expiration_date}
+                              onChange={(e) => handleModalDetailChange(idx, 'expiration_date', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-primary"
+                    onClick={addModalDetail}
+                  >
+                    <i className="bi bi-plus me-1"></i>
+                    Agregar otro producto
+                  </button>
+                </div>
+                
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={resetEditModal}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary"
+                  >
+                    Actualizar movimiento
                   </button>
                 </div>
               </form>

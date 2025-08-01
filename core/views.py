@@ -644,6 +644,82 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(response_serializer.data)
         return Response(response_serializer.data, status=201, headers=headers)
 
+    def update(self, request, *args, **kwargs):
+        """Actualizar un movimiento de inventario no autorizado"""
+        try:
+            movement = self.get_object()
+            
+            # Solo permitir edición si no está autorizado
+            if movement.authorized:
+                return Response(
+                    {'error': 'No se puede editar un movimiento ya autorizado'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Revertir el stock anterior antes de actualizar
+            if movement.authorized:  # Solo si ya estaba procesado
+                for detail in movement.details.all():
+                    try:
+                        pv = detail.product_variant
+                        warehouse = movement.warehouse
+                        stock, _ = ProductWarehouseStock.objects.get_or_create(product_variant=pv, warehouse=warehouse)
+                        qty = float(detail.quantity)
+                        # Revertir la operación anterior
+                        if movement.movement_type.lower() in ['entrada', 'ingreso', 'compra', 'ajuste+', 'ajuste positivo']:
+                            stock.quantity -= qty
+                        elif movement.movement_type.lower() in ['salida', 'egreso', 'venta', 'ajuste-', 'ajuste negativo']:
+                            stock.quantity += qty
+                        stock.save()
+                    except Exception as e:
+                        continue
+            
+            # Eliminar detalles existentes
+            movement.details.all().delete()
+            
+            # Actualizar campos del movimiento
+            movement.warehouse_id = request.data.get('warehouse_id')
+            movement.movement_type = request.data.get('movement_type')
+            movement.reference_document = request.data.get('reference_document', '')
+            movement.notes = request.data.get('notes', '')
+            movement.save()
+            
+            # Crear nuevos detalles
+            details = request.data.get('details', [])
+            detail_errors = []
+            
+            for idx, detail in enumerate(details):
+                try:
+                    detail_obj = InventoryMovementDetail.objects.create(
+                        movement=movement,
+                        product_variant_id=detail.get('product_variant'),
+                        quantity=detail.get('quantity'),
+                        price=detail.get('price'),
+                        total=detail.get('total'),
+                        lote=detail.get('lote', ''),
+                        expiration_date=detail.get('expiration_date') if detail.get('expiration_date') else None
+                    )
+                except Exception as e:
+                    detail_errors.append({
+                        'index': idx,
+                        'product_variant': detail.get('product_variant'),
+                        'error': str(e)
+                    })
+            
+            if detail_errors:
+                return Response({
+                    'error': 'Error al actualizar detalles', 
+                    'detail_errors': detail_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            movement.refresh_from_db()
+            response_serializer = self.get_serializer(movement)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error al actualizar movimiento: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
     # Acción personalizada para obtener los detalles de un movimiento
     from rest_framework.decorators import action
     from rest_framework.response import Response
