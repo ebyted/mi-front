@@ -198,12 +198,52 @@ function Products() {
     try {
       console.log('Buscando inventario para producto:', product.id);
       
-      // Opción 1: Intentar obtener inventario directo con timeout
+      // Opción 1: Buscar en product-warehouse-stocks (el endpoint correcto para stock actual)
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
-        const inventoryResponse = await api.get(`inventory/?product=${product.id}`, {
+        const stockResponse = await api.get(`product-warehouse-stocks/?product=${product.id}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        const stockData = Array.isArray(stockResponse.data) ? 
+          stockResponse.data : (stockResponse.data.results || []);
+        
+        console.log('Stock por almacén encontrado:', stockData);
+        
+        if (stockData.length > 0) {
+          // Mostrar el stock actual por almacén
+          setProductInventory([{
+            variant: { 
+              id: product.id, 
+              name: product.name, 
+              sku: product.sku 
+            },
+            inventory: stockData.map(stock => ({
+              warehouse: stock.warehouse,
+              warehouse_id: stock.warehouse?.id || stock.warehouse_id,
+              quantity: stock.quantity || 0,
+              price: stock.price || 0,
+              updated_at: stock.updated_at || stock.last_updated,
+              lote: stock.batch || stock.lote,
+              expiration_date: stock.expiration_date
+            }))
+          }]);
+          console.log('Stock mostrado correctamente');
+          return;
+        }
+      } catch (err) {
+        console.log('Error al obtener stock por almacén:', err.message);
+      }
+      
+      // Opción 2: Buscar en current-inventory 
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        
+        const inventoryResponse = await api.get(`current-inventory/?product_id=${product.id}`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -211,117 +251,105 @@ function Products() {
         const inventoryData = Array.isArray(inventoryResponse.data) ? 
           inventoryResponse.data : (inventoryResponse.data.results || []);
         
+        console.log('Inventario actual encontrado:', inventoryData);
+        
         if (inventoryData.length > 0) {
-          // Agrupar por variante si hay datos
-          const groupedByVariant = inventoryData.reduce((acc, inv) => {
-            const variantId = inv.product_variant?.id || inv.product_variant || 'default';
-            if (!acc[variantId]) {
-              acc[variantId] = {
-                variant: inv.product_variant || { 
-                  id: variantId, 
-                  name: product.name, 
-                  sku: product.sku 
-                },
-                inventory: []
-              };
-            }
-            acc[variantId].inventory.push(inv);
-            return acc;
-          }, {});
-          
-          setProductInventory(Object.values(groupedByVariant));
-          console.log('Inventario encontrado directamente:', Object.values(groupedByVariant));
+          setProductInventory([{
+            variant: { 
+              id: product.id, 
+              name: product.name, 
+              sku: product.sku 
+            },
+            inventory: inventoryData
+          }]);
           return;
         }
       } catch (err) {
-        if (err.name === 'AbortError') {
-          console.log('Timeout al obtener inventario directo');
-        } else {
-          console.log('No se pudo obtener inventario directo:', err.message);
-        }
+        console.log('Error al obtener inventario actual:', err.message);
       }
       
-      // Opción 2: Buscar las variantes del producto con límite
+      // Opción 3: Calcular stock desde movimientos de inventario
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos timeout
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         
-        const variantsResponse = await api.get(`product-variants/?product=${product.id}`, {
+        const movementsResponse = await api.get(`inventory-movements/?product=${product.id}`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
         
-        const variants = Array.isArray(variantsResponse.data) ? 
-          variantsResponse.data : (variantsResponse.data.results || []);
+        const movementsData = Array.isArray(movementsResponse.data) ? 
+          movementsResponse.data : (movementsResponse.data.results || []);
         
-        console.log('Variantes encontradas:', variants.length);
+        console.log('Movimientos encontrados:', movementsData.length);
         
-        if (variants.length === 0) {
-          console.log('No se encontraron variantes');
-          setProductInventory([]);
+        if (movementsData.length > 0) {
+          // Calcular stock actual basado en movimientos
+          const stockByWarehouse = movementsData.reduce((acc, movement) => {
+            const warehouseKey = movement.warehouse?.id || movement.warehouse_id || 'sin_almacen';
+            const warehouseName = movement.warehouse?.name || `Almacén ${warehouseKey}`;
+            
+            if (!acc[warehouseKey]) {
+              acc[warehouseKey] = {
+                warehouse_id: warehouseKey,
+                warehouse: { id: warehouseKey, name: warehouseName },
+                quantity: 0,
+                price: 0,
+                updated_at: movement.created_at || movement.date,
+                movements_count: 0
+              };
+            }
+            
+            // Sumar entradas y restar salidas
+            const quantity = parseFloat(movement.quantity) || 0;
+            if (movement.movement_type === 'ENTRADA' || movement.movement_type === 'entrada' || 
+                movement.movement_type === 'IN' || movement.movement_type === 'in') {
+              acc[warehouseKey].quantity += quantity;
+            } else if (movement.movement_type === 'SALIDA' || movement.movement_type === 'salida' || 
+                       movement.movement_type === 'OUT' || movement.movement_type === 'out') {
+              acc[warehouseKey].quantity -= quantity;
+            }
+            
+            // Actualizar precio con el más reciente
+            if (movement.unit_price && parseFloat(movement.unit_price) > 0) {
+              acc[warehouseKey].price = parseFloat(movement.unit_price);
+            }
+            
+            acc[warehouseKey].movements_count++;
+            return acc;
+          }, {});
+          
+          // Convertir a formato esperado por el modal
+          const inventoryResults = [{
+            variant: { 
+              id: product.id, 
+              name: product.name, 
+              sku: product.sku 
+            },
+            inventory: Object.values(stockByWarehouse).filter(stock => stock.quantity !== 0)
+          }];
+          
+          setProductInventory(inventoryResults);
+          console.log('Stock calculado desde movimientos:', inventoryResults);
           return;
         }
-        
-        // Limitar a máximo 5 variantes para evitar sobrecarga
-        const limitedVariants = variants.slice(0, 5);
-        if (variants.length > 5) {
-          console.log(`Limitando búsqueda a las primeras 5 de ${variants.length} variantes`);
-        }
-        
-        // Procesar variantes secuencialmente en lugar de en paralelo
-        const inventoryResults = [];
-        
-        for (const variant of limitedVariants) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos por variante
-            
-            const inventoryResponse = await api.get(`inventory/?product_variant=${variant.id}`, {
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            
-            const inventoryData = Array.isArray(inventoryResponse.data) ? 
-              inventoryResponse.data : (inventoryResponse.data.results || []);
-            
-            inventoryResults.push({
-              variant,
-              inventory: inventoryData
-            });
-            
-            // Pequeña pausa entre peticiones para no sobrecargar el servidor
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-          } catch (err) {
-            console.log(`Error al obtener inventario para variante ${variant.id}:`, err.message);
-            inventoryResults.push({
-              variant,
-              inventory: []
-            });
-          }
-        }
-        
-        setProductInventory(inventoryResults);
-        console.log('Resultado final del inventario:', inventoryResults);
-        
       } catch (err) {
-        console.error('Error al obtener variantes:', err.message);
-        
-        // Opción 3: Mostrar variante básica sin inventario
-        setProductInventory([{
-          variant: { 
-            id: product.id, 
-            name: product.name, 
-            sku: product.sku 
-          },
-          inventory: []
-        }]);
-        console.log('Mostrando producto sin inventario detallado');
+        console.log('Error al obtener movimientos:', err.message);
       }
       
+      // Si no se encuentra nada, mostrar el producto sin inventario
+      console.log('No se encontraron datos de inventario para el producto');
+      setProductInventory([{
+        variant: { 
+          id: product.id, 
+          name: product.name, 
+          sku: product.sku 
+        },
+        inventory: []
+      }]);
+      
     } catch (err) {
-      console.error('Error general al obtener inventario del producto:', err.message);
-      // En caso de error, al menos mostrar la información básica del producto
+      console.error('Error general al obtener inventario:', err.message);
       setProductInventory([{
         variant: { 
           id: product.id, 
