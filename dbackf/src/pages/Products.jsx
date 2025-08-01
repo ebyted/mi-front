@@ -14,6 +14,7 @@ function Products() {
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [currentBusiness, setCurrentBusiness] = useState(1); // Business por defecto
   // Eliminado manejo de múltiples negocios
   const [loading, setLoading] = useState(true);
@@ -32,11 +33,15 @@ function Products() {
   const [productInventory, setProductInventory] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
   
+  // Estado para stock por almacén de todos los productos
+  const [productWarehouseStocks, setProductWarehouseStocks] = useState([]);
+  
   // Estados para filtros avanzados
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     brand: '',
     category: '',
+    warehouse: '',
     isActive: '',
     stockStatus: ''
   });
@@ -44,14 +49,21 @@ function Products() {
   useEffect(() => {
     fetchProducts();
     fetchCurrentBusiness();
-    // Cargar marcas y categorías
+    fetchProductWarehouseStocks();
+    // Cargar marcas, categorías y almacenes
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
+    api.get('warehouses/').then(res => {
+      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+      setWarehouses(data);
+    }).catch(() => setWarehouses([]));
   }, []);
 
   // Debug effect para el search
   useEffect(() => {
-    console.log('Search changed to:', search);
+    if (search && search.trim()) {
+      console.log('Search changed to:', search);
+    }
   }, [search]);
 
   const fetchCurrentBusiness = () => {
@@ -90,6 +102,19 @@ function Products() {
         setError('No se pudo cargar la lista de productos.');
       })
       .finally(() => setLoading(false));
+  };
+
+  const fetchProductWarehouseStocks = () => {
+    // Obtener stock de todos los productos por almacén
+    api.get('product-warehouse-stocks/')
+      .then(res => {
+        const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+        setProductWarehouseStocks(data);
+      })
+      .catch(err => {
+        console.error('Error al obtener stocks por almacén:', err);
+        setProductWarehouseStocks([]);
+      });
   };
 
   const filteredProducts = products.filter(p => {
@@ -140,23 +165,26 @@ function Products() {
       const barcodeMatch = normalizeText(p.barcode).includes(searchNormalized);
       
       matchesSearch = nameMatch || skuMatch || brandMatch || categoryMatch || barcodeMatch;
-      
-      // Debug más detallado
-      if (searchNormalized === 'aciclovir') {
-        console.log(`=== PRODUCTO: ${p.name} ===`);
-        console.log(`Nombre normalizado: "${normalizeText(p.name)}"`);
-        console.log(`SKU normalizado: "${normalizeText(p.sku)}"`);
-        console.log(`Búsqueda normalizada: "${searchNormalized}"`);
-        console.log(`Matches: name=${nameMatch}, sku=${skuMatch}, brand=${brandMatch}, category=${categoryMatch}, barcode=${barcodeMatch}`);
-        console.log(`Final result: ${matchesSearch}`);
-        console.log('---');
-      }
     }
     
     // Filtros específicos
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
     const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active : !p.is_active);
+    
+    // Filtro por almacén - verificar si el producto tiene stock en el almacén seleccionado
+    let matchesWarehouse = true;
+    if (filters.warehouse) {
+      const productStocks = productWarehouseStocks.filter(stock => stock.product === p.id || stock.product_id === p.id);
+      if (productStocks.length > 0) {
+        matchesWarehouse = productStocks.some(stock => {
+          const warehouseId = typeof stock.warehouse === 'object' ? stock.warehouse.id : stock.warehouse;
+          return String(warehouseId) === String(filters.warehouse) && (stock.quantity || 0) > 0;
+        });
+      } else {
+        matchesWarehouse = false; // Si no hay stock registrado, no mostrar en filtro de almacén
+      }
+    }
     
     // Filtro de estado de stock
     let matchesStock = true;
@@ -168,24 +196,8 @@ function Products() {
       }
     }
     
-    const finalResult = matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
-    
-    // Debug final
-    if (search && search.trim() && finalResult) {
-      console.log(`✅ PRODUCTO INCLUIDO: ${p.name}`);
-    }
-    
-    return finalResult;
+    return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesWarehouse && matchesStock;
   });
-
-  // Debug temporal - agregar logs
-  console.log('Search value:', search);
-  console.log('Active filters:', filters);
-  console.log('Total products:', products.length);
-  console.log('Filtered products:', filteredProducts.length);
-  if (search && search.trim()) {
-    console.log('Searching for:', search.trim());
-  }
 
   // Paginación
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -220,6 +232,7 @@ function Products() {
     setFilters({
       brand: '',
       category: '',
+      warehouse: '',
       isActive: '',
       stockStatus: ''
     });
@@ -578,6 +591,30 @@ function Products() {
     }
   };
 
+  // Función para obtener información de stock por almacén del producto
+  const getProductWarehouseInfo = (productId) => {
+    const productStocks = productWarehouseStocks.filter(stock => 
+      (stock.product === productId || stock.product_id === productId)
+    );
+    
+    if (productStocks.length === 0) {
+      return { totalStock: 0, warehouses: [] };
+    }
+    
+    const totalStock = productStocks.reduce((sum, stock) => sum + (stock.quantity || 0), 0);
+    const warehouseInfo = productStocks.map(stock => {
+      const warehouse = typeof stock.warehouse === 'object' ? stock.warehouse : 
+        warehouses.find(w => w.id === stock.warehouse);
+      return {
+        name: warehouse?.name || warehouse?.description || `Almacén ${stock.warehouse}`,
+        quantity: stock.quantity || 0,
+        id: warehouse?.id || stock.warehouse
+      };
+    }).filter(w => w.quantity > 0);
+    
+    return { totalStock, warehouses: warehouseInfo };
+  };
+
   const selectedProduct = products.find(p => String(p.id) === String(selectedId));
 
   return (
@@ -645,8 +682,14 @@ function Products() {
         <div className="card mb-3">
           <div className="card-body">
             <h6 className="card-title">Filtros Avanzados</h6>
+            {filters.warehouse && (
+              <div className="alert alert-info small mb-3">
+                <i className="fas fa-info-circle me-2"></i>
+                <strong>Filtro por almacén activo:</strong> Solo se muestran productos que tienen stock disponible en el almacén seleccionado.
+              </div>
+            )}
             <div className="row g-3">
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Marca</label>
                 <select 
                   className="form-select form-select-sm"
@@ -665,7 +708,7 @@ function Products() {
                     ))}
                 </select>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-3">
                 <label className="form-label">Categoría</label>
                 <select 
                   className="form-select form-select-sm"
@@ -684,7 +727,26 @@ function Products() {
                     ))}
                 </select>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-3">
+                <label className="form-label">Almacén</label>
+                <select 
+                  className="form-select form-select-sm"
+                  value={filters.warehouse}
+                  onChange={e => handleFilterChange('warehouse', e.target.value)}
+                >
+                  <option value="">Todos los almacenes</option>
+                  {warehouses
+                    .sort((a, b) => {
+                      const nameA = (a.name || a.description || a.id).toString().toLowerCase();
+                      const nameB = (b.name || b.description || b.id).toString().toLowerCase();
+                      return nameA.localeCompare(nameB);
+                    })
+                    .map(w => (
+                      <option key={w.id} value={w.id}>{w.name || w.description || `Almacén ${w.id}`}</option>
+                    ))}
+                </select>
+              </div>
+              <div className="col-md-3">
                 <label className="form-label">Estado</label>
                 <select 
                   className="form-select form-select-sm"
@@ -883,6 +945,7 @@ function Products() {
                 <th>Código de barras</th>
                 <th>Stock mínimo</th>
                 <th>Stock máximo</th>
+                <th>Stock por Almacén</th>
                 <th>Activo</th>
                 <th>Grupo</th>
                 <th>Acciones</th>
@@ -891,7 +954,7 @@ function Products() {
             <tbody>
               {paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="text-center py-4">
+                  <td colSpan="12" className="text-center py-4">
                     📪 <p className="text-muted mb-0">No hay productos en esta página</p>
                     <small className="text-muted">Intenta navegar a una página anterior</small>
                   </td>
@@ -914,6 +977,7 @@ function Products() {
                   categoryDesc = p.category.description || p.category.name || p.category;
                 }
                 const stockStatus = getStockStatus(p);
+                const warehouseInfo = getProductWarehouseInfo(p.id);
                 return (
                   <tr key={p.id}>
                     <td>
@@ -948,6 +1012,29 @@ function Products() {
                       </div>
                     </td>
                     <td>{p.maximum_stock || '-'}</td>
+                    <td>
+                      <div className="small">
+                        {warehouseInfo.warehouses.length > 0 ? (
+                          <>
+                            <div className="fw-bold text-primary mb-1">
+                              Total: {warehouseInfo.totalStock}
+                            </div>
+                            {warehouseInfo.warehouses.slice(0, 2).map((wh, idx) => (
+                              <div key={idx} className="text-muted">
+                                {wh.name}: <span className="text-dark">{wh.quantity}</span>
+                              </div>
+                            ))}
+                            {warehouseInfo.warehouses.length > 2 && (
+                              <div className="text-muted">
+                                +{warehouseInfo.warehouses.length - 2} más...
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-muted">Sin stock</span>
+                        )}
+                      </div>
+                    </td>
                     <td>
                       <span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>
                         {p.is_active ? 'Activo' : 'Inactivo'}
