@@ -32,6 +32,7 @@ function Products() {
   const [inventoryProduct, setInventoryProduct] = useState(null);
   const [productInventory, setProductInventory] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
+  const [inventoryWarehouseFilter, setInventoryWarehouseFilter] = useState(''); // Filtro por almacén en modal
   
   // Estado para stock por almacén de todos los productos
   const [productWarehouseStocks, setProductWarehouseStocks] = useState([]);
@@ -293,147 +294,67 @@ function Products() {
     try {
       console.log('Buscando inventario para producto:', product.id);
       
-      // Opción 1: Buscar en product-warehouse-stocks (el endpoint correcto para stock actual)
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        const stockResponse = await api.get(`product-warehouse-stocks/?product=${product.id}`, {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        const stockData = Array.isArray(stockResponse.data) ? 
-          stockResponse.data : (stockResponse.data.results || []);
-        
-        console.log('Stock por almacén encontrado:', stockData);
-        
-        if (stockData.length > 0) {
-          // Mostrar el stock actual por almacén
-          setProductInventory([{
-            variant: { 
-              id: product.id, 
-              name: product.name, 
-              sku: product.sku 
-            },
-            inventory: stockData.map(stock => ({
-              warehouse: stock.warehouse,
-              warehouse_id: stock.warehouse?.id || stock.warehouse_id,
-              quantity: stock.quantity || 0,
+      // Buscar stock consolidado por almacén
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const stockResponse = await api.get(`product-warehouse-stocks/?product=${product.id}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      const stockData = Array.isArray(stockResponse.data) ? 
+        stockResponse.data : (stockResponse.data.results || []);
+      
+      console.log('Stock por almacén encontrado:', stockData);
+      
+      if (stockData.length > 0) {
+        // Agrupar y consolidar el stock por almacén
+        const consolidatedStock = stockData.reduce((acc, stock) => {
+          const warehouseKey = stock.warehouse?.id || stock.warehouse_id || stock.warehouse;
+          const warehouseName = stock.warehouse?.name || stock.warehouse?.description || `Almacén ${warehouseKey}`;
+          
+          if (!acc[warehouseKey]) {
+            acc[warehouseKey] = {
+              warehouse: {
+                id: warehouseKey,
+                name: warehouseName
+              },
+              warehouse_id: warehouseKey,
+              quantity: 0,
               price: stock.price || 0,
               updated_at: stock.updated_at || stock.last_updated,
               lote: stock.batch || stock.lote,
               expiration_date: stock.expiration_date
-            }))
-          }]);
-          console.log('Stock mostrado correctamente');
-          return;
-        }
-      } catch (err) {
-        console.log('Error al obtener stock por almacén:', err.message);
-      }
-      
-      // Opción 2: Buscar en current-inventory 
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        
-        const inventoryResponse = await api.get(`current-inventory/?product_id=${product.id}`, {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        const inventoryData = Array.isArray(inventoryResponse.data) ? 
-          inventoryResponse.data : (inventoryResponse.data.results || []);
-        
-        console.log('Inventario actual encontrado:', inventoryData);
-        
-        if (inventoryData.length > 0) {
-          setProductInventory([{
-            variant: { 
-              id: product.id, 
-              name: product.name, 
-              sku: product.sku 
-            },
-            inventory: inventoryData
-          }]);
-          return;
-        }
-      } catch (err) {
-        console.log('Error al obtener inventario actual:', err.message);
-      }
-      
-      // Opción 3: Calcular stock desde movimientos de inventario
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        
-        const movementsResponse = await api.get(`inventory-movements/?product=${product.id}`, {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        const movementsData = Array.isArray(movementsResponse.data) ? 
-          movementsResponse.data : (movementsResponse.data.results || []);
-        
-        console.log('Movimientos encontrados:', movementsData.length);
-        
-        if (movementsData.length > 0) {
-          // Calcular stock actual basado en movimientos
-          const stockByWarehouse = movementsData.reduce((acc, movement) => {
-            const warehouseKey = movement.warehouse?.id || movement.warehouse_id || 'sin_almacen';
-            const warehouseName = movement.warehouse?.name || `Almacén ${warehouseKey}`;
-            
-            if (!acc[warehouseKey]) {
-              acc[warehouseKey] = {
-                warehouse_id: warehouseKey,
-                warehouse: { id: warehouseKey, name: warehouseName },
-                quantity: 0,
-                price: 0,
-                updated_at: movement.created_at || movement.date,
-                movements_count: 0
-              };
-            }
-            
-            // Sumar entradas y restar salidas
-            const quantity = parseFloat(movement.quantity) || 0;
-            if (movement.movement_type === 'ENTRADA' || movement.movement_type === 'entrada' || 
-                movement.movement_type === 'IN' || movement.movement_type === 'in') {
-              acc[warehouseKey].quantity += quantity;
-            } else if (movement.movement_type === 'SALIDA' || movement.movement_type === 'salida' || 
-                       movement.movement_type === 'OUT' || movement.movement_type === 'out') {
-              acc[warehouseKey].quantity -= quantity;
-            }
-            
-            // Actualizar precio con el más reciente
-            if (movement.unit_price && parseFloat(movement.unit_price) > 0) {
-              acc[warehouseKey].price = parseFloat(movement.unit_price);
-            }
-            
-            acc[warehouseKey].movements_count++;
-            return acc;
-          }, {});
+            };
+          }
           
-          // Convertir a formato esperado por el modal
-          const inventoryResults = [{
-            variant: { 
-              id: product.id, 
-              name: product.name, 
-              sku: product.sku 
-            },
-            inventory: Object.values(stockByWarehouse).filter(stock => stock.quantity !== 0)
-          }];
+          // Sumar las cantidades del mismo almacén
+          acc[warehouseKey].quantity += (stock.quantity || 0);
           
-          setProductInventory(inventoryResults);
-          console.log('Stock calculado desde movimientos:', inventoryResults);
-          return;
-        }
-      } catch (err) {
-        console.log('Error al obtener movimientos:', err.message);
+          return acc;
+        }, {});
+        
+        // Convertir a array y filtrar solo almacenes con stock > 0
+        const consolidatedArray = Object.values(consolidatedStock)
+          .filter(stock => stock.quantity > 0)
+          .sort((a, b) => b.quantity - a.quantity); // Ordenar por cantidad descendente
+        
+        setProductInventory([{
+          variant: { 
+            id: product.id, 
+            name: product.name, 
+            sku: product.sku 
+          },
+          inventory: consolidatedArray
+        }]);
+        
+        console.log('Stock consolidado mostrado:', consolidatedArray);
+        return;
       }
       
-      // Si no se encuentra nada, mostrar el producto sin inventario
-      console.log('No se encontraron datos de inventario para el producto');
+      // Si no se encuentra stock, mostrar mensaje
+      console.log('No se encontró stock para el producto');
       setProductInventory([{
         variant: { 
           id: product.id, 
@@ -444,7 +365,7 @@ function Products() {
       }]);
       
     } catch (err) {
-      console.error('Error general al obtener inventario:', err.message);
+      console.error('Error al obtener inventario:', err.message);
       setProductInventory([{
         variant: { 
           id: product.id, 
@@ -462,6 +383,7 @@ function Products() {
     setShowInventoryModal(false);
     setInventoryProduct(null);
     setProductInventory([]);
+    setInventoryWarehouseFilter(''); // Limpiar filtro
   };
 
   const handleChange = e => {
@@ -1189,17 +1111,66 @@ function Products() {
                       </div>
                     ) : (
                       <div>
-                        <h6 className="mb-3">📋 Existencias por Variante y Almacén</h6>
-                        {productInventory.map((item, index) => (
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h6 className="mb-0">📋 Existencias por Variante y Almacén</h6>
+                          
+                          {/* Filtro por almacén en modal */}
+                          <div className="d-flex align-items-center">
+                            <label className="form-label me-2 mb-0 small">Filtrar por almacén:</label>
+                            <select 
+                              className="form-select form-select-sm" 
+                              style={{width: 'auto'}}
+                              value={inventoryWarehouseFilter}
+                              onChange={e => setInventoryWarehouseFilter(e.target.value)}
+                            >
+                              <option value="">Todos los almacenes</option>
+                              {warehouses
+                                .filter(w => {
+                                  // Solo mostrar almacenes que tienen stock de este producto
+                                  return productInventory.some(item => 
+                                    item.inventory.some(inv => 
+                                      (inv.warehouse?.id === w.id || inv.warehouse_id === w.id) && inv.quantity > 0
+                                    )
+                                  );
+                                })
+                                .sort((a, b) => (a.name || a.description).localeCompare(b.name || b.description))
+                                .map(w => (
+                                  <option key={w.id} value={w.id}>
+                                    {w.name || w.description || `Almacén ${w.id}`}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                        </div>
+                        {productInventory.map((item, index) => {
+                          // Filtrar el inventario según el almacén seleccionado
+                          const filteredInventory = inventoryWarehouseFilter 
+                            ? item.inventory.filter(inv => 
+                                (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
+                                (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
+                              )
+                            : item.inventory;
+                          
+                          // Solo mostrar el item si tiene inventario después del filtro
+                          if (filteredInventory.length === 0 && inventoryWarehouseFilter) {
+                            return null;
+                          }
+                          
+                          return (
                           <div key={index} className="card mb-3">
                             <div className="card-header">
                               <h6 className="mb-0">
                                 🏷️ Variante: {item.variant.name} 
                                 <code className="ms-2">{item.variant.sku}</code>
+                                {inventoryWarehouseFilter && (
+                                  <span className="badge bg-primary ms-2">
+                                    Filtrado por almacén
+                                  </span>
+                                )}
                               </h6>
                             </div>
                             <div className="card-body">
-                              {item.inventory.length === 0 ? (
+                              {filteredInventory.length === 0 ? (
                                 <div className="alert alert-warning mb-0">
                                   <small>⚠️ Sin existencias registradas para esta variante</small>
                                 </div>
@@ -1217,7 +1188,7 @@ function Products() {
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {item.inventory.map((inv, invIndex) => (
+                                      {filteredInventory.map((inv, invIndex) => (
                                         <tr key={invIndex}>
                                           <td>
                                             <span className="badge bg-info">
@@ -1270,19 +1241,31 @@ function Products() {
                               )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        }).filter(Boolean)}
                         
                         {/* Resumen total */}
                         <div className="card bg-light">
                           <div className="card-body">
-                            <h6 className="text-primary mb-2">📊 Resumen Total</h6>
+                            <h6 className="text-primary mb-2">
+                              📊 Resumen Total
+                              {inventoryWarehouseFilter && (
+                                <span className="badge bg-primary ms-2 small">Filtrado</span>
+                              )}
+                            </h6>
                             <div className="row">
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-primary mb-0">
-                                    {productInventory.reduce((total, item) => 
-                                      total + item.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0), 0
-                                    )}
+                                    {productInventory.reduce((total, item) => {
+                                      const filteredInventory = inventoryWarehouseFilter 
+                                        ? item.inventory.filter(inv => 
+                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
+                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
+                                          )
+                                        : item.inventory;
+                                      return total + filteredInventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+                                    }, 0)}
                                   </div>
                                   <small className="text-muted">Total en existencia</small>
                                 </div>
@@ -1290,7 +1273,15 @@ function Products() {
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-info mb-0">
-                                    {productInventory.length}
+                                    {productInventory.filter(item => {
+                                      const filteredInventory = inventoryWarehouseFilter 
+                                        ? item.inventory.filter(inv => 
+                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
+                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
+                                          )
+                                        : item.inventory;
+                                      return filteredInventory.length > 0;
+                                    }).length}
                                   </div>
                                   <small className="text-muted">Variantes</small>
                                 </div>
@@ -1298,19 +1289,35 @@ function Products() {
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-success mb-0">
-                                    {productInventory.reduce((total, item) => total + item.inventory.length, 0)}
+                                    {productInventory.reduce((total, item) => {
+                                      const filteredInventory = inventoryWarehouseFilter 
+                                        ? item.inventory.filter(inv => 
+                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
+                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
+                                          )
+                                        : item.inventory;
+                                      return total + filteredInventory.length;
+                                    }, 0)}
                                   </div>
-                                  <small className="text-muted">Ubicaciones</small>
+                                  <small className="text-muted">
+                                    {inventoryWarehouseFilter ? 'Ubicaciones en almacén' : 'Ubicaciones'}
+                                  </small>
                                 </div>
                               </div>
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-warning mb-0">
-                                    ${productInventory.reduce((total, item) => 
-                                      total + item.inventory.reduce((sum, inv) => 
+                                    ${productInventory.reduce((total, item) => {
+                                      const filteredInventory = inventoryWarehouseFilter 
+                                        ? item.inventory.filter(inv => 
+                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
+                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
+                                          )
+                                        : item.inventory;
+                                      return total + filteredInventory.reduce((sum, inv) => 
                                         sum + ((inv.quantity || 0) * (inv.price || 0)), 0
-                                      ), 0
-                                    ).toFixed(2)}
+                                      );
+                                    }, 0).toFixed(2)}
                                   </div>
                                   <small className="text-muted">Valor total</small>
                                 </div>
