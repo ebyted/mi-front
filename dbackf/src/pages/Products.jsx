@@ -17,7 +17,7 @@ function Products() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '', business: '' });
+  const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
   const [formError, setFormError] = useState('');
   const [editId, setEditId] = useState(null);
   
@@ -26,7 +26,6 @@ function Products() {
   const [filters, setFilters] = useState({
     brand: '',
     category: '',
-    business: '',
     isActive: '',
     stockStatus: ''
   });
@@ -98,8 +97,6 @@ function Products() {
   };
 
   const handleFilterChange = (filterName, value) => {
-    // Ignorar cambios en filtro de negocio
-    if (filterName === 'business') return;
     setFilters(prev => ({
       ...prev,
       [filterName]: value
@@ -119,13 +116,12 @@ function Products() {
   };
 
   const getActiveFiltersCount = () => {
-    return Object.entries(filters).filter(([k, value]) => k !== 'business' && value !== '').length + (search ? 1 : 0);
+    return Object.entries(filters).filter(([k, value]) => value !== '').length + (search ? 1 : 0);
   };
 
   const handleEdit = product => {
     setFormError('');
     setEditId(product.id);
-    // Preparar datos del formulario sin negocio
     const editFormData = {
       name: product.name || '',
       sku: product.sku || '',
@@ -534,7 +530,7 @@ function Products() {
             setShowForm(false);
             setEditId(null);
             setFormError('');
-            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '', business: defaultBusinessId || '' });
+            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
           }}>
             ✖ Cancelar
           </button>
@@ -579,7 +575,7 @@ function Products() {
                 <th>SKU</th>
                 <th>Marca</th>
                 <th>Categoría</th>
-                <th>Negocio</th>
+                {/* <th>Negocio</th> */}
                 <th>Código de barras</th>
                 <th>Stock mínimo</th>
                 <th>Stock máximo</th>
@@ -598,34 +594,22 @@ function Products() {
                 </tr>
               ) : (
                 paginatedProducts.map(p => {
-                // Buscar descripción de marca, categoría y negocio por ID
+                // Buscar descripción de marca y categoría por ID
                 let brandDesc = p.brand;
                 let categoryDesc = p.category;
-                let businessDesc = p.business;
-                
                 if (typeof p.brand === 'number' || typeof p.brand === 'string') {
                   const b = brands.find(br => String(br.id) === String(p.brand));
                   brandDesc = b && typeof b === 'object' ? (b.description || b.name || b.id) : p.brand;
                 } else if (typeof p.brand === 'object' && p.brand !== null) {
                   brandDesc = p.brand.description || p.brand.name || p.brand;
                 }
-                
                 if (typeof p.category === 'number' || typeof p.category === 'string') {
                   const c = categories.find(cat => String(cat.id) === String(p.category));
                   categoryDesc = c && typeof c === 'object' ? (c.description || c.name || c.id) : p.category;
                 } else if (typeof p.category === 'object' && p.category !== null) {
                   categoryDesc = p.category.description || p.category.name || p.category;
                 }
-                
-                if (typeof p.business === 'number' || typeof p.business === 'string') {
-                  const bus = businesses.find(business => String(business.id) === String(p.business));
-                  businessDesc = bus && typeof bus === 'object' ? bus.name : p.business;
-                } else if (typeof p.business === 'object' && p.business !== null) {
-                  businessDesc = p.business.name || p.business;
-                }
-                
                 const stockStatus = getStockStatus(p);
-                
                 return (
                   <tr key={p.id}>
                     <td>
@@ -641,9 +625,7 @@ function Products() {
                     </td>
                     <td>{brandDesc}</td>
                     <td>{categoryDesc}</td>
-                    <td>
-                      <span className="badge bg-info">{businessDesc}</span>
-                    </td>
+                    {/* <td><span className="badge bg-info">{businessDesc}</span></td> */}
                     <td>
                       {p.barcode ? (
                         <code className="bg-light px-2 py-1 rounded">{p.barcode}</code>
