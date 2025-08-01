@@ -2,8 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function Products() {
+  // Hook para cambiar el título de la pestaña
+  useDocumentTitle('Productos - Maestro Inventario');
+  
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const formRef = React.useRef(null);
@@ -45,6 +49,11 @@ function Products() {
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
   }, []);
 
+  // Debug effect para el search
+  useEffect(() => {
+    console.log('Search changed to:', search);
+  }, [search]);
+
   const fetchCurrentBusiness = () => {
     // Intentar obtener el business del usuario actual
     api.get('user/profile/')
@@ -84,15 +93,71 @@ function Products() {
   };
 
   const filteredProducts = products.filter(p => {
-    // Filtro de búsqueda general
-    const matchesSearch = (p.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (p.sku?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (typeof p.brand === 'object' ? (p.brand?.name?.toLowerCase() || '') : (typeof p.brand === 'string' ? p.brand.toLowerCase() : String(p.brand || '').toLowerCase())).includes(search.toLowerCase()) ||
-      (typeof p.category === 'object' ? (p.category?.name?.toLowerCase() || '') : (typeof p.category === 'string' ? p.category.toLowerCase() : String(p.category || '').toLowerCase()));
+    // Filtro de búsqueda general - mejorado y simplificado
+    let matchesSearch = true;
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase().trim();
+      
+      // Función helper para limpiar y normalizar texto
+      const normalizeText = (text) => {
+        return (text || '').toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+          .replace(/[^\w\s]/g, ' ') // Reemplazar caracteres especiales con espacios
+          .replace(/\s+/g, ' ') // Normalizar espacios múltiples
+          .trim();
+      };
+      
+      const searchNormalized = normalizeText(searchLower);
+      
+      // Buscar en nombre del producto
+      const nameMatch = normalizeText(p.name).includes(searchNormalized);
+      
+      // Buscar en SKU
+      const skuMatch = normalizeText(p.sku).includes(searchNormalized);
+      
+      // Buscar en marca
+      let brandMatch = false;
+      if (p.brand) {
+        if (typeof p.brand === 'object') {
+          brandMatch = normalizeText(p.brand.name || p.brand.description).includes(searchNormalized);
+        } else {
+          brandMatch = normalizeText(String(p.brand)).includes(searchNormalized);
+        }
+      }
+      
+      // Buscar en categoría
+      let categoryMatch = false;
+      if (p.category) {
+        if (typeof p.category === 'object') {
+          categoryMatch = normalizeText(p.category.name || p.category.description).includes(searchNormalized);
+        } else {
+          categoryMatch = normalizeText(String(p.category)).includes(searchNormalized);
+        }
+      }
+      
+      // Buscar en código de barras
+      const barcodeMatch = normalizeText(p.barcode).includes(searchNormalized);
+      
+      matchesSearch = nameMatch || skuMatch || brandMatch || categoryMatch || barcodeMatch;
+      
+      // Debug más detallado
+      if (searchNormalized === 'aciclovir') {
+        console.log(`=== PRODUCTO: ${p.name} ===`);
+        console.log(`Nombre normalizado: "${normalizeText(p.name)}"`);
+        console.log(`SKU normalizado: "${normalizeText(p.sku)}"`);
+        console.log(`Búsqueda normalizada: "${searchNormalized}"`);
+        console.log(`Matches: name=${nameMatch}, sku=${skuMatch}, brand=${brandMatch}, category=${categoryMatch}, barcode=${barcodeMatch}`);
+        console.log(`Final result: ${matchesSearch}`);
+        console.log('---');
+      }
+    }
+    
     // Filtros específicos
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
     const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active : !p.is_active);
+    
     // Filtro de estado de stock
     let matchesStock = true;
     if (filters.stockStatus) {
@@ -102,8 +167,25 @@ function Products() {
         matchesStock = (p.minimum_stock || 0) >= 10;
       }
     }
-    return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
+    
+    const finalResult = matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
+    
+    // Debug final
+    if (search && search.trim() && finalResult) {
+      console.log(`✅ PRODUCTO INCLUIDO: ${p.name}`);
+    }
+    
+    return finalResult;
   });
+
+  // Debug temporal - agregar logs
+  console.log('Search value:', search);
+  console.log('Active filters:', filters);
+  console.log('Total products:', products.length);
+  console.log('Filtered products:', filteredProducts.length);
+  if (search && search.trim()) {
+    console.log('Searching for:', search.trim());
+  }
 
   // Paginación
   const totalPages = Math.ceil(filteredProducts.length / pageSize);

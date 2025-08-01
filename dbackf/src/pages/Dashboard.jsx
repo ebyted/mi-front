@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function Dashboard() {
+  // Hook para cambiar el título de la pestaña
+  useDocumentTitle('Dashboard - Maestro Inventario');
+  
   const [totals, setTotals] = useState({ users: 0, products: 0, warehouses: 0 });
 
   useEffect(() => {

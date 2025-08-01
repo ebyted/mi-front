@@ -1,9 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 import '../styles/Warehouses.css';
 
 function Warehouses() {
+  // Hook para cambiar el título de la pestaña
+  useDocumentTitle('Almacenes - Maestro Inventario');
+  
   // Estados principales
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);

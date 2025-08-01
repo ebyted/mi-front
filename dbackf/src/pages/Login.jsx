@@ -2,8 +2,12 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login as apiLogin } from '../services/auth';
 import { AuthContext } from '../context/AuthContext.jsx';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function Login() {
+  // Hook para cambiar el título de la pestaña
+  useDocumentTitle('Iniciar Sesión - Maestro Inventario');
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -45,6 +46,9 @@ if (!document.querySelector('#movement-styles')) {
 }
 
 const InventoryMovements = () => {
+  // Hook para cambiar el título de la pestaña
+  useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
+  
   // Estados principales
   const [movements, setMovements] = useState([]);
   const [products, setProducts] = useState([]);
