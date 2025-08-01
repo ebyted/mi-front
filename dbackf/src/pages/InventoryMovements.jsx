@@ -1033,7 +1033,24 @@ Cantidad: ${movement.total_quantity || 0}
                                       <tbody>
                                         {movement.details.map((detail, idx) => (
                                           <tr key={idx}>
-                                            <td>{detail.product_variant?.name || <span className="text-muted">N/A</span>}</td>
+                                            <td>
+                                              {(() => {
+                                                // Si hay nombre de variante y no es N/A, mostrarlo
+                                                if (detail.product_variant?.name && detail.product_variant?.name !== 'N/A') {
+                                                  return detail.product_variant.name;
+                                                }
+                                                // Si hay nombre de producto, mostrarlo
+                                                if (detail.product_variant?.product?.name) {
+                                                  return detail.product_variant.product.name;
+                                                }
+                                                // Si hay SKU, mostrarlo como fallback
+                                                if (detail.product_variant?.sku) {
+                                                  return <span className="text-muted">SKU: {detail.product_variant.sku}</span>;
+                                                }
+                                                // Si no hay nada, mostrar mensaje de error para depuración
+                                                return <span className="text-danger">Sin información de producto</span>;
+                                              })()}
+                                            </td>
                                             <td>{detail.quantity}</td>
                                             <td>${Number(detail.price).toFixed(2)}</td>
                                             <td>${Number(detail.total).toFixed(2)}</td>
