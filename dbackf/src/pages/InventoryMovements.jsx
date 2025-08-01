@@ -96,6 +96,7 @@ const InventoryMovements = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [inventoryData, setInventoryData] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
+  const [lastInventoryEndpoint, setLastInventoryEndpoint] = useState(''); // Para trackear qué endpoint se usó
   
   // Estados para importación
   const [importStep, setImportStep] = useState(1); // 1: Configuración, 2: Archivo, 3: Resultados
@@ -446,15 +447,38 @@ const InventoryMovements = () => {
         
         if (stockData.length > 0) {
           console.log('📦 Procesando datos para modal:', stockData.length, 'registros');
+          console.log('📋 Modal: Ejemplo de dato raw:', JSON.stringify(stockData[0], null, 2));
+          
           const groupedInventory = stockData.reduce((acc, stock) => {
+            // Log detallado del mapeo
+            console.log('🔍 Modal: Mapeando stock:', {
+              productVariant: stock.product_variant,
+              productName: stock.product_variant?.name,
+              productCode: stock.product_variant?.sku,
+              warehouse: stock.warehouse,
+              quantity: stock.quantity
+            });
+            
             const key = `${stock.product_variant?.id || stock.product || 'unknown'}-${stock.warehouse?.id || stock.warehouse_id || 'unknown'}`;
             if (!acc[key]) {
+              // Intentar obtener el nombre del producto de múltiples fuentes
+              const productName = stock.product_variant?.name || 
+                                 stock.product_variant?.product?.name ||
+                                 stock.product_name || 
+                                 `Producto ${stock.product_variant?.id || 'sin ID'}`;
+              
+              const productSku = stock.product_variant?.sku || 
+                               stock.product_variant?.code ||
+                               stock.product_code || 
+                               `SKU-${stock.product_variant?.id || 'UNKNOWN'}`;
+                               
               acc[key] = {
                 product_variant: {
-                  name: stock.product_variant?.name || stock.product_name || 'Producto sin nombre',
-                  sku: stock.product_variant?.sku || stock.product_code || '',
+                  name: productName,
+                  sku: productSku,
                   price: parseFloat(stock.product_variant?.price || stock.price || 0),
-                  min_stock: parseFloat(stock.product_variant?.min_stock || stock.min_stock || 0)
+                  min_stock: parseFloat(stock.product_variant?.min_stock || stock.min_stock || 0),
+                  id: stock.product_variant?.id || stock.product
                 },
                 warehouse: {
                   name: stock.warehouse?.name || stock.warehouse_name || 'Almacén desconocido',
@@ -463,6 +487,12 @@ const InventoryMovements = () => {
                 quantity: 0,
                 last_updated: stock.last_updated || new Date().toISOString()
               };
+              
+              console.log('✨ Modal: Producto mapeado:', {
+                name: acc[key].product_variant.name,
+                sku: acc[key].product_variant.sku,
+                warehouse: acc[key].warehouse.name
+              });
             }
             acc[key].quantity += parseFloat(stock.quantity || 0);
             return acc;
@@ -471,12 +501,64 @@ const InventoryMovements = () => {
           inventoryData = Object.values(groupedInventory).filter(item => parseFloat(item.quantity) > 0);
           endpointUsed = 'product-warehouse-stocks';
           console.log('✅ Modal: Datos procesados exitosamente:', inventoryData.length, 'items con stock');
+          console.log('📊 Modal: Ejemplo de dato final:', JSON.stringify(inventoryData[0], null, 2));
         }
       } catch (stockErr) {
         console.log('❌ Modal: Error con product-warehouse-stocks:', stockErr.message);
       }
       
-      // Opción 2: Datos de ejemplo si no hay datos reales
+      // Opción 2: Enriquecer datos faltantes con información de productos
+      if (inventoryData.length > 0) {
+        try {
+          console.log('🔍 Modal: Verificando si necesitamos enriquecer datos...');
+          const itemsNeedingEnrichment = inventoryData.filter(item => 
+            !item.product_variant?.name || item.product_variant.name.includes('Producto sin nombre') || item.product_variant.name.includes('Producto ')
+          );
+          
+          if (itemsNeedingEnrichment.length > 0) {
+            console.log('📚 Modal: Enriqueciendo datos de productos faltantes...');
+            
+            // Obtener datos completos de productos
+            const [productsRes, variantsRes] = await Promise.all([
+              api.get('products/'),
+              api.get('product-variants/')
+            ]);
+            
+            const products = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.results || []);
+            const variants = Array.isArray(variantsRes.data) ? variantsRes.data : (variantsRes.data.results || []);
+            
+            console.log('📊 Modal: Datos obtenidos:', { products: products.length, variants: variants.length });
+            
+            // Enriquecer los datos de inventario
+            inventoryData = inventoryData.map(item => {
+              if (item.product_variant?.id) {
+                const variant = variants.find(v => v.id === item.product_variant.id);
+                if (variant) {
+                  const product = products.find(p => p.id === variant.product);
+                  return {
+                    ...item,
+                    product_variant: {
+                      ...item.product_variant,
+                      name: variant.name || product?.name || item.product_variant.name,
+                      sku: variant.sku || variant.code || item.product_variant.sku,
+                      price: parseFloat(variant.price || item.product_variant.price || 0),
+                      min_stock: parseFloat(variant.min_stock || item.product_variant.min_stock || 0)
+                    }
+                  };
+                }
+              }
+              return item;
+            });
+            
+            console.log('✨ Modal: Datos enriquecidos exitosamente');
+          }
+          
+        } catch (enrichErr) {
+          console.log('⚠️ Modal: Error al enriquecer datos, continuando con datos básicos:', enrichErr.message);
+        }
+      }
+      
+      // Opción 3: Datos de ejemplo si no hay datos reales
       if (inventoryData.length === 0) {
         console.log('📋 Modal: Usando datos de ejemplo');
         inventoryData = [
@@ -512,7 +594,30 @@ const InventoryMovements = () => {
         endpointUsed = 'modal-demo-data';
       }
       
+      // Último recurso: verificar que tengamos datos válidos para mostrar
+      if (inventoryData.length === 0) {
+        console.log('🆘 Modal: No se pudo obtener ningún dato, generando datos mínimos de emergencia');
+        inventoryData = [
+          {
+            product_variant: {
+              name: 'Sin datos disponibles',
+              sku: 'NO-DATA',
+              price: 0,
+              min_stock: 0
+            },
+            warehouse: {
+              name: 'Verificar conexión',
+              id: 0
+            },
+            quantity: 0,
+            last_updated: new Date().toISOString()
+          }
+        ];
+        endpointUsed = 'emergency-fallback';
+      }
+      
       setInventoryData(inventoryData);
+      setLastInventoryEndpoint(endpointUsed);
       console.log(`✅ Modal: Inventario cargado (${endpointUsed}):`, inventoryData.length, 'items');
       setShowInventoryModal(true);
       
@@ -913,6 +1018,7 @@ El inventario se ha cargado con datos de ejemplo para que puedas seguir trabajan
   const closeInventoryModal = () => {
     setShowInventoryModal(false);
     setInventoryData([]);
+    setLastInventoryEndpoint('');
     setInventoryFilters({ warehouse: '', stockStatus: '', search: '' });
   };
 
@@ -2495,13 +2601,28 @@ Cantidad: ${movement.total_quantity || 0}
               <div className="modal-header">
                 <h5 className="modal-title">
                   <i className="bi bi-boxes me-2"></i>
-                  Inventario Actual
+                  Inventario Actual ({inventoryData.length} productos)
                 </h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={closeInventoryModal}
-                ></button>
+                <div className="d-flex gap-2">
+                  {debugMode && (
+                    <button 
+                      type="button" 
+                      className="btn btn-sm btn-outline-info"
+                      onClick={() => {
+                        console.log('🐛 Modal Debug: Datos de inventario:', inventoryData);
+                        console.log('🐛 Modal Debug: Primer item:', JSON.stringify(inventoryData[0], null, 2));
+                        alert(`Debug: ${inventoryData.length} items. Ver consola para detalles.`);
+                      }}
+                    >
+                      <i className="bi bi-bug"></i> Debug
+                    </button>
+                  )}
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={closeInventoryModal}
+                  ></button>
+                </div>
               </div>
               <div className="modal-body">
                 {loadingInventory ? (
@@ -2513,6 +2634,17 @@ Cantidad: ${movement.total_quantity || 0}
                   </div>
                 ) : (
                   <>
+                    {/* Información del endpoint usado */}
+                    {debugMode && lastInventoryEndpoint && (
+                      <div className="alert alert-info py-2 mb-3">
+                        <small>
+                          <i className="bi bi-info-circle me-2"></i>
+                          <strong>Endpoint usado:</strong> {lastInventoryEndpoint}
+                          {lastInventoryEndpoint === 'modal-demo-data' && ' (datos de demostración)'}
+                        </small>
+                      </div>
+                    )}
+                    
                     {/* Filtros del inventario */}
                     <div className="row mb-3">
                       <div className="col-md-4">
