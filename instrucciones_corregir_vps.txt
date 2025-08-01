@@ -1,0 +1,52 @@
+# Comandos para corregir el .env en el VPS
+
+# 1. Conectarse al VPS
+ssh root@168.231.67.221
+
+# 2. Encontrar el archivo .env del proyecto
+docker exec maestro_backend find /app -name ".env" -o -name "*.env"
+
+# 3. Ver la configuración actual (reemplaza /app/.env con la ruta encontrada)
+docker exec maestro_backend cat /app/.env
+
+# 4. Hacer backup del .env actual
+docker exec maestro_backend cp /app/.env /app/.env.backup
+
+# 5. Crear el .env corregido (copia y pega todo este bloque):
+docker exec maestro_backend bash -c 'cat > /app/.env << EOF
+DJANGO_ENV=production
+DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
+
+DATABASE_ENGINE=django.db.backends.postgresql
+DATABASE_NAME=maestro_inventario
+DATABASE_USER=maestro
+DATABASE_PASSWORD=maestro
+DATABASE_HOST=db
+DATABASE_PORT=5432
+
+DEBUG=False
+ALLOWED_HOSTS=127.0.0.1,localhost,168.231.67.221
+SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+ENVIRONMENT=production
+CORS_ORIGINS=*
+API_HOST=168.231.67.221
+API_PORT=8030
+API_URL=http://168.231.67.221:8030/api/
+EOF'
+
+# 6. Verificar que el archivo se creó correctamente
+docker exec maestro_backend cat /app/.env
+
+# 7. Reiniciar el contenedor backend
+docker restart maestro_backend
+
+# 8. Verificar logs (presiona Ctrl+C para salir)
+docker logs maestro_backend -f
+
+# 9. Si todo está bien, probar la autenticación
+curl -X POST http://168.231.67.221:8030/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ebyted@hotmail.com","password":"Arkano-IA2025+"}'
