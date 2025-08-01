@@ -1,14 +1,7 @@
 from django.urls import path, include
-from django.http import JsonResponse
 from .views_welcome import welcome
-from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import CustomTokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
-
-# Crear vista personalizada para token
-class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
 from .views import (
     UserViewSet, BusinessViewSet, CategoryViewSet, BrandViewSet, UnitViewSet, ProductViewSet, ProductVariantViewSet,
     WarehouseViewSet, ProductWarehouseStockViewSet, SupplierViewSet, SupplierProductViewSet, PurchaseOrderViewSet,
@@ -55,9 +48,8 @@ router.register(r'inventory-movement-details', InventoryMovementDetailViewSet)
 
 urlpatterns = [
     path('', welcome, name='welcome'),
-    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/debug-auth/', lambda request: JsonResponse({'message': 'Debug endpoint working'}), name='debug-auth'),
     path('import-products/', ProductImportView.as_view(), name='import-products'),
     path('import-brands/', BrandImportView.as_view(), name='import-brands'),
     path('import-categories/', CategoryImportView.as_view(), name='import-categories'),
