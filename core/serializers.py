@@ -1,5 +1,6 @@
 from .models import AuditLog
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     User, Business, Category, Brand, Unit, Product, ProductVariant, Warehouse, ProductWarehouseStock,
     Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem,
@@ -7,6 +8,16 @@ from .models import (
     Role, MenuOption, InventoryMovementDetail
 )
 
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Agregar información adicional al token
+        token['email'] = user.email
+        token['first_name'] = user.first_name
+        token['last_name'] = user.last_name
+        return token
 
 class AuditLogSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
