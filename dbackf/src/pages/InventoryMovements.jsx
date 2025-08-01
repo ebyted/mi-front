@@ -448,20 +448,31 @@ const InventoryMovements = () => {
     setError(''); // Limpiar errores previos
     
     try {
-      console.log('Cargando inventario para pestaña...');
+      console.log('🔄 Iniciando carga de inventario para pestaña...');
+      console.log('🌐 URL Base de la API:', api.defaults.baseURL);
       
       // Intentar diferentes endpoints con mejor manejo de errores
       let inventoryData = [];
       let endpointUsed = '';
+      let lastError = null;
       
       // Opción 1: product-warehouse-stocks
       try {
-        console.log('Intentando endpoint: product-warehouse-stocks/');
-        const stockResponse = await api.get('product-warehouse-stocks/');
+        const endpoint1 = 'product-warehouse-stocks/';
+        console.log(`🚀 Intentando endpoint: ${endpoint1}`);
+        console.log(`📍 URL completa: ${api.defaults.baseURL}${endpoint1}`);
+        
+        const stockResponse = await api.get(endpoint1);
+        console.log('✅ Respuesta exitosa de product-warehouse-stocks:', {
+          status: stockResponse.status,
+          dataType: Array.isArray(stockResponse.data) ? 'array' : typeof stockResponse.data,
+          length: Array.isArray(stockResponse.data) ? stockResponse.data.length : 'N/A'
+        });
+        
         const stockData = Array.isArray(stockResponse.data) ? stockResponse.data : (stockResponse.data.results || []);
         
         if (stockData.length > 0) {
-          console.log('✅ Datos obtenidos de product-warehouse-stocks:', stockData.length);
+          console.log('📦 Procesando datos de product-warehouse-stocks:', stockData.length, 'registros');
           // Agrupar por producto y almacén
           const groupedInventory = stockData.reduce((acc, stock) => {
             const key = `${stock.product_variant?.id || stock.product || 'unknown'}-${stock.warehouse?.id || stock.warehouse_id || 'unknown'}`;
@@ -481,20 +492,38 @@ const InventoryMovements = () => {
           
           inventoryData = Object.values(groupedInventory).filter(item => parseFloat(item.total_stock) > 0);
           endpointUsed = 'product-warehouse-stocks';
+          console.log('✅ Datos procesados exitosamente:', inventoryData.length, 'items con stock');
+        } else {
+          console.log('⚠️ product-warehouse-stocks devolvió datos vacíos');
         }
       } catch (stockErr) {
-        console.log('❌ Error con product-warehouse-stocks:', stockErr.response?.status, stockErr.response?.data?.message || stockErr.message);
+        lastError = stockErr;
+        console.log('❌ Error con product-warehouse-stocks:', {
+          status: stockErr.response?.status,
+          statusText: stockErr.response?.statusText,
+          message: stockErr.response?.data?.message || stockErr.message,
+          url: stockErr.config?.url
+        });
       }
       
       // Opción 2: current-inventory (si la primera falló)
       if (inventoryData.length === 0) {
         try {
-          console.log('Intentando endpoint: current-inventory/');
-          const inventoryResponse = await api.get('current-inventory/');
+          const endpoint2 = 'current-inventory/';
+          console.log(`🚀 Intentando endpoint: ${endpoint2}`);
+          console.log(`📍 URL completa: ${api.defaults.baseURL}${endpoint2}`);
+          
+          const inventoryResponse = await api.get(endpoint2);
+          console.log('✅ Respuesta exitosa de current-inventory:', {
+            status: inventoryResponse.status,
+            dataType: Array.isArray(inventoryResponse.data) ? 'array' : typeof inventoryResponse.data,
+            length: Array.isArray(inventoryResponse.data) ? inventoryResponse.data.length : 'N/A'
+          });
+          
           const rawData = Array.isArray(inventoryResponse.data) ? inventoryResponse.data : (inventoryResponse.data.results || []);
           
           if (rawData.length > 0) {
-            console.log('✅ Datos obtenidos de current-inventory:', rawData.length);
+            console.log('📦 Procesando datos de current-inventory:', rawData.length, 'registros');
             inventoryData = rawData.map(item => ({
               product_name: item.product_variant?.name || item.product_name || 'Producto sin nombre',
               product_code: item.product_variant?.sku || item.product_code || '',
@@ -504,13 +533,62 @@ const InventoryMovements = () => {
               min_stock: parseFloat(item.product_variant?.min_stock || item.min_stock || 0)
             })).filter(item => item.total_stock > 0);
             endpointUsed = 'current-inventory';
+            console.log('✅ Datos procesados exitosamente:', inventoryData.length, 'items con stock');
+          } else {
+            console.log('⚠️ current-inventory devolvió datos vacíos');
           }
         } catch (inventoryErr) {
-          console.log('❌ Error con current-inventory:', inventoryErr.response?.status, inventoryErr.response?.data?.message || inventoryErr.message);
+          lastError = inventoryErr;
+          console.log('❌ Error con current-inventory:', {
+            status: inventoryErr.response?.status,
+            statusText: inventoryErr.response?.statusText,
+            message: inventoryErr.response?.data?.message || inventoryErr.message,
+            url: inventoryErr.config?.url,
+            responseData: inventoryErr.response?.data
+          });
         }
       }
       
-      // Opción 3: Datos de ejemplo si todo falla (para desarrollo)
+      // Opción 3: Intentar construir desde movimientos
+      if (inventoryData.length === 0 && movements.length > 0) {
+        try {
+          console.log('🔨 Construyendo inventario desde movimientos...');
+          const inventoryFromMovements = {};
+          
+          movements.forEach(movement => {
+            if (movement.details && Array.isArray(movement.details)) {
+              movement.details.forEach(detail => {
+                const key = `${detail.product_variant?.id || 'unknown'}-${movement.warehouse?.id || 'unknown'}`;
+                if (!inventoryFromMovements[key]) {
+                  inventoryFromMovements[key] = {
+                    product_name: detail.product_variant?.name || 'Producto sin nombre',
+                    product_code: detail.product_variant?.sku || '',
+                    warehouse_name: movement.warehouse?.name || 'Almacén desconocido',
+                    total_stock: 0,
+                    product_price: parseFloat(detail.product_variant?.price || detail.price || 0),
+                    min_stock: parseFloat(detail.product_variant?.min_stock || 0)
+                  };
+                }
+                
+                const quantity = parseFloat(detail.quantity || 0);
+                if (movement.movement_type === 'entrada') {
+                  inventoryFromMovements[key].total_stock += quantity;
+                } else if (movement.movement_type === 'salida') {
+                  inventoryFromMovements[key].total_stock -= quantity;
+                }
+              });
+            }
+          });
+          
+          inventoryData = Object.values(inventoryFromMovements).filter(item => item.total_stock > 0);
+          endpointUsed = 'calculated-from-movements';
+          console.log('✅ Inventario construido desde movimientos:', inventoryData.length, 'items');
+        } catch (calcErr) {
+          console.log('❌ Error construyendo inventario desde movimientos:', calcErr.message);
+        }
+      }
+      
+      // Opción 4: Datos de ejemplo si todo falla (para desarrollo)
       if (inventoryData.length === 0) {
         console.log('⚠️ Usando datos de ejemplo para desarrollo');
         inventoryData = [
@@ -547,7 +625,15 @@ const InventoryMovements = () => {
       
       // Mostrar error específico según el código de estado
       if (err.response?.status === 500) {
-        setError('Error del servidor (500). El backend tiene problemas internos. Contacta al administrador.');
+        const serverError = `Error del servidor (500). El backend tiene problemas internos.
+        
+Detalles técnicos:
+• Endpoint: ${err.config?.url || 'Desconocido'}
+• Mensaje: ${err.response?.data?.detail || err.response?.data?.message || 'Sin detalles'}
+• Hora: ${new Date().toLocaleString()}
+
+Contacta al administrador del sistema.`;
+        setError(serverError);
       } else if (err.response?.status === 404) {
         setError('Endpoint no encontrado (404). Verifica la configuración de la API.');
       } else if (err.response?.status === 403) {
@@ -3083,7 +3169,7 @@ Cantidad: ${movement.total_quantity || 0}
               </div>
               <div className="card-body">
                 <div className="row">
-                  <div className="col-md-6">
+                  <div className="col-md-4">
                     <h6>Estado de la Aplicación:</h6>
                     <ul className="list-unstyled small">
                       <li><strong>Inventario cargado:</strong> {currentInventory.length} items</li>
@@ -3091,9 +3177,20 @@ Cantidad: ${movement.total_quantity || 0}
                       <li><strong>Error actual:</strong> {error || 'Ninguno'}</li>
                       <li><strong>Pestaña activa:</strong> {activeTab}</li>
                       <li><strong>Almacenes disponibles:</strong> {warehouses.length}</li>
+                      <li><strong>Movimientos:</strong> {movements.length}</li>
                     </ul>
                   </div>
-                  <div className="col-md-6">
+                  <div className="col-md-4">
+                    <h6>Conectividad API:</h6>
+                    <ul className="list-unstyled small">
+                      <li><strong>URL Base:</strong> <code>{api.defaults.baseURL || 'No configurada'}</code></li>
+                      <li><strong>Endpoints probados:</strong></li>
+                      <li className="ms-2">• product-warehouse-stocks/</li>
+                      <li className="ms-2">• current-inventory/</li>
+                      <li><strong>Última actualización:</strong> {lastRefresh.toLocaleTimeString()}</li>
+                    </ul>
+                  </div>
+                  <div className="col-md-4">
                     <h6>Filtros Aplicados:</h6>
                     <ul className="list-unstyled small">
                       <li><strong>Almacén:</strong> {inventoryFiltersTab.warehouse || 'Todos'}</li>
@@ -3119,6 +3216,22 @@ Cantidad: ${movement.total_quantity || 0}
                     Log Almacenes
                   </button>
                   <button 
+                    className="btn btn-sm btn-outline-warning me-2"
+                    onClick={async () => {
+                      console.log('🧪 Probando conectividad...');
+                      try {
+                        const response = await api.get('warehouses/');
+                        console.log('✅ Conectividad OK:', response.status);
+                        alert('✅ Conectividad OK: ' + response.status);
+                      } catch (err) {
+                        console.log('❌ Error de conectividad:', err);
+                        alert('❌ Error de conectividad: ' + (err.response?.status || err.message));
+                      }
+                    }}
+                  >
+                    Probar API
+                  </button>
+                  <button 
                     className="btn btn-sm btn-outline-success"
                     onClick={() => {
                       setCurrentInventory([]);
@@ -3137,7 +3250,28 @@ Cantidad: ${movement.total_quantity || 0}
           {error && (
             <div className="alert alert-danger alert-dismissible fade show" role="alert">
               <i className="bi bi-exclamation-triangle me-2"></i>
-              <strong>Error:</strong> {error}
+              <strong>Error de Conectividad:</strong>
+              <div className="mt-2" style={{ whiteSpace: 'pre-line' }}>
+                {error}
+              </div>
+              <div className="mt-3">
+                <button 
+                  className="btn btn-sm btn-outline-light me-2"
+                  onClick={() => {
+                    setError('');
+                    setCurrentInventory([]);
+                    loadInventoryTab();
+                  }}
+                >
+                  🔄 Reintentar
+                </button>
+                <button 
+                  className="btn btn-sm btn-outline-light"
+                  onClick={() => setDebugMode(true)}
+                >
+                  🐛 Ver Debug
+                </button>
+              </div>
               <button 
                 type="button" 
                 className="btn-close" 
