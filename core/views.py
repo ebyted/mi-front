@@ -1,9 +1,11 @@
-from .models import AuditLog
-from .serializers import AuditLogSerializer
+from .models import AuditLog, User
+from .serializers import AuditLogSerializer, UserSerializer
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 
 # Permiso para importadores y vistas de edición
 class IsStaffOrReadOnly(IsAuthenticated):
@@ -530,6 +532,58 @@ from rest_framework.permissions import IsAuthenticated
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def reset_password(self, request, pk=None):
+        """
+        Endpoint para restablecer la contraseña de un usuario.
+        Solo usuarios staff pueden restablecer contraseñas.
+        """
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response(
+                {'error': 'No tienes permisos para restablecer contraseñas.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        user = self.get_object()
+        new_password = request.data.get('new_password')
+        
+        if not new_password:
+            return Response(
+                {'error': 'La nueva contraseña es requerida.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(new_password) < 6:
+            return Response(
+                {'error': 'La contraseña debe tener al menos 6 caracteres.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Establecer la nueva contraseña
+            user.set_password(new_password)
+            user.save()
+            
+            # Crear log de auditoría
+            AuditLog.objects.create(
+                user=request.user,
+                action='RESET_PASSWORD',
+                model='User',
+                object_id=user.id,
+                details=f'Contraseña restablecida para usuario: {user.username}'
+            )
+            
+            return Response({
+                'message': f'Contraseña restablecida exitosamente para {user.username}.',
+                'user_id': user.id
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al restablecer contraseña: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class BusinessViewSet(viewsets.ModelViewSet):
     queryset = Business.objects.all()

@@ -9,6 +9,10 @@ function Users() {
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [formData, setFormData] = useState({ 
     username: '', 
     email: '', 
@@ -24,6 +28,23 @@ function Users() {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  // Atajos de teclado
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Escape para cerrar modal
+      if (e.key === 'Escape') {
+        if (showModal) {
+          resetForm();
+        } else if (showPasswordModal) {
+          resetPasswordModal();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showModal, showPasswordModal]);
 
   const loadUsers = () => {
     setLoading(true);
@@ -142,6 +163,47 @@ function Users() {
       loadUsers();
     } catch (err) {
       alert('Error al cambiar estado del usuario.');
+    }
+  };
+
+  const handleResetPassword = (user) => {
+    setSelectedUserForPassword(user);
+    setNewPassword('');
+    setPasswordError('');
+    setShowPasswordModal(true);
+  };
+
+  const resetPasswordModal = () => {
+    setShowPasswordModal(false);
+    setSelectedUserForPassword(null);
+    setNewPassword('');
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (!newPassword) {
+      setPasswordError('La nueva contraseña es requerida.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    try {
+      await api.post(`users/${selectedUserForPassword.id}/reset_password/`, {
+        new_password: newPassword
+      });
+      
+      alert(`Contraseña restablecida exitosamente para ${selectedUserForPassword.username}`);
+      resetPasswordModal();
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || 'Error al restablecer contraseña.';
+      setPasswordError(errorMsg);
     }
   };
 
@@ -305,6 +367,13 @@ function Users() {
                           <i className="bi bi-pencil"></i>
                         </button>
                         <button
+                          className="btn btn-outline-warning btn-sm"
+                          onClick={() => handleResetPassword(u)}
+                          title="Restablecer contraseña"
+                        >
+                          <i className="bi bi-key"></i>
+                        </button>
+                        <button
                           className="btn btn-outline-danger btn-sm"
                           onClick={() => handleDelete(u)}
                           title="Eliminar usuario"
@@ -455,6 +524,77 @@ function Users() {
                       {editMode ? 'Actualizar Usuario' : 'Crear Usuario'}
                     </button>
                     <button type="button" className="btn btn-outline-secondary" onClick={resetForm}>
+                      <i className="bi bi-x-lg me-1"></i>
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para restablecer contraseña */}
+      {showPasswordModal && (
+        <div 
+          className="modal-overlay" 
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '20px' }}
+          onClick={(e) => e.target === e.currentTarget && resetPasswordModal()}
+        >
+          <div 
+            className="modal-dialog" 
+            style={{ maxWidth: 400, width: '100%', maxHeight: '90vh', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 16, background: '#fff', margin: '0 auto', display: 'flex', flexDirection: 'column' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content animate__animated animate__fadeIn" style={{ background: '#fff', borderRadius: 16, display: 'flex', flexDirection: 'column', maxHeight: '100%' }}>
+              <div className="modal-header" style={{ borderBottom: '1px solid #eee', background: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: '16px 20px', flexShrink: 0 }}>
+                <h4 className="modal-title mb-0">
+                  <i className="bi bi-key me-2"></i>
+                  Restablecer Contraseña
+                </h4>
+                <button type="button" className="btn-close" onClick={resetPasswordModal} style={{ fontSize: '1.2rem', opacity: 0.8 }}></button>
+              </div>
+              <div className="modal-body" style={{ background: '#fff', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: '20px', overflow: 'auto', flexGrow: 1 }}>
+                <div className="alert alert-info mb-3">
+                  <i className="bi bi-info-circle me-2"></i>
+                  Vas a restablecer la contraseña para: <strong>{selectedUserForPassword?.username}</strong>
+                </div>
+                
+                <form onSubmit={handlePasswordSubmit}>
+                  <div className="mb-3">
+                    <label className="form-label">Nueva Contraseña *</label>
+                    <div className="input-group">
+                      <span className="input-group-text"><i className="bi bi-lock"></i></span>
+                      <input
+                        type="password"
+                        className="form-control"
+                        placeholder="Mínimo 6 caracteres"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                    <div className="form-text">
+                      <i className="bi bi-shield-check me-1"></i>
+                      La contraseña debe tener al menos 6 caracteres
+                    </div>
+                  </div>
+
+                  {passwordError && (
+                    <div className="alert alert-danger mb-3">
+                      <i className="bi bi-exclamation-triangle me-2"></i>
+                      {passwordError}
+                    </div>
+                  )}
+
+                  <div className="d-grid gap-2">
+                    <button type="submit" className="btn btn-warning">
+                      <i className="bi bi-key me-1"></i>
+                      Restablecer Contraseña
+                    </button>
+                    <button type="button" className="btn btn-outline-secondary" onClick={resetPasswordModal}>
                       <i className="bi bi-x-lg me-1"></i>
                       Cancelar
                     </button>
