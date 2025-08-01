@@ -10,6 +10,7 @@ function Products() {
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [currentBusiness, setCurrentBusiness] = useState(1); // Business por defecto
   // Eliminado manejo de múltiples negocios
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,6 +21,12 @@ function Products() {
   const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
   const [formError, setFormError] = useState('');
   const [editId, setEditId] = useState(null);
+  
+  // Estados para modal de inventario
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [inventoryProduct, setInventoryProduct] = useState(null);
+  const [productInventory, setProductInventory] = useState([]);
+  const [loadingInventory, setLoadingInventory] = useState(false);
   
   // Estados para filtros avanzados
   const [showFilters, setShowFilters] = useState(false);
@@ -32,10 +39,33 @@ function Products() {
 
   useEffect(() => {
     fetchProducts();
+    fetchCurrentBusiness();
     // Cargar marcas y categorías
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
   }, []);
+
+  const fetchCurrentBusiness = () => {
+    // Intentar obtener el business del usuario actual
+    api.get('user/profile/')
+      .then(res => {
+        if (res.data && res.data.business) {
+          setCurrentBusiness(res.data.business.id || res.data.business);
+        }
+      })
+      .catch(() => {
+        // Si falla, intentar obtener el primer business disponible
+        api.get('businesses/')
+          .then(res => {
+            if (res.data && res.data.length > 0) {
+              setCurrentBusiness(res.data[0].id);
+            }
+          })
+          .catch(() => {
+            console.warn('No se pudo obtener business, usando valor por defecto (1)');
+          });
+      });
+  };
 
   // Eliminada función fetchBusinesses
 
@@ -159,6 +189,58 @@ function Products() {
     setShowForm(true);
   };
 
+  const handleViewInventory = async (product) => {
+    setInventoryProduct(product);
+    setShowInventoryModal(true);
+    setLoadingInventory(true);
+    setProductInventory([]);
+    
+    try {
+      // Buscar las variantes del producto
+      const variantsResponse = await api.get(`product-variants/?product=${product.id}`);
+      const variants = variantsResponse.data || [];
+      
+      if (variants.length === 0) {
+        setProductInventory([]);
+        return;
+      }
+      
+      // Para cada variante, obtener su inventario
+      const inventoryPromises = variants.map(async (variant) => {
+        try {
+          const inventoryResponse = await api.get(`inventory/?product_variant=${variant.id}`);
+          const inventoryData = inventoryResponse.data || [];
+          
+          return {
+            variant,
+            inventory: Array.isArray(inventoryData) ? inventoryData : (inventoryData.results || [])
+          };
+        } catch (err) {
+          console.error(`Error al obtener inventario para variante ${variant.id}:`, err);
+          return {
+            variant,
+            inventory: []
+          };
+        }
+      });
+      
+      const inventoryResults = await Promise.all(inventoryPromises);
+      setProductInventory(inventoryResults);
+      
+    } catch (err) {
+      console.error('Error al obtener inventario del producto:', err);
+      setProductInventory([]);
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
+  const closeInventoryModal = () => {
+    setShowInventoryModal(false);
+    setInventoryProduct(null);
+    setProductInventory([]);
+  };
+
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
@@ -206,15 +288,19 @@ function Products() {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      // Preparar datos para envío (sin negocio)
+      // Preparar datos para envío (incluir business dinámico)
       const dataToSend = {
         ...formData,
         minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
         maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
         group: formData.group ? Number(formData.group) : null,
         brand: Number(formData.brand),
-        category: Number(formData.category)
+        category: Number(formData.category),
+        business: currentBusiness
       };
+      
+      console.log('Enviando datos del producto:', dataToSend);
+      
       let response;
       if (editId) {
         response = await api.put(`products/${editId}/`, dataToSend);
@@ -242,6 +328,11 @@ function Products() {
                 }
               });
               errorMessage = errors.join(' | ');
+              
+              // Si el error menciona business, agregar contexto
+              if (errorMessage.toLowerCase().includes('business')) {
+                errorMessage += ' (Nota: Se asignó business automáticamente)';
+              }
             }
           }
         } else if (err.response.status === 404) {
@@ -252,6 +343,9 @@ function Products() {
       } else if (err.message) {
         errorMessage = err.message;
       }
+      
+      console.error('Error al guardar producto:', err);
+      console.error('Datos enviados:', dataToSend);
       setFormError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -661,10 +755,10 @@ function Products() {
                         </button>
                         <button 
                           className="btn btn-sm btn-outline-info" 
-                          title="Ver detalles"
-                          onClick={() => {/* TODO: Implementar vista de detalles */}}
+                          title="Ver inventario"
+                          onClick={() => handleViewInventory(p)}
                         >
-                          👁️
+                          �
                         </button>
                       </div>
                     </td>
@@ -735,6 +829,214 @@ function Products() {
           </nav>
             </>
           )}
+        </div>
+      )}
+      
+      {/* Modal de inventario */}
+      {showInventoryModal && inventoryProduct && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-xl">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  📦 Inventario de {inventoryProduct.name}
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={closeInventoryModal}
+                ></button>
+              </div>
+              <div className="modal-body">
+                {loadingInventory ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Cargando inventario...</span>
+                    </div>
+                    <p className="mt-2">Cargando inventario actual...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Información del producto */}
+                    <div className="card mb-4">
+                      <div className="card-body">
+                        <div className="row">
+                          <div className="col-md-6">
+                            <h6 className="text-primary mb-2">Información del Producto</h6>
+                            <p><strong>Nombre:</strong> {inventoryProduct.name}</p>
+                            <p><strong>SKU:</strong> <code>{inventoryProduct.sku}</code></p>
+                            <p><strong>Código de barras:</strong> {inventoryProduct.barcode || 'N/A'}</p>
+                          </div>
+                          <div className="col-md-6">
+                            <h6 className="text-success mb-2">Stock Configurado</h6>
+                            <p><strong>Stock mínimo:</strong> {inventoryProduct.minimum_stock || 'No definido'}</p>
+                            <p><strong>Stock máximo:</strong> {inventoryProduct.maximum_stock || 'No definido'}</p>
+                            <p><strong>Estado:</strong> 
+                              <span className={`badge ms-2 ${inventoryProduct.is_active ? 'bg-success' : 'bg-danger'}`}>
+                                {inventoryProduct.is_active ? 'Activo' : 'Inactivo'}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Inventario por variantes */}
+                    {productInventory.length === 0 ? (
+                      <div className="alert alert-info">
+                        <h6 className="alert-heading">🔍 Sin variantes o inventario</h6>
+                        <p className="mb-0">
+                          Este producto no tiene variantes creadas o no se encontró inventario asociado.
+                          Para tener existencias, primero debes crear variantes del producto y luego registrar movimientos de inventario.
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <h6 className="mb-3">📋 Existencias por Variante y Almacén</h6>
+                        {productInventory.map((item, index) => (
+                          <div key={index} className="card mb-3">
+                            <div className="card-header">
+                              <h6 className="mb-0">
+                                🏷️ Variante: {item.variant.name} 
+                                <code className="ms-2">{item.variant.sku}</code>
+                              </h6>
+                            </div>
+                            <div className="card-body">
+                              {item.inventory.length === 0 ? (
+                                <div className="alert alert-warning mb-0">
+                                  <small>⚠️ Sin existencias registradas para esta variante</small>
+                                </div>
+                              ) : (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-striped">
+                                    <thead>
+                                      <tr>
+                                        <th>Almacén</th>
+                                        <th>Cantidad</th>
+                                        <th>Lote</th>
+                                        <th>Vencimiento</th>
+                                        <th>Precio</th>
+                                        <th>Última actualización</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.inventory.map((inv, invIndex) => (
+                                        <tr key={invIndex}>
+                                          <td>
+                                            <span className="badge bg-info">
+                                              {inv.warehouse?.name || `Almacén ${inv.warehouse_id}`}
+                                            </span>
+                                          </td>
+                                          <td>
+                                            <span className={`fw-bold ${inv.quantity > 0 ? 'text-success' : 'text-danger'}`}>
+                                              {inv.quantity}
+                                            </span>
+                                          </td>
+                                          <td>
+                                            {inv.lote ? (
+                                              <code className="small">{inv.lote}</code>
+                                            ) : (
+                                              <span className="text-muted">-</span>
+                                            )}
+                                          </td>
+                                          <td>
+                                            {inv.expiration_date ? (
+                                              <span className="small">
+                                                {new Date(inv.expiration_date).toLocaleDateString()}
+                                              </span>
+                                            ) : (
+                                              <span className="text-muted">-</span>
+                                            )}
+                                          </td>
+                                          <td>
+                                            {inv.price ? (
+                                              <span className="text-success">
+                                                ${parseFloat(inv.price).toFixed(2)}
+                                              </span>
+                                            ) : (
+                                              <span className="text-muted">-</span>
+                                            )}
+                                          </td>
+                                          <td>
+                                            <small className="text-muted">
+                                              {inv.updated_at ? 
+                                                new Date(inv.updated_at).toLocaleString() : 
+                                                'N/A'
+                                              }
+                                            </small>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Resumen total */}
+                        <div className="card bg-light">
+                          <div className="card-body">
+                            <h6 className="text-primary mb-2">📊 Resumen Total</h6>
+                            <div className="row">
+                              <div className="col-md-3">
+                                <div className="text-center">
+                                  <div className="h4 text-primary mb-0">
+                                    {productInventory.reduce((total, item) => 
+                                      total + item.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0), 0
+                                    )}
+                                  </div>
+                                  <small className="text-muted">Total en existencia</small>
+                                </div>
+                              </div>
+                              <div className="col-md-3">
+                                <div className="text-center">
+                                  <div className="h4 text-info mb-0">
+                                    {productInventory.length}
+                                  </div>
+                                  <small className="text-muted">Variantes</small>
+                                </div>
+                              </div>
+                              <div className="col-md-3">
+                                <div className="text-center">
+                                  <div className="h4 text-success mb-0">
+                                    {productInventory.reduce((total, item) => total + item.inventory.length, 0)}
+                                  </div>
+                                  <small className="text-muted">Ubicaciones</small>
+                                </div>
+                              </div>
+                              <div className="col-md-3">
+                                <div className="text-center">
+                                  <div className="h4 text-warning mb-0">
+                                    ${productInventory.reduce((total, item) => 
+                                      total + item.inventory.reduce((sum, inv) => 
+                                        sum + ((inv.quantity || 0) * (inv.price || 0)), 0
+                                      ), 0
+                                    ).toFixed(2)}
+                                  </div>
+                                  <small className="text-muted">Valor total</small>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={closeInventoryModal}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
