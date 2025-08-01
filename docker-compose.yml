@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile
     container_name: maestro_frontend
     ports:
-      - "5173:80"
+      - "80:80"
     restart: unless-stopped
     environment:
       - NODE_ENV=production
