@@ -1,0 +1,76 @@
+# COMANDOS PARA DESCUBRIR DOCKER EN VPS
+# ====================================
+
+# Conectar al VPS
+ssh root@168.231.67.221
+
+# Una vez conectado, ejecutar estos comandos:
+
+# 1. VER CONTENEDORES EN EJECUCIÓN
+docker ps
+
+# 2. VER TODOS LOS CONTENEDORES
+docker ps -a
+
+# 3. VER SERVICIOS DE DOCKER-COMPOSE (si existe)
+docker-compose ps
+
+# 4. VER CONFIGURACIÓN DE DOCKER-COMPOSE
+docker-compose config --services
+
+# 5. BUSCAR ARCHIVOS DOCKER-COMPOSE
+find / -name "docker-compose.yml" -type f 2>/dev/null
+
+# 6. VER CONTENIDO DEL DIRECTORIO ACTUAL
+ls -la
+
+# 7. BUSCAR PROYECTOS RELACIONADOS CON MAESTRO
+find / -name "*maestro*" -type d 2>/dev/null
+
+# 8. VER PUERTOS EN USO
+netstat -tlnp | grep -E ":(80|3000|8000|5432)"
+
+# 9. VER IMÁGENES DOCKER DISPONIBLES
+docker images
+
+# 10. INSPECCIONAR CONTENEDOR ESPECÍFICO (reemplazar CONTAINER_NAME)
+docker inspect CONTAINER_NAME
+
+# 11. VER LOGS DE UN CONTENEDOR
+docker logs CONTAINER_NAME
+
+# 12. VER VARIABLES DE ENTORNO DE UN CONTENEDOR
+docker exec CONTAINER_NAME env
+
+# 13. ENTRAR A UN CONTENEDOR (para explorar)
+docker exec -it CONTAINER_NAME bash
+# o
+docker exec -it CONTAINER_NAME sh
+
+# 14. VER BASES DE DATOS EN CONTENEDOR POSTGRESQL
+docker exec CONTAINER_NAME psql -U postgres -l
+
+# 15. BUSCAR ARCHIVOS DE CONFIGURACIÓN
+find / -name "*.env" -type f 2>/dev/null | head -10
+find / -name "settings.py" -type f 2>/dev/null | head -10
+
+# EJEMPLOS DE COMANDOS ÚTILES SEGÚN LO QUE ENCUENTRES:
+
+# Si encuentras un contenedor llamado "postgres" o "db":
+docker exec postgres psql -U postgres -l
+docker exec db psql -U maestro -l
+
+# Si hay docker-compose:
+docker-compose logs
+docker-compose config
+
+# Para ver qué procesos están usando los puertos:
+lsof -i :80
+lsof -i :3000
+lsof -i :5432
+
+# Para ver el contenido de docker-compose.yml:
+cat docker-compose.yml
+
+# Para ver variables de entorno de un contenedor PostgreSQL:
+docker exec POSTGRES_CONTAINER env | grep POSTGRES

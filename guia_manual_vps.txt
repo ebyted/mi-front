@@ -1,0 +1,99 @@
+# GUIA PASO A PASO PARA SINCRONIZAR CON VPS
+# ==========================================
+
+# TU CONFIGURACION:
+# VPS: 168.231.67.221  
+# Usuario: root
+# Proyecto: Docker
+
+# PASO 1: CREAR BACKUP LOCAL
+# ---------------------------
+# Ejecuta en tu maquina local (Windows):
+docker-compose exec -T postgres pg_dump -U postgres maestro_inventario > backup_$(Get-Date -Format "yyyyMMdd_HHmmss").sql
+
+# Para PowerShell (recomendado en Windows):
+$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+docker-compose exec -T postgres pg_dump -U postgres maestro_inventario > "backup_$timestamp.sql"
+
+# PASO 2: SUBIR AL VPS
+# ---------------------
+# Subir el archivo al VPS:
+scp backup_*.sql root@168.231.67.221:/tmp/
+
+# PASO 3: CONECTAR AL VPS
+# ------------------------
+ssh root@168.231.67.221
+
+# PASO 4: EN EL VPS - RESTAURAR
+# ------------------------------
+# Una vez conectado al VPS, ejecutar:
+
+# Ir a la carpeta de tu proyecto Docker
+cd /ruta/de/tu/proyecto/docker
+
+# Parar contenedores
+docker-compose down
+
+# Iniciar solo PostgreSQL
+docker-compose up -d postgres
+
+# Esperar que inicie
+sleep 15
+
+# Eliminar base de datos existente
+docker exec -i $(docker-compose ps -q postgres) psql -U postgres -c "DROP DATABASE IF EXISTS maestro_inventario;"
+
+# Crear base de datos nueva
+docker exec -i $(docker-compose ps -q postgres) psql -U postgres -c "CREATE DATABASE maestro_inventario;"
+
+# Restaurar backup
+docker exec -i $(docker-compose ps -q postgres) psql -U postgres -d maestro_inventario < /tmp/backup_*.sql
+
+# Iniciar todos los contenedores
+docker-compose up -d
+
+# Verificar que funciona
+docker-compose exec backend python manage.py shell -c "
+from core.models import *
+print(f'Productos: {Product.objects.count()}')
+print(f'Variantes: {ProductVariant.objects.count()}')
+print(f'Marcas: {Brand.objects.count()}')
+print(f'Usuarios: {User.objects.count()}')
+"
+
+# Limpiar archivo temporal
+rm /tmp/backup_*.sql
+
+# PASO 5: VERIFICAR EN FRONTEND
+# ------------------------------
+# Abrir en navegador: http://168.231.67.221
+# Iniciar sesion con: ebyted@hotmail.com
+
+# COMANDOS ADICIONALES UTILES:
+# =============================
+
+# Ver contenedores en VPS:
+docker ps
+
+# Ver logs del backend:
+docker-compose logs backend
+
+# Ver logs de la base de datos:
+docker-compose logs postgres
+
+# Reiniciar solo un servicio:
+docker-compose restart backend
+
+# ALTERNATIVA - USAR DOCKER DIRECTAMENTE:
+# ========================================
+
+# Si no tienes docker-compose en VPS, usar docker directo:
+
+# Encontrar ID del contenedor PostgreSQL:
+docker ps | grep postgres
+
+# Crear backup directo:
+docker exec POSTGRES_CONTAINER_ID pg_dump -U postgres maestro_inventario > backup.sql
+
+# Restaurar directo:
+docker exec -i POSTGRES_CONTAINER_ID psql -U postgres -d maestro_inventario < backup.sql
