@@ -242,7 +242,7 @@ const InventoryMovements = () => {
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [showModal, showInventoryModal]);
 
-  // Obtener movimientos filtrados
+  // Obtener movimientos filtrados y ordenados
   const filteredMovements = movements.filter(m => {
     if (filterWarehouse && String(m.warehouse?.id) !== String(filterWarehouse)) return false;
     if (filterType && m.movement_type !== filterType) return false;
@@ -267,6 +267,11 @@ const InventoryMovements = () => {
       if (!searchFields.includes(searchLower)) return false;
     }
     return true;
+  }).sort((a, b) => {
+    // Ordenar por fecha de creación (más reciente primero)
+    const dateA = new Date(a.created_at);
+    const dateB = new Date(b.created_at);
+    return dateB - dateA;
   });
 
   // Paginación
@@ -998,9 +1003,12 @@ Cantidad: ${movement.total_quantity || 0}
                 onChange={(e) => { setFilterWarehouse(e.target.value); setPage(1); }}
               >
                 <option value="">Todos</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
+                {warehouses
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))
+                }
               </select>
             </div>
             <div className="col-md-2">
@@ -1398,9 +1406,12 @@ Cantidad: ${movement.total_quantity || 0}
                         required
                       >
                         <option value="">Seleccionar almacén</option>
-                        {warehouses.map(w => (
-                          <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
+                        {warehouses
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map(w => (
+                            <option key={w.id} value={w.id}>{w.name}</option>
+                          ))
+                        }
                       </select>
                     </div>
                     <div className="col-md-6">
@@ -1469,7 +1480,7 @@ Cantidad: ${movement.total_quantity || 0}
                               required
                             >
                               <option value="">Seleccionar producto</option>
-                              {productVariants.map(pv => (
+                              {productVariants.sort((a, b) => a.name.localeCompare(b.name)).map(pv => (
                                 <option key={pv.id} value={pv.id}>
                                   {pv.name} - {pv.sku}
                                 </option>
@@ -1595,9 +1606,12 @@ Cantidad: ${movement.total_quantity || 0}
                         required
                       >
                         <option value="">Seleccionar almacén</option>
-                        {warehouses.map(w => (
-                          <option key={w.id} value={w.id}>{w.name}</option>
-                        ))}
+                        {warehouses
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map(w => (
+                            <option key={w.id} value={w.id}>{w.name}</option>
+                          ))
+                        }
                       </select>
                     </div>
                     <div className="col-md-6">
@@ -1666,7 +1680,7 @@ Cantidad: ${movement.total_quantity || 0}
                               required
                             >
                               <option value="">Seleccionar producto</option>
-                              {productVariants.map(pv => (
+                              {productVariants.sort((a, b) => a.name.localeCompare(b.name)).map(pv => (
                                 <option key={pv.id} value={pv.id}>
                                   {pv.name} - {pv.sku}
                                 </option>
@@ -1799,9 +1813,12 @@ Cantidad: ${movement.total_quantity || 0}
                           onChange={(e) => setInventoryFilters({...inventoryFilters, warehouse: e.target.value})}
                         >
                           <option value="">Todos los almacenes</option>
-                          {warehouses.map(w => (
-                            <option key={w.id} value={w.id}>{w.name}</option>
-                          ))}
+                          {warehouses
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map(w => (
+                              <option key={w.id} value={w.id}>{w.name}</option>
+                            ))
+                          }
                         </select>
                       </div>
                       <div className="col-md-4">
@@ -2048,11 +2065,14 @@ Cantidad: ${movement.total_quantity || 0}
                             required
                           >
                             <option value="">Seleccionar almacén...</option>
-                            {warehouses.map(warehouse => (
-                              <option key={warehouse.id} value={warehouse.id}>
-                                {warehouse.name} - {warehouse.location}
-                              </option>
-                            ))}
+                            {warehouses
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map(warehouse => (
+                                <option key={warehouse.id} value={warehouse.id}>
+                                  {warehouse.name} - {warehouse.location}
+                                </option>
+                              ))
+                            }
                           </select>
                         </div>
                       </div>
@@ -2380,9 +2400,12 @@ Cantidad: ${movement.total_quantity || 0}
                               onChange={(e) => setImportForm({...importForm, warehouse_id: e.target.value})}
                             >
                               <option value="">Seleccionar almacén...</option>
-                              {warehouses.map(w => (
-                                <option key={w.id} value={w.id}>{w.name}</option>
-                              ))}
+                              {warehouses
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .map(w => (
+                                  <option key={w.id} value={w.id}>{w.name}</option>
+                                ))
+                              }
                             </select>
                           </div>
                           
