@@ -3,7 +3,7 @@
 
 ## Información de Usuario Principal
 **Email:** ebyted@hotmail.com  
-**Contraseña:** admin123  
+**Contraseña:** Arkano-IA2025+  
 **Rol:** Superusuario/Administrador  
 **Nombre:** Edgar Jimenez  
 
@@ -17,7 +17,8 @@
 - **Admin Django:** http://168.231.67.221/admin/
 
 ## Estado de Sincronización
-✅ **Contraseña actualizada:** 31 de Julio 2025, 22:11  
+✅ **Contraseña actualizada:** 31 de Julio 2025, 22:23  
+✅ **Nueva contraseña:** Arkano-IA2025+  
 ✅ **Base de datos sincronizada:** Local ↔ VPS  
 ✅ **Datos migrados:** 2,595 productos  
 ✅ **Usuario verificado:** Superusuario activo  
