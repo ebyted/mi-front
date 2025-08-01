@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#f8f9fa"/>
+  <rect x="20" y="20" width="160" height="160" fill="#e9ecef" stroke="#dee2e6" stroke-width="2" rx="8"/>
+  <circle cx="100" cy="80" r="25" fill="#6c757d"/>
+  <rect x="60" y="120" width="80" height="8" fill="#6c757d" rx="4"/>
+  <rect x="70" y="140" width="60" height="6" fill="#adb5bd" rx="3"/>
+  <text x="100" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6c757d">Producto</text>
+</svg>
