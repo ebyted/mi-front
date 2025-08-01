@@ -630,26 +630,51 @@ const InventoryMovements = () => {
       
       // Opción 4: Datos de ejemplo si todo falla (para desarrollo)
       if (inventoryData.length === 0) {
-        console.log('⚠️ Usando datos de ejemplo para desarrollo');
+        console.log('🆘 ACTIVANDO DATOS DE EMERGENCIA - El backend no está respondiendo correctamente');
         inventoryData = [
           {
-            product_name: 'Producto Ejemplo 1',
-            product_code: 'EJ001',
+            product_name: 'Producto Demo A',
+            product_code: 'DEMO-A001',
             warehouse_name: 'Almacén Principal',
-            total_stock: 50,
+            total_stock: 150,
             product_price: 25.99,
             min_stock: 10
           },
           {
-            product_name: 'Producto Ejemplo 2',
-            product_code: 'EJ002',
-            warehouse_name: 'Almacén Secundario',
+            product_name: 'Producto Demo B',
+            product_code: 'DEMO-B002',
+            warehouse_name: 'Almacén Principal',
             total_stock: 75,
             product_price: 15.50,
             min_stock: 20
+          },
+          {
+            product_name: 'Producto Demo C',
+            product_code: 'DEMO-C003',
+            warehouse_name: 'Almacén Secundario',
+            total_stock: 200,
+            product_price: 45.00,
+            min_stock: 15
+          },
+          {
+            product_name: 'Producto Demo D',
+            product_code: 'DEMO-D004',
+            warehouse_name: 'Almacén Secundario',
+            total_stock: 5,
+            product_price: 120.75,
+            min_stock: 25
+          },
+          {
+            product_name: 'Producto Demo E',
+            product_code: 'DEMO-E005',
+            warehouse_name: 'Almacén Terciario',
+            total_stock: 0,
+            product_price: 8.99,
+            min_stock: 50
           }
         ];
-        endpointUsed = 'example-data';
+        endpointUsed = 'emergency-demo-data';
+        console.log('✅ Datos de emergencia cargados - La aplicación sigue funcionando');
       }
       
       setCurrentInventory(inventoryData);
@@ -658,6 +683,17 @@ const InventoryMovements = () => {
         items: inventoryData.length,
         totalValue: inventoryData.reduce((sum, item) => sum + (item.total_stock * item.product_price), 0).toFixed(2)
       });
+      
+      // Mostrar notificación si se usaron datos de respaldo
+      if (endpointUsed === 'emergency-demo-data') {
+        console.log('🔔 NOTIFICACIÓN: Se están usando datos de demostración debido a problemas con el backend');
+        // Mostrar un mensaje temporal de éxito
+        setTimeout(() => {
+          if (window.confirm('ℹ️ El backend tiene problemas, pero la aplicación sigue funcionando con datos de demostración.\n\n¿Quieres usar el Panel de Diagnóstico para más opciones?')) {
+            setDebugMode(true);
+          }
+        }, 1000);
+      }
       
     } catch (err) {
       console.error('💥 Error crítico cargando inventario:', err);
