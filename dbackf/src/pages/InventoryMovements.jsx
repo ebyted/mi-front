@@ -69,8 +69,22 @@ const InventoryMovements = () => {
   // Estados del modal
   const [showModal, setShowModal] = useState(false);
   const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [inventoryData, setInventoryData] = useState([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
+  
+  // Estados para importación
+  const [importStep, setImportStep] = useState(1); // 1: Configuración, 2: Archivo, 3: Resultados
+  const [importForm, setImportForm] = useState({
+    warehouse_id: '',
+    movement_type: 'Entrada',
+    notes: ''
+  });
+  const [importFile, setImportFile] = useState(null);
+  const [importValidation, setImportValidation] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+  
   const [inventoryFilters, setInventoryFilters] = useState({
     warehouse: '',
     stockStatus: '', // 'low', 'out', 'normal'
@@ -183,6 +197,10 @@ const InventoryMovements = () => {
             e.preventDefault();
             setShowModal(true);
             break;
+          case 'u':
+            e.preventDefault();
+            setShowImportModal(true);
+            break;
           case 'r':
             e.preventDefault();
             refreshData();
@@ -214,6 +232,8 @@ const InventoryMovements = () => {
           resetEditModal();
         } else if (showInventoryModal) {
           closeInventoryModal();
+        } else if (showImportModal) {
+          resetImportModal();
         }
       }
     };
@@ -452,6 +472,111 @@ const InventoryMovements = () => {
     setForm({ warehouse: '', movement_type: '', reference_document: '', notes: '' });
     setModalDetails([{ product_variant: '', quantity: '', price: '', lote: '', expiration_date: '' }]);
     setFormError('');
+  };
+
+  // Funciones de importación
+  const resetImportModal = () => {
+    setShowImportModal(false);
+    setImportStep(1);
+    setImportForm({
+      warehouse_id: '',
+      movement_type: 'Entrada',
+      notes: ''
+    });
+    setImportFile(null);
+    setImportValidation(null);
+    setImportLoading(false);
+    setImportError('');
+  };
+
+  const handleImportNext = async () => {
+    if (importStep === 1) {
+      // Validar configuración
+      if (!importForm.warehouse_id || !importForm.movement_type) {
+        setImportError('Por favor complete todos los campos requeridos.');
+        return;
+      }
+      setImportStep(2);
+      setImportError('');
+    } else if (importStep === 2) {
+      // Validar archivo
+      if (!importFile) {
+        setImportError('Por favor seleccione un archivo CSV.');
+        return;
+      }
+      await validateImportFile();
+    }
+  };
+
+  const validateImportFile = async () => {
+    setImportLoading(true);
+    setImportError('');
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+      
+      const response = await api.post('/movements/import/validate/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      setImportValidation(response.data);
+      setImportStep(3);
+    } catch (error) {
+      setImportError(error.response?.data?.error || 'Error validando archivo: ' + error.message);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importValidation?.productos_encontrados?.length) {
+      setImportError('No hay productos válidos para importar.');
+      return;
+    }
+
+    setImportLoading(true);
+    setImportError('');
+    
+    try {
+      const response = await api.post('/movements/import/confirm/', {
+        warehouse_id: importForm.warehouse_id,
+        movement_type: importForm.movement_type,
+        notes: importForm.notes,
+        productos_confirmados: importValidation.productos_encontrados
+      });
+      
+      // Éxito - cerrar modal y actualizar datos
+      resetImportModal();
+      await refreshData();
+      
+      // Mostrar mensaje de éxito
+      const resumen = response.data.resumen;
+      alert(`✅ Importación exitosa!\n\nProductos importados: ${resumen.productos_importados}\nTotal: $${resumen.total_movimiento.toFixed(2)}\nID del movimiento: ${response.data.movimiento.id}`);
+      
+    } catch (error) {
+      setImportError(error.response?.data?.error || 'Error confirmando importación: ' + error.message);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        setImportError('Por favor seleccione un archivo CSV válido.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setImportError('El archivo es demasiado grande. Máximo 5MB.');
+        return;
+      }
+      setImportFile(file);
+      setImportError('');
+    }
   };
 
   const addModalDetail = () => {
@@ -742,6 +867,14 @@ Cantidad: ${movement.total_quantity || 0}
             <i className="bi bi-plus-circle me-2"></i>
             Nuevo Movimiento
           </button>
+          <button 
+            className="btn btn-success ms-2"
+            onClick={() => setShowImportModal(true)}
+            title="Importar movimientos desde CSV"
+          >
+            <i className="bi bi-file-earmark-arrow-up me-2"></i>
+            Importar CSV
+          </button>
         </div>
       </div>
 
@@ -751,6 +884,7 @@ Cantidad: ${movement.total_quantity || 0}
           <i className="bi bi-keyboard me-1"></i>
           <strong>Atajos:</strong> 
           <span className="mx-2">Ctrl+N (Nuevo)</span>
+          <span className="mx-2">Ctrl+U (Importar CSV)</span>
           <span className="mx-2">Ctrl+R (Refrescar)</span>
           <span className="mx-2">Ctrl+I (Inventario)</span>
           <span className="mx-2">Ctrl+E (Excel)</span>
@@ -1868,6 +2002,345 @@ Cantidad: ${movement.total_quantity || 0}
                 >
                   Cerrar
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Importación CSV */}
+      {showImportModal && (
+        <div className="modal show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="bi bi-file-earmark-arrow-up me-2"></i>
+                  Importar Movimiento desde CSV - Paso {importStep} de 3
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={resetImportModal}
+                ></button>
+              </div>
+
+              <div className="modal-body">
+                {/* Paso 1: Configuración de Cabecera */}
+                {importStep === 1 && (
+                  <div className="fade-in">
+                    <h6 className="text-primary mb-3">
+                      <i className="bi bi-gear me-2"></i>
+                      Configuración del Movimiento
+                    </h6>
+                    
+                    <div className="row">
+                      <div className="col-md-6">
+                        <div className="mb-3">
+                          <label className="form-label">
+                            <i className="bi bi-building me-1"></i>
+                            Almacén *
+                          </label>
+                          <select
+                            className="form-select"
+                            value={importForm.warehouse_id}
+                            onChange={(e) => setImportForm({...importForm, warehouse_id: e.target.value})}
+                            required
+                          >
+                            <option value="">Seleccionar almacén...</option>
+                            {warehouses.map(warehouse => (
+                              <option key={warehouse.id} value={warehouse.id}>
+                                {warehouse.name} - {warehouse.location}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="col-md-6">
+                        <div className="mb-3">
+                          <label className="form-label">
+                            <i className="bi bi-arrow-up-down me-1"></i>
+                            Tipo de Movimiento *
+                          </label>
+                          <select
+                            className="form-select"
+                            value={importForm.movement_type}
+                            onChange={(e) => setImportForm({...importForm, movement_type: e.target.value})}
+                            required
+                          >
+                            <option value="Entrada">Entrada</option>
+                            <option value="Salida">Salida</option>
+                            <option value="Ajuste">Ajuste</option>
+                            <option value="Traspaso">Traspaso</option>
+                            <option value="Inventario Inicial">Inventario Inicial</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-3">
+                      <label className="form-label">
+                        <i className="bi bi-card-text me-1"></i>
+                        Notas
+                      </label>
+                      <textarea
+                        className="form-control"
+                        rows="3"
+                        value={importForm.notes}
+                        onChange={(e) => setImportForm({...importForm, notes: e.target.value})}
+                        placeholder="Descripción del movimiento..."
+                      ></textarea>
+                    </div>
+
+                    <div className="alert alert-info">
+                      <i className="bi bi-info-circle me-2"></i>
+                      <strong>Formato del archivo CSV:</strong>
+                      <ul className="mb-0 mt-2">
+                        <li>Debe contener las columnas: <code>nombre</code>, <code>cantidad</code>, <code>precio</code></li>
+                        <li>La primera fila debe ser el encabezado</li>
+                        <li>Los precios pueden incluir símbolo $ y usar coma como separador decimal</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paso 2: Subida de Archivo */}
+                {importStep === 2 && (
+                  <div className="fade-in">
+                    <h6 className="text-primary mb-3">
+                      <i className="bi bi-file-arrow-up me-2"></i>
+                      Seleccionar Archivo CSV
+                    </h6>
+
+                    <div className="mb-4">
+                      <label className="form-label">Archivo CSV *</label>
+                      <input
+                        type="file"
+                        className="form-control"
+                        accept=".csv"
+                        onChange={handleFileChange}
+                        required
+                      />
+                      {importFile && (
+                        <div className="mt-2">
+                          <small className="text-success">
+                            <i className="bi bi-check-circle me-1"></i>
+                            Archivo seleccionado: {importFile.name} ({(importFile.size / 1024).toFixed(1)} KB)
+                          </small>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="alert alert-warning">
+                      <i className="bi bi-exclamation-triangle me-2"></i>
+                      <strong>Importante:</strong>
+                      <ul className="mb-0 mt-2">
+                        <li>El sistema buscará los productos por nombre en la base de datos</li>
+                        <li>Se mostrará un reporte de productos encontrados y no encontrados</li>
+                        <li>Solo se importarán los productos que se encuentren en el sistema</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {/* Paso 3: Resultados de Validación */}
+                {importStep === 3 && importValidation && (
+                  <div className="fade-in">
+                    <h6 className="text-primary mb-3">
+                      <i className="bi bi-clipboard-check me-2"></i>
+                      Resultados de la Validación
+                    </h6>
+
+                    {/* Resumen */}
+                    <div className="row mb-4">
+                      <div className="col-md-3">
+                        <div className="card border-success">
+                          <div className="card-body text-center">
+                            <i className="bi bi-check-circle text-success fs-3"></i>
+                            <h5 className="text-success">{importValidation.resumen.encontrados}</h5>
+                            <small>Encontrados</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card border-danger">
+                          <div className="card-body text-center">
+                            <i className="bi bi-x-circle text-danger fs-3"></i>
+                            <h5 className="text-danger">{importValidation.resumen.no_encontrados}</h5>
+                            <small>No encontrados</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card border-info">
+                          <div className="card-body text-center">
+                            <i className="bi bi-list-ol text-info fs-3"></i>
+                            <h5 className="text-info">{importValidation.resumen.total_filas}</h5>
+                            <small>Total filas</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div className="card border-primary">
+                          <div className="card-body text-center">
+                            <i className="bi bi-currency-dollar text-primary fs-3"></i>
+                            <h5 className="text-primary">${importValidation.resumen.total_calculado.toFixed(2)}</h5>
+                            <small>Total calculado</small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Productos Encontrados */}
+                    {importValidation.productos_encontrados.length > 0 && (
+                      <div className="mb-4">
+                        <h6 className="text-success">
+                          <i className="bi bi-check-circle me-2"></i>
+                          Productos Encontrados ({importValidation.productos_encontrados.length})
+                        </h6>
+                        <div className="table-responsive" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                          <table className="table table-sm table-striped">
+                            <thead className="table-success">
+                              <tr>
+                                <th>Fila</th>
+                                <th>Nombre CSV</th>
+                                <th>Producto Encontrado</th>
+                                <th>SKU</th>
+                                <th>Cantidad</th>
+                                <th>Precio</th>
+                                <th>Subtotal</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importValidation.productos_encontrados.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.fila}</td>
+                                  <td className="small">{item.nombre}</td>
+                                  <td className="small">{item.producto_encontrado}</td>
+                                  <td><code className="small">{item.sku}</code></td>
+                                  <td>{item.cantidad}</td>
+                                  <td>${item.precio.toFixed(2)}</td>
+                                  <td><strong>${item.subtotal.toFixed(2)}</strong></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Productos No Encontrados */}
+                    {importValidation.productos_no_encontrados.length > 0 && (
+                      <div className="mb-4">
+                        <h6 className="text-danger">
+                          <i className="bi bi-x-circle me-2"></i>
+                          Productos No Encontrados ({importValidation.productos_no_encontrados.length})
+                        </h6>
+                        <div className="table-responsive" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                          <table className="table table-sm table-striped">
+                            <thead className="table-danger">
+                              <tr>
+                                <th>Fila</th>
+                                <th>Nombre</th>
+                                <th>Error</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {importValidation.productos_no_encontrados.map((item, index) => (
+                                <tr key={index}>
+                                  <td>{item.fila}</td>
+                                  <td className="small">{item.nombre}</td>
+                                  <td className="small text-danger">{item.error}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {importValidation.productos_encontrados.length === 0 && (
+                      <div className="alert alert-warning">
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        No se encontraron productos válidos para importar.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Mostrar errores */}
+                {importError && (
+                  <div className="alert alert-danger">
+                    <i className="bi bi-exclamation-triangle me-2"></i>
+                    {importError}
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                {importStep > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setImportStep(importStep - 1)}
+                    disabled={importLoading}
+                  >
+                    <i className="bi bi-arrow-left me-2"></i>
+                    Anterior
+                  </button>
+                )}
+                
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={resetImportModal}
+                  disabled={importLoading}
+                >
+                  Cancelar
+                </button>
+
+                {importStep < 3 && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleImportNext}
+                    disabled={importLoading}
+                  >
+                    {importLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        {importStep === 2 ? 'Validando...' : 'Procesando...'}
+                      </>
+                    ) : (
+                      <>
+                        Siguiente
+                        <i className="bi bi-arrow-right ms-2"></i>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {importStep === 3 && importValidation?.productos_encontrados?.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={confirmImport}
+                    disabled={importLoading}
+                  >
+                    {importLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Importando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-circle me-2"></i>
+                        Confirmar Importación
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>

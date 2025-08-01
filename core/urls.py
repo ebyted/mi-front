@@ -10,7 +10,9 @@ from .views import (
     QuotationViewSet, QuotationItemViewSet, RoleViewSet, MenuOptionViewSet,
     ProductImportView, BrandImportView, CategoryImportView, SalesOrderImportView,
     PurchaseOrderImportView, QuotationImportView, InventoryMovementImportView, AuthorizeInventoryMovementView,
-    AuditLogViewSet, CurrentInventoryView, user_menu_options
+    AuditLogViewSet, CurrentInventoryView, user_menu_options,
+    InventoryMovementImportValidateView, InventoryMovementImportConfirmView, 
+    InventoryMovementListView, WarehouseListView
 )
 
 
@@ -57,6 +59,10 @@ urlpatterns = [
     path('import-purchase-orders/', PurchaseOrderImportView.as_view(), name='import-purchase-orders'),
     path('import-quotations/', QuotationImportView.as_view(), name='import-quotations'),
     path('import-inventory-movements/', InventoryMovementImportView.as_view(), name='import-inventory-movements'),
+    path('movements/import/validate/', InventoryMovementImportValidateView.as_view(), name='movements-import-validate'),
+    path('movements/import/confirm/', InventoryMovementImportConfirmView.as_view(), name='movements-import-confirm'),
+    path('movements/list/', InventoryMovementListView.as_view(), name='movements-list'),
+    path('warehouses/list/', WarehouseListView.as_view(), name='warehouses-list'),
     path('authorize-inventory-movement/', AuthorizeInventoryMovementView.as_view(), name='authorize-inventory-movement'),
     path('current-inventory/', CurrentInventoryView.as_view(), name='current-inventory'),
     path('user-menu-options/', user_menu_options, name='user-menu-options'),

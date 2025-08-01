@@ -1004,3 +1004,335 @@ class MenuOptionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = MenuOption.objects.all()
     serializer_class = MenuOptionSerializer
     permission_classes = [IsAuthenticated]
+
+
+# --- Importador de Movimientos de Inventario ---
+import csv
+from io import StringIO
+from decimal import Decimal, InvalidOperation
+from django.db import transaction
+from rest_framework.parsers import MultiPartParser, FormParser
+
+class InventoryMovementImportValidateView(APIView):
+    """Validar archivo CSV para importación de movimientos"""
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsStaffOrReadOnly]
+    
+    def post(self, request):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'No se proporcionó archivo.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar formato CSV
+        try:
+            content = file.read().decode('utf-8')
+            csv_data = StringIO(content)
+            reader = csv.DictReader(csv_data)
+            
+            # Verificar columnas requeridas
+            required_columns = ['nombre', 'cantidad', 'precio']
+            if not all(col in reader.fieldnames for col in required_columns):
+                return Response({
+                    'error': f'El archivo debe contener las columnas: {", ".join(required_columns)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({'error': f'Error leyendo archivo: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Procesar y validar datos
+        csv_data.seek(0)
+        reader = csv.DictReader(csv_data)
+        
+        productos_encontrados = []
+        productos_no_encontrados = []
+        total_calculado = Decimal('0.00')
+        
+        for fila_num, row in enumerate(reader, 1):
+            nombre = row.get('nombre', '').strip()
+            cantidad_str = row.get('cantidad', '').strip()
+            precio_str = row.get('precio', '').strip()
+            
+            if not nombre:
+                productos_no_encontrados.append({
+                    'fila': fila_num,
+                    'nombre': nombre,
+                    'error': 'Nombre vacío'
+                })
+                continue
+            
+            # Validar cantidad
+            try:
+                cantidad = int(cantidad_str)
+                if cantidad <= 0:
+                    raise ValueError("Cantidad debe ser mayor a 0")
+            except ValueError:
+                productos_no_encontrados.append({
+                    'fila': fila_num,
+                    'nombre': nombre,
+                    'error': f'Cantidad inválida: {cantidad_str}'
+                })
+                continue
+            
+            # Validar precio
+            try:
+                precio_limpio = precio_str.replace('$', '').replace(' ', '').replace(',', '.')
+                precio = Decimal(precio_limpio)
+                if precio < 0:
+                    raise ValueError("Precio no puede ser negativo")
+            except (InvalidOperation, ValueError):
+                productos_no_encontrados.append({
+                    'fila': fila_num,
+                    'nombre': nombre,
+                    'error': f'Precio inválido: {precio_str}'
+                })
+                continue
+            
+            # Buscar producto en la base de datos
+            producto = self._buscar_producto(nombre)
+            
+            if producto:
+                # Obtener variante principal
+                variante = ProductVariant.objects.filter(product=producto).first()
+                if variante:
+                    subtotal = Decimal(str(cantidad)) * precio
+                    total_calculado += subtotal
+                    
+                    productos_encontrados.append({
+                        'fila': fila_num,
+                        'nombre': nombre,
+                        'producto_encontrado': producto.name,
+                        'sku': producto.sku,
+                        'cantidad': cantidad,
+                        'precio': float(precio),
+                        'subtotal': float(subtotal),
+                        'variante_id': variante.id
+                    })
+                else:
+                    productos_no_encontrados.append({
+                        'fila': fila_num,
+                        'nombre': nombre,
+                        'error': 'Producto sin variantes'
+                    })
+            else:
+                productos_no_encontrados.append({
+                    'fila': fila_num,
+                    'nombre': nombre,
+                    'error': 'Producto no encontrado en la base de datos'
+                })
+        
+        return Response({
+            'productos_encontrados': productos_encontrados,
+            'productos_no_encontrados': productos_no_encontrados,
+            'resumen': {
+                'total_filas': fila_num,
+                'encontrados': len(productos_encontrados),
+                'no_encontrados': len(productos_no_encontrados),
+                'total_calculado': float(total_calculado)
+            }
+        }, status=status.HTTP_200_OK)
+    
+    def _buscar_producto(self, nombre_csv):
+        """Buscar producto en la base de datos por nombre"""
+        try:
+            # Buscar exacto primero
+            producto = Product.objects.filter(name__iexact=nombre_csv).first()
+            if producto:
+                return producto
+            
+            # Buscar que contenga el nombre
+            producto = Product.objects.filter(name__icontains=nombre_csv).first()
+            if producto:
+                return producto
+            
+            # Buscar por palabras clave principales
+            palabras = nombre_csv.split()[:3]
+            for palabra in palabras:
+                if len(palabra) > 3:
+                    producto = Product.objects.filter(name__icontains=palabra).first()
+                    if producto:
+                        return producto
+            
+            return None
+        except Exception:
+            return None
+
+
+class InventoryMovementImportConfirmView(APIView):
+    """Confirmar y crear movimiento de inventario desde datos validados"""
+    permission_classes = [IsStaffOrReadOnly]
+    
+    def post(self, request):
+        # Datos de la cabecera del movimiento
+        warehouse_id = request.data.get('warehouse_id')
+        movement_type = request.data.get('movement_type')
+        notes = request.data.get('notes', '')
+        productos_confirmados = request.data.get('productos_confirmados', [])
+        
+        # Validaciones
+        if not warehouse_id or not movement_type:
+            return Response({
+                'error': 'warehouse_id y movement_type son requeridos'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not productos_confirmados:
+            return Response({
+                'error': 'No hay productos para importar'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            warehouse = Warehouse.objects.get(id=warehouse_id)
+        except Warehouse.DoesNotExist:
+            return Response({'error': 'Almacén no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Crear movimiento en transacción
+        try:
+            with transaction.atomic():
+                # Crear movimiento principal
+                movimiento = InventoryMovement.objects.create(
+                    warehouse=warehouse,
+                    user=request.user,
+                    movement_type=movement_type,
+                    notes=notes
+                )
+                
+                detalles_creados = []
+                total_movimiento = Decimal('0.00')
+                
+                # Crear detalles
+                for item in productos_confirmados:
+                    try:
+                        variante = ProductVariant.objects.get(id=item['variante_id'])
+                        cantidad = Decimal(str(item['cantidad']))
+                        precio = Decimal(str(item['precio']))
+                        subtotal = cantidad * precio
+                        
+                        detalle = InventoryMovementDetail.objects.create(
+                            movement=movimiento,
+                            product_variant=variante,
+                            quantity=float(cantidad),
+                            price=precio,
+                            total=subtotal
+                        )
+                        
+                        detalles_creados.append({
+                            'id': detalle.id,
+                            'producto': variante.product.name,
+                            'cantidad': float(cantidad),
+                            'precio': float(precio),
+                            'subtotal': float(subtotal)
+                        })
+                        
+                        total_movimiento += subtotal
+                        
+                    except ProductVariant.DoesNotExist:
+                        raise Exception(f"Variante {item['variante_id']} no encontrada")
+                    except Exception as e:
+                        raise Exception(f"Error creando detalle: {str(e)}")
+                
+                return Response({
+                    'success': True,
+                    'movimiento': {
+                        'id': movimiento.id,
+                        'warehouse': warehouse.name,
+                        'movement_type': movement_type,
+                        'notes': notes,
+                        'created_at': movimiento.created_at,
+                        'total': float(total_movimiento)
+                    },
+                    'detalles': detalles_creados,
+                    'resumen': {
+                        'productos_importados': len(detalles_creados),
+                        'total_movimiento': float(total_movimiento)
+                    }
+                }, status=status.HTTP_201_CREATED)
+                
+        except Exception as e:
+            return Response({
+                'error': f'Error creando movimiento: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class InventoryMovementListView(APIView):
+    """Listar movimientos de inventario con paginación"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            # Paginación
+            page = int(request.query_params.get('page', 1))
+            page_size = int(request.query_params.get('page_size', 20))
+            offset = (page - 1) * page_size
+            
+            # Filtros opcionales
+            warehouse_id = request.query_params.get('warehouse')
+            movement_type = request.query_params.get('movement_type')
+            
+            # Query base
+            queryset = InventoryMovement.objects.select_related('warehouse', 'user').order_by('-created_at')
+            
+            # Aplicar filtros
+            if warehouse_id:
+                queryset = queryset.filter(warehouse_id=warehouse_id)
+            if movement_type:
+                queryset = queryset.filter(movement_type__icontains=movement_type)
+            
+            # Contar total
+            total = queryset.count()
+            
+            # Aplicar paginación
+            movimientos = queryset[offset:offset + page_size]
+            
+            # Serializar datos
+            data = []
+            for mov in movimientos:
+                # Calcular total del movimiento
+                total_mov = sum(
+                    float(detail.total) for detail in 
+                    mov.details.all()
+                )
+                
+                data.append({
+                    'id': mov.id,
+                    'warehouse': {
+                        'id': mov.warehouse.id,
+                        'name': mov.warehouse.name
+                    },
+                    'user': mov.user.email if mov.user else 'N/A',
+                    'movement_type': mov.movement_type,
+                    'notes': mov.notes,
+                    'created_at': mov.created_at,
+                    'authorized': mov.authorized,
+                    'authorized_by': mov.authorized_by.email if mov.authorized_by else None,
+                    'authorized_at': mov.authorized_at,
+                    'total': total_mov,
+                    'details_count': mov.details.count()
+                })
+            
+            return Response({
+                'results': data,
+                'pagination': {
+                    'total': total,
+                    'page': page,
+                    'page_size': page_size,
+                    'total_pages': (total + page_size - 1) // page_size
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error obteniendo movimientos: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class WarehouseListView(APIView):
+    """Listar almacenes para formularios"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            warehouses = Warehouse.objects.all().values('id', 'name', 'location')
+            return Response(list(warehouses), status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'error': f'Error obteniendo almacenes: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

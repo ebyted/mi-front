@@ -1,0 +1,48 @@
+=========================================
+COMANDOS PARA APLICAR EN VPS
+=========================================
+
+OPCIÓN A: Ejecutar directamente en VPS
+---------------------------------------
+
+1. Subir el script de procesamiento:
+   scp procesar_inventario_inicial.py root@168.231.67.221:/tmp/
+
+2. Subir el archivo CSV:
+   scp scripts/entrada.csv root@168.231.67.221:/tmp/
+
+3. Conectarse al VPS:
+   ssh root@168.231.67.221
+
+4. Copiar archivos al contenedor (ejecutar en VPS):
+   docker cp /tmp/procesar_inventario_inicial.py maestro_backend:/app/
+   docker cp /tmp/entrada.csv maestro_backend:/app/scripts/
+
+5. Ejecutar el procesamiento (ejecutar en VPS):
+   docker exec maestro_backend python /app/procesar_inventario_inicial.py
+
+OPCIÓN B: Procesar local y sincronizar
+--------------------------------------
+
+1. Ejecutar localmente:
+   docker-compose exec backend python /app/procesar_inventario_inicial.py
+
+2. Sincronizar con VPS:
+   python sync_vps_directo.py
+
+VERIFICACIÓN EN VPS
+------------------
+
+Para verificar que funcionó:
+ssh root@168.231.67.221 "docker exec maestro_backend python manage.py shell -c \"
+from core.models import WarehouseMovement, WarehouseMovementDetail;
+movimientos = WarehouseMovement.objects.filter(notes='Inventario Inicial');
+print(f'Movimientos creados: {movimientos.count()}');
+if movimientos.exists():
+    ultimo = movimientos.last();
+    detalles = WarehouseMovementDetail.objects.filter(movement=ultimo).count();
+    print(f'Detalles en último movimiento: {detalles}');
+    print(f'Total: {ultimo.total_amount}');
+\""
+
+=========================================
