@@ -8,6 +8,7 @@ class AuditLog(models.Model):
         ('delete', 'Eliminación'),
         ('import', 'Importación'),
         ('authorize', 'Autorización'),
+        ('RESET_PASSWORD', 'Restablecimiento de contraseña'),
     ]
     user = models.ForeignKey('core.User', on_delete=models.SET_NULL, null=True)
     action = models.CharField(max_length=20, choices=ACTIONS)

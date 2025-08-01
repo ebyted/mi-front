@@ -652,7 +652,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 action='RESET_PASSWORD',
                 model='User',
                 object_id=user.id,
-                details=f'Contraseña restablecida para usuario: {user.email}'
+                description=f'Contraseña restablecida para usuario: {user.email}'
             )
             
             return Response({
