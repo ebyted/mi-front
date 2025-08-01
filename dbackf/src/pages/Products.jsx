@@ -309,36 +309,55 @@ function Products() {
       console.log('Stock por almacén encontrado:', stockData);
       
       if (stockData.length > 0) {
-        // Agrupar y consolidar el stock por almacén
-        const consolidatedStock = stockData.reduce((acc, stock) => {
-          const warehouseKey = stock.warehouse?.id || stock.warehouse_id || stock.warehouse;
-          const warehouseName = stock.warehouse?.name || stock.warehouse?.description || `Almacén ${warehouseKey}`;
+        // Agrupar y consolidar el stock por almacén REAL
+        const warehouseStockMap = new Map();
+        
+        stockData.forEach(stock => {
+          // Identificar el almacén correctamente
+          let warehouseId, warehouseName;
           
-          if (!acc[warehouseKey]) {
-            acc[warehouseKey] = {
+          if (stock.warehouse && typeof stock.warehouse === 'object') {
+            warehouseId = stock.warehouse.id;
+            warehouseName = stock.warehouse.name || stock.warehouse.description || `Almacén ${warehouseId}`;
+          } else if (stock.warehouse_id) {
+            warehouseId = stock.warehouse_id;
+            // Buscar el nombre del almacén en la lista de almacenes
+            const warehouse = warehouses.find(w => w.id === warehouseId);
+            warehouseName = warehouse ? (warehouse.name || warehouse.description) : `Almacén ${warehouseId}`;
+          } else {
+            // Si no tiene almacén definido, saltar este registro
+            return;
+          }
+          
+          const key = `warehouse_${warehouseId}`;
+          
+          if (warehouseStockMap.has(key)) {
+            // Sumar al stock existente
+            const existing = warehouseStockMap.get(key);
+            existing.quantity += (stock.quantity || 0);
+          } else {
+            // Crear nueva entrada
+            warehouseStockMap.set(key, {
               warehouse: {
-                id: warehouseKey,
+                id: warehouseId,
                 name: warehouseName
               },
-              warehouse_id: warehouseKey,
-              quantity: 0,
+              warehouse_id: warehouseId,
+              quantity: stock.quantity || 0,
               price: stock.price || 0,
               updated_at: stock.updated_at || stock.last_updated,
               lote: stock.batch || stock.lote,
               expiration_date: stock.expiration_date
-            };
+            });
           }
-          
-          // Sumar las cantidades del mismo almacén
-          acc[warehouseKey].quantity += (stock.quantity || 0);
-          
-          return acc;
-        }, {});
+        });
         
         // Convertir a array y filtrar solo almacenes con stock > 0
-        const consolidatedArray = Object.values(consolidatedStock)
+        const consolidatedArray = Array.from(warehouseStockMap.values())
           .filter(stock => stock.quantity > 0)
           .sort((a, b) => b.quantity - a.quantity); // Ordenar por cantidad descendente
+        
+        console.log('Stock consolidado final:', consolidatedArray);
         
         setProductInventory([{
           variant: { 
@@ -349,7 +368,6 @@ function Products() {
           inventory: consolidatedArray
         }]);
         
-        console.log('Stock consolidado mostrado:', consolidatedArray);
         return;
       }
       
@@ -1112,7 +1130,7 @@ function Products() {
                     ) : (
                       <div>
                         <div className="d-flex justify-content-between align-items-center mb-3">
-                          <h6 className="mb-0">📋 Existencias por Variante y Almacén</h6>
+                          <h6 className="mb-0">📋 Stock por Almacén</h6>
                           
                           {/* Filtro por almacén en modal */}
                           <div className="d-flex align-items-center">
@@ -1142,67 +1160,57 @@ function Products() {
                             </select>
                           </div>
                         </div>
-                        {productInventory.map((item, index) => {
-                          // Filtrar el inventario según el almacén seleccionado
-                          const filteredInventory = inventoryWarehouseFilter 
-                            ? item.inventory.filter(inv => 
-                                (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
-                                (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
-                              )
-                            : item.inventory;
-                          
-                          // Solo mostrar el item si tiene inventario después del filtro
-                          if (filteredInventory.length === 0 && inventoryWarehouseFilter) {
-                            return null;
-                          }
-                          
-                          return (
-                          <div key={index} className="card mb-3">
-                            <div className="card-header">
-                              <h6 className="mb-0">
-                                🏷️ Variante: {item.variant.name} 
-                                <code className="ms-2">{item.variant.sku}</code>
-                                {inventoryWarehouseFilter && (
-                                  <span className="badge bg-primary ms-2">
-                                    Filtrado por almacén
-                                  </span>
-                                )}
-                              </h6>
-                            </div>
-                            <div className="card-body">
-                              {filteredInventory.length === 0 ? (
-                                <div className="alert alert-warning mb-0">
-                                  <small>⚠️ Sin existencias registradas para esta variante</small>
-                                </div>
-                              ) : (
+                        
+                        {/* Mostrar stock directamente sin agrupación por variantes */}
+                        {productInventory.length > 0 && productInventory[0].inventory.length > 0 ? (
+                          <div>
+                            {/* Filtrar el inventario según el almacén seleccionado */}
+                            {(() => {
+                              const filteredInventory = inventoryWarehouseFilter 
+                                ? productInventory[0].inventory.filter(inv => 
+                                    (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
+                                    (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
+                                  )
+                                : productInventory[0].inventory;
+                              
+                              if (filteredInventory.length === 0) {
+                                return (
+                                  <div className="alert alert-warning">
+                                    <h6 className="alert-heading">📭 Sin stock en el almacén seleccionado</h6>
+                                    <p className="mb-0">Este producto no tiene stock en el almacén seleccionado.</p>
+                                  </div>
+                                );
+                              }
+                              
+                              return (
                                 <div className="table-responsive">
-                                  <table className="table table-sm table-striped">
-                                    <thead>
+                                  <table className="table table-striped table-hover">
+                                    <thead className="table-dark">
                                       <tr>
-                                        <th>Almacén</th>
-                                        <th>Cantidad</th>
-                                        <th>Lote</th>
-                                        <th>Vencimiento</th>
-                                        <th>Precio</th>
-                                        <th>Última actualización</th>
+                                        <th>🏢 Almacén</th>
+                                        <th>📦 Cantidad</th>
+                                        <th>🏷️ Lote</th>
+                                        <th>📅 Vencimiento</th>
+                                        <th>💰 Precio</th>
+                                        <th>🕐 Actualizado</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {filteredInventory.map((inv, invIndex) => (
                                         <tr key={invIndex}>
                                           <td>
-                                            <span className="badge bg-info">
+                                            <span className="badge bg-info fs-6">
                                               {inv.warehouse?.name || `Almacén ${inv.warehouse_id}`}
                                             </span>
                                           </td>
                                           <td>
-                                            <span className={`fw-bold ${inv.quantity > 0 ? 'text-success' : 'text-danger'}`}>
+                                            <span className={`fw-bold fs-5 ${inv.quantity > 0 ? 'text-success' : 'text-danger'}`}>
                                               {inv.quantity}
                                             </span>
                                           </td>
                                           <td>
                                             {inv.lote ? (
-                                              <code className="small">{inv.lote}</code>
+                                              <code className="bg-light px-2 py-1 rounded">{inv.lote}</code>
                                             ) : (
                                               <span className="text-muted">-</span>
                                             )}
@@ -1218,7 +1226,7 @@ function Products() {
                                           </td>
                                           <td>
                                             {inv.price ? (
-                                              <span className="text-success">
+                                              <span className="text-success fw-bold">
                                                 ${parseFloat(inv.price).toFixed(2)}
                                               </span>
                                             ) : (
@@ -1238,11 +1246,17 @@ function Products() {
                                     </tbody>
                                   </table>
                                 </div>
-                              )}
-                            </div>
+                              );
+                            })()}
                           </div>
-                          );
-                        }).filter(Boolean)}
+                        ) : (
+                          <div className="alert alert-info">
+                            <h6 className="alert-heading">📭 Sin stock registrado</h6>
+                            <p className="mb-0">
+                              Este producto no tiene stock registrado en ningún almacén.
+                            </p>
+                          </div>
+                        )}
                         
                         {/* Resumen total */}
                         <div className="card bg-light">
@@ -1257,67 +1271,70 @@ function Products() {
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-primary mb-0">
-                                    {productInventory.reduce((total, item) => {
-                                      const filteredInventory = inventoryWarehouseFilter 
-                                        ? item.inventory.filter(inv => 
+                                    {(() => {
+                                      if (productInventory.length === 0 || !productInventory[0].inventory) return 0;
+                                      const inventory = inventoryWarehouseFilter 
+                                        ? productInventory[0].inventory.filter(inv => 
                                             (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
                                             (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
                                           )
-                                        : item.inventory;
-                                      return total + filteredInventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-                                    }, 0)}
+                                        : productInventory[0].inventory;
+                                      return inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+                                    })()}
                                   </div>
-                                  <small className="text-muted">Total en existencia</small>
+                                  <small className="text-muted">Total en stock</small>
                                 </div>
                               </div>
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-info mb-0">
-                                    {productInventory.filter(item => {
-                                      const filteredInventory = inventoryWarehouseFilter 
-                                        ? item.inventory.filter(inv => 
+                                    {(() => {
+                                      if (productInventory.length === 0 || !productInventory[0].inventory) return 0;
+                                      const inventory = inventoryWarehouseFilter 
+                                        ? productInventory[0].inventory.filter(inv => 
                                             (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
                                             (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
                                           )
-                                        : item.inventory;
-                                      return filteredInventory.length > 0;
-                                    }).length}
+                                        : productInventory[0].inventory;
+                                      return inventory.length;
+                                    })()}
                                   </div>
-                                  <small className="text-muted">Variantes</small>
+                                  <small className="text-muted">
+                                    {inventoryWarehouseFilter ? 'Almacén seleccionado' : 'Almacenes con stock'}
+                                  </small>
                                 </div>
                               </div>
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-success mb-0">
-                                    {productInventory.reduce((total, item) => {
-                                      const filteredInventory = inventoryWarehouseFilter 
-                                        ? item.inventory.filter(inv => 
-                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
-                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
-                                          )
-                                        : item.inventory;
-                                      return total + filteredInventory.length;
-                                    }, 0)}
+                                    {inventoryWarehouseFilter ? (
+                                      warehouses.find(w => w.id === parseInt(inventoryWarehouseFilter))?.name || 'Almacén'
+                                    ) : (
+                                      productInventory.length > 0 && productInventory[0].inventory ? 
+                                        productInventory[0].inventory.length : 0
+                                    )}
                                   </div>
                                   <small className="text-muted">
-                                    {inventoryWarehouseFilter ? 'Ubicaciones en almacén' : 'Ubicaciones'}
+                                    {inventoryWarehouseFilter ? 'Almacén filtrado' : 'Ubicaciones totales'}
                                   </small>
                                 </div>
                               </div>
                               <div className="col-md-3">
                                 <div className="text-center">
                                   <div className="h4 text-warning mb-0">
-                                    ${productInventory.reduce((total, item) => {
-                                      const filteredInventory = inventoryWarehouseFilter 
-                                        ? item.inventory.filter(inv => 
+                                    ${(() => {
+                                      if (productInventory.length === 0 || !productInventory[0].inventory) return '0.00';
+                                      const inventory = inventoryWarehouseFilter 
+                                        ? productInventory[0].inventory.filter(inv => 
                                             (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
                                             (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
                                           )
-                                        : item.inventory;
-                                      return total + filteredInventory.reduce((sum, inv) => 
+                                        : productInventory[0].inventory;
+                                      const total = inventory.reduce((sum, inv) => 
                                         sum + ((inv.quantity || 0) * (inv.price || 0)), 0
                                       );
-                                    }, 0).toFixed(2)}
+                                      return total.toFixed(2);
+                                    })()}
                                   </div>
                                   <small className="text-muted">Valor total</small>
                                 </div>
