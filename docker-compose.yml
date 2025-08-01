@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - VITE_API_URL=http://backend:8030/api/
+      - VITE_API_URL=http://168.231.67.221:8030/api/
     depends_on:
       - backend
   db:
