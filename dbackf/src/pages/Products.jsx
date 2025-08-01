@@ -196,39 +196,127 @@ function Products() {
     setProductInventory([]);
     
     try {
-      // Buscar las variantes del producto
-      const variantsResponse = await api.get(`product-variants/?product=${product.id}`);
-      const variants = variantsResponse.data || [];
+      console.log('Buscando inventario para producto:', product.id);
       
-      if (variants.length === 0) {
-        setProductInventory([]);
-        return;
+      // Opción 1: Buscar directamente el inventario del producto
+      try {
+        const inventoryResponse = await api.get(`inventory/?product=${product.id}`);
+        const inventoryData = Array.isArray(inventoryResponse.data) ? 
+          inventoryResponse.data : (inventoryResponse.data.results || []);
+        
+        if (inventoryData.length > 0) {
+          // Agrupar por variante si hay datos
+          const groupedByVariant = inventoryData.reduce((acc, inv) => {
+            const variantId = inv.product_variant?.id || inv.product_variant;
+            if (!acc[variantId]) {
+              acc[variantId] = {
+                variant: inv.product_variant || { id: variantId, name: `Variante ${variantId}`, sku: `VAR-${variantId}` },
+                inventory: []
+              };
+            }
+            acc[variantId].inventory.push(inv);
+            return acc;
+          }, {});
+          
+          setProductInventory(Object.values(groupedByVariant));
+          console.log('Inventario encontrado directamente:', Object.values(groupedByVariant));
+          return;
+        }
+      } catch (err) {
+        console.log('No se pudo obtener inventario directo, intentando con variantes...');
       }
       
-      // Para cada variante, obtener su inventario
-      const inventoryPromises = variants.map(async (variant) => {
-        try {
-          const inventoryResponse = await api.get(`inventory/?product_variant=${variant.id}`);
-          const inventoryData = inventoryResponse.data || [];
-          
-          return {
-            variant,
-            inventory: Array.isArray(inventoryData) ? inventoryData : (inventoryData.results || [])
-          };
-        } catch (err) {
-          console.error(`Error al obtener inventario para variante ${variant.id}:`, err);
-          return {
-            variant,
-            inventory: []
-          };
+      // Opción 2: Buscar las variantes del producto
+      try {
+        const variantsResponse = await api.get(`product-variants/?product=${product.id}`);
+        const variants = Array.isArray(variantsResponse.data) ? 
+          variantsResponse.data : (variantsResponse.data.results || []);
+        
+        console.log('Variantes encontradas:', variants);
+        
+        if (variants.length === 0) {
+          console.log('No se encontraron variantes');
+          setProductInventory([]);
+          return;
         }
-      });
-      
-      const inventoryResults = await Promise.all(inventoryPromises);
-      setProductInventory(inventoryResults);
+        
+        // Para cada variante, obtener su inventario
+        const inventoryPromises = variants.map(async (variant) => {
+          try {
+            const inventoryResponse = await api.get(`inventory/?product_variant=${variant.id}`);
+            const inventoryData = Array.isArray(inventoryResponse.data) ? 
+              inventoryResponse.data : (inventoryResponse.data.results || []);
+            
+            console.log(`Inventario para variante ${variant.id}:`, inventoryData);
+            
+            return {
+              variant,
+              inventory: inventoryData
+            };
+          } catch (err) {
+            console.error(`Error al obtener inventario para variante ${variant.id}:`, err);
+            return {
+              variant,
+              inventory: []
+            };
+          }
+        });
+        
+        const inventoryResults = await Promise.all(inventoryPromises);
+        setProductInventory(inventoryResults);
+        console.log('Resultado final del inventario:', inventoryResults);
+        
+      } catch (err) {
+        console.error('Error al obtener variantes:', err);
+        
+        // Opción 3: Buscar inventario con endpoints alternativos
+        try {
+          console.log('Intentando endpoints alternativos...');
+          
+          // Intentar con diferentes formatos de endpoint
+          const alternativeEndpoints = [
+            `products/${product.id}/inventory/`,
+            `inventory-items/?product=${product.id}`,
+            `product/${product.id}/stock/`,
+            `stock/?product_id=${product.id}`
+          ];
+          
+          for (const endpoint of alternativeEndpoints) {
+            try {
+              console.log(`Probando endpoint: ${endpoint}`);
+              const response = await api.get(endpoint);
+              const data = Array.isArray(response.data) ? response.data : (response.data.results || []);
+              
+              if (data.length > 0) {
+                console.log(`Datos encontrados en ${endpoint}:`, data);
+                // Formatear los datos según la estructura esperada
+                setProductInventory([{
+                  variant: { 
+                    id: product.id, 
+                    name: product.name, 
+                    sku: product.sku 
+                  },
+                  inventory: data
+                }]);
+                return;
+              }
+            } catch (endpointErr) {
+              console.log(`Endpoint ${endpoint} no disponible`);
+            }
+          }
+          
+          // Si no hay datos en ningún endpoint
+          setProductInventory([]);
+          console.log('No se encontró inventario en ningún endpoint');
+          
+        } catch (altErr) {
+          console.error('Error en endpoints alternativos:', altErr);
+          setProductInventory([]);
+        }
+      }
       
     } catch (err) {
-      console.error('Error al obtener inventario del producto:', err);
+      console.error('Error general al obtener inventario del producto:', err);
       setProductInventory([]);
     } finally {
       setLoadingInventory(false);
