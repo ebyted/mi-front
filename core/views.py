@@ -1016,7 +1016,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 class InventoryMovementImportValidateView(APIView):
     """Validar archivo CSV para importación de movimientos"""
     parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsAuthenticated]
     
     def post(self, request):
         file = request.FILES.get('file')
@@ -1159,7 +1159,7 @@ class InventoryMovementImportValidateView(APIView):
 
 class InventoryMovementImportConfirmView(APIView):
     """Confirmar y crear movimiento de inventario desde datos validados"""
-    permission_classes = [IsStaffOrReadOnly]
+    permission_classes = [IsAuthenticated]
     
     def post(self, request):
         # Datos de la cabecera del movimiento
