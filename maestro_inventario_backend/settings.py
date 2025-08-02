@@ -88,22 +88,32 @@ WSGI_APPLICATION = 'maestro_inventario_backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASE_ENGINE = os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql')
-DATABASE_NAME = os.getenv('DATABASE_NAME', BASE_DIR / 'maestro_inventario')
-DATABASE_USER = os.getenv('DATABASE_USER', '')
-DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', '')
-DATABASE_HOST = os.getenv('DATABASE_HOST', '')
-DATABASE_PORT = os.getenv('DATABASE_PORT', '')
+DATABASE_NAME = os.getenv('DATABASE_NAME', 'maestro_inventario')
+DATABASE_USER = os.getenv('DATABASE_USER', 'maestro')
+DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', 'maestro')
+DATABASE_HOST = os.getenv('DATABASE_HOST', 'maestro_db')
+DATABASE_PORT = os.getenv('DATABASE_PORT', '5432')
 
-DATABASES = {
-    'default': {
-        'ENGINE': DATABASE_ENGINE,
-        'NAME': DATABASE_NAME,
-        'USER': DATABASE_USER,
-        'PASSWORD': DATABASE_PASSWORD,
-        'HOST': DATABASE_HOST,
-        'PORT': DATABASE_PORT,
+# Configuración condicional para la base de datos
+if DATABASE_ENGINE == 'django.db.backends.postgresql':
+    DATABASES = {
+        'default': {
+            'ENGINE': DATABASE_ENGINE,
+            'NAME': DATABASE_NAME,
+            'USER': DATABASE_USER,
+            'PASSWORD': DATABASE_PASSWORD,
+            'HOST': DATABASE_HOST,
+            'PORT': DATABASE_PORT,
+        }
     }
-}
+else:
+    # Fallback a SQLite solo en desarrollo
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
