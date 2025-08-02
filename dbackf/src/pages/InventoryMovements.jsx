@@ -721,18 +721,47 @@ const InventoryMovements = () => {
         
         if (stockData.length > 0) {
           console.log('📦 Procesando datos de product-warehouse-stocks:', stockData.length, 'registros');
+          console.log('📋 Pestaña: Ejemplo de dato raw:', JSON.stringify(stockData[0], null, 2));
+          
           // Agrupar por producto y almacén
           const groupedInventory = stockData.reduce((acc, stock) => {
+            // Log detallado del mapeo para la pestaña
+            console.log('🔍 Pestaña: Mapeando stock:', {
+              productVariant: stock.product_variant,
+              productName: stock.product_variant?.name,
+              productCode: stock.product_variant?.sku,
+              warehouse: stock.warehouse,
+              quantity: stock.quantity
+            });
+            
             const key = `${stock.product_variant?.id || stock.product || 'unknown'}-${stock.warehouse?.id || stock.warehouse_id || 'unknown'}`;
             if (!acc[key]) {
+              // Intentar obtener el nombre del producto de múltiples fuentes
+              const productName = stock.product_variant?.name || 
+                                 stock.product_variant?.product?.name ||
+                                 stock.product_name || 
+                                 `Producto ${stock.product_variant?.id || 'sin ID'}`;
+              
+              const productSku = stock.product_variant?.sku || 
+                               stock.product_variant?.code ||
+                               stock.product_code || 
+                               `SKU-${stock.product_variant?.id || 'UNKNOWN'}`;
+              
               acc[key] = {
-                product_name: stock.product_variant?.name || stock.product_name || 'Producto sin nombre',
-                product_code: stock.product_variant?.sku || stock.product_code || '',
+                product_name: productName,
+                product_code: productSku,
                 warehouse_name: stock.warehouse?.name || stock.warehouse_name || 'Almacén desconocido',
                 total_stock: 0,
-                product_price: parseFloat(stock.product_variant?.price || stock.price || 0),
-                min_stock: parseFloat(stock.product_variant?.min_stock || stock.min_stock || 0)
+                product_price: parseFloat(stock.product_variant?.sale_price || stock.price || 0), // CORREGIDO: sale_price
+                min_stock: parseFloat(stock.product_variant?.low_stock_threshold || stock.min_stock || 0) // CORREGIDO: low_stock_threshold
               };
+              
+              console.log('✨ Pestaña: Producto mapeado:', {
+                name: acc[key].product_name,
+                sku: acc[key].product_code,
+                warehouse: acc[key].warehouse_name,
+                price: acc[key].product_price
+              });
             }
             acc[key].total_stock += parseFloat(stock.quantity || 0);
             return acc;
@@ -740,7 +769,8 @@ const InventoryMovements = () => {
           
           inventoryData = Object.values(groupedInventory).filter(item => parseFloat(item.total_stock) > 0);
           endpointUsed = 'product-warehouse-stocks';
-          console.log('✅ Datos procesados exitosamente:', inventoryData.length, 'items con stock');
+          console.log('✅ Pestaña: Datos procesados exitosamente:', inventoryData.length, 'items con stock');
+          console.log('📊 Pestaña: Ejemplo de dato final:', JSON.stringify(inventoryData[0], null, 2));
         } else {
           console.log('⚠️ product-warehouse-stocks devolvió datos vacíos');
         }
@@ -752,6 +782,58 @@ const InventoryMovements = () => {
           message: stockErr.response?.data?.message || stockErr.message,
           url: stockErr.config?.url
         });
+      }
+      
+      // Opción 1.5: Enriquecer datos faltantes con información de productos (para la pestaña)
+      if (inventoryData.length > 0) {
+        try {
+          console.log('🔍 Pestaña: Verificando si necesitamos enriquecer datos...');
+          const itemsNeedingEnrichment = inventoryData.filter(item => 
+            !item.product_name || item.product_name.includes('Producto sin nombre') || item.product_name.includes('Producto ')
+          );
+          
+          if (itemsNeedingEnrichment.length > 0) {
+            console.log('📚 Pestaña: Enriqueciendo datos de productos faltantes...');
+            
+            // Obtener datos completos de productos si no los tenemos ya
+            let productsData = products;
+            let variantsData = productVariants;
+            
+            if (!productsData.length || !variantsData.length) {
+              const [productsRes, variantsRes] = await Promise.all([
+                api.get('products/'),
+                api.get('product-variants/')
+              ]);
+              
+              productsData = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.results || []);
+              variantsData = Array.isArray(variantsRes.data) ? variantsRes.data : (variantsRes.data.results || []);
+            }
+            
+            console.log('📊 Pestaña: Datos disponibles para enriquecimiento:', { products: productsData.length, variants: variantsData.length });
+            
+            // Enriquecer los datos de inventario
+            inventoryData = inventoryData.map(item => {
+              // Intentar encontrar el variant por SKU
+              const variant = variantsData.find(v => v.sku === item.product_code);
+              if (variant) {
+                const product = productsData.find(p => p.id === variant.product);
+                return {
+                  ...item,
+                  product_name: variant.name || product?.name || item.product_name,
+                  product_code: variant.sku || item.product_code,
+                  product_price: parseFloat(variant.sale_price || item.product_price || 0),
+                  min_stock: parseFloat(variant.low_stock_threshold || item.min_stock || 0)
+                };
+              }
+              return item;
+            });
+            
+            console.log('✨ Pestaña: Datos enriquecidos exitosamente');
+          }
+          
+        } catch (enrichErr) {
+          console.log('⚠️ Pestaña: Error al enriquecer datos, continuando con datos básicos:', enrichErr.message);
+        }
       }
       
       // Opción 2: current-inventory (si la primera falló y no está en modo skip)
@@ -3653,6 +3735,21 @@ Cantidad: ${movement.total_quantity || 0}
                         <i className="bi bi-bug me-1"></i>
                         Debug
                       </button>
+                      {debugMode && (
+                        <button 
+                          className="btn btn-outline-info btn-sm ms-1"
+                          onClick={() => {
+                            console.log('🐛 Pestaña Debug: Inventario actual:', currentInventory);
+                            console.log('🐛 Pestaña Debug: Primer item:', JSON.stringify(currentInventory[0], null, 2));
+                            console.log('🐛 Pestaña Debug: Productos:', products.length);
+                            console.log('🐛 Pestaña Debug: Variantes:', productVariants.length);
+                            alert(`Debug Pestaña: ${currentInventory.length} items. Ver consola para detalles.`);
+                          }}
+                          title="Ver datos debug de la pestaña"
+                        >
+                          <i className="bi bi-info-circle"></i> Info
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
