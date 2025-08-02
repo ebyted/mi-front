@@ -87,8 +87,8 @@ WSGI_APPLICATION = 'maestro_inventario_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASE_ENGINE = os.getenv('DATABASE_ENGINE', 'django.db.backends.sqlite3')
-DATABASE_NAME = os.getenv('DATABASE_NAME', BASE_DIR / 'db.sqlite3')
+DATABASE_ENGINE = os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql')
+DATABASE_NAME = os.getenv('DATABASE_NAME', BASE_DIR / 'maestro_inventario')
 DATABASE_USER = os.getenv('DATABASE_USER', '')
 DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', '')
 DATABASE_HOST = os.getenv('DATABASE_HOST', '')
