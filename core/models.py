@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 class AuditLog(models.Model):
     ACTIONS = [
@@ -264,12 +265,70 @@ class InventoryMovement(models.Model):
     reference_document = models.CharField(max_length=100, blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
     # Autorización
     authorized = models.BooleanField(default=False)
     authorized_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='movements_authorized')
     authorized_at = models.DateTimeField(null=True, blank=True)
+    
+    # Sistema de Cancelación
+    is_cancelled = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='movements_cancelled')
+    cancellation_reason = models.TextField(blank=True)
+    
+    # Movimientos inversos/reversión
+    is_reversal = models.BooleanField(default=False)  # Indica si es un movimiento inverso
+    original_movement = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='reversal_movements')
+    
     def __str__(self):
         return f"{self.movement_type} {self.created_at}"
+    
+    def can_be_cancelled(self):
+        """Verifica si el movimiento puede ser cancelado"""
+        return not self.is_cancelled and not self.is_reversal and self.authorized
+    
+    def cancel_movement(self, user, reason):
+        """Cancela el movimiento creando un movimiento inverso"""
+        if not self.can_be_cancelled():
+            raise ValueError("Este movimiento no puede ser cancelado")
+        
+        # Marcar como cancelado
+        self.is_cancelled = True
+        self.cancelled_at = timezone.now()
+        self.cancelled_by = user
+        self.cancellation_reason = reason
+        self.save()
+        
+        # Crear movimiento inverso
+        reverse_movement = InventoryMovement.objects.create(
+            warehouse=self.warehouse,
+            user=user,
+            movement_type=f"CANCELACION_{self.movement_type}",
+            reference_document=f"CANCEL-{self.reference_document}",
+            notes=f"Cancelación del movimiento #{self.id}: {reason}",
+            authorized=True,  # Auto-autorizado
+            authorized_by=user,
+            authorized_at=timezone.now(),
+            is_reversal=True,
+            original_movement=self
+        )
+        
+        # Crear movimientos de detalle inversos
+        for detail in self.inventorymovementdetail_set.all():
+            # Invertir tipo de movimiento
+            reverse_type = 'IN' if detail.movement_type == 'OUT' else 'OUT'
+            
+            InventoryMovementDetail.objects.create(
+                movement=reverse_movement,
+                product_variant=detail.product_variant,
+                quantity=detail.quantity,  # Misma cantidad
+                movement_type=reverse_type,  # Tipo inverso
+                unit_cost=detail.unit_cost,
+                notes=f"Reverso de {detail.movement_type} del movimiento #{self.id}"
+            )
+        
+        return reverse_movement
 
 # InventoryMovementDetail (Detalle)
 class InventoryMovementDetail(models.Model):

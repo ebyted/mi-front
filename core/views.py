@@ -1336,3 +1336,60 @@ class WarehouseListView(APIView):
             return Response({
                 'error': f'Error obteniendo almacenes: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# --- Cancelación de Movimientos con Movimientos Inversos ---
+class CancelMovementView(APIView):
+    permission_classes = [IsStaffOrReadOnly]
+    
+    def post(self, request, movement_id):
+        """Cancelar un movimiento de inventario creando un movimiento inverso"""
+        try:
+            reason = request.data.get('reason', '').strip()
+            
+            if not reason:
+                return Response({
+                    'error': 'El motivo de cancelación es obligatorio'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Obtener el movimiento
+            try:
+                movement = InventoryMovement.objects.get(id=movement_id)
+            except InventoryMovement.DoesNotExist:
+                return Response({
+                    'error': 'Movimiento no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Verificar si puede ser cancelado
+            if not movement.can_be_cancelled():
+                return Response({
+                    'error': 'Este movimiento no puede ser cancelado'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Cancelar y crear movimiento inverso
+            with transaction.atomic():
+                reverse_movement = movement.cancel_movement(request.user, reason)
+                
+                # Autorizar automáticamente el movimiento inverso para actualizar stock
+                movement_auth_view = AuthorizeInventoryMovementView()
+                auth_request = type('obj', (object,), {
+                    'data': {'movement_id': reverse_movement.id},
+                    'user': request.user
+                })()
+                movement_auth_view.post(auth_request)
+            
+            return Response({
+                'status': 'success',
+                'message': 'Movimiento cancelado exitosamente',
+                'data': {
+                    'cancelled_movement_id': movement.id,
+                    'reverse_movement_id': reverse_movement.id,
+                    'reason': reason,
+                    'cancelled_at': movement.cancelled_at.isoformat()
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error interno: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

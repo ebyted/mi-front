@@ -12,7 +12,7 @@ from .views import (
     PurchaseOrderImportView, QuotationImportView, InventoryMovementImportView, AuthorizeInventoryMovementView,
     AuditLogViewSet, CurrentInventoryView, user_menu_options,
     InventoryMovementImportValidateView, InventoryMovementImportConfirmView, 
-    InventoryMovementListView, WarehouseListView
+    InventoryMovementListView, WarehouseListView, CancelMovementView
 )
 
 
@@ -64,6 +64,7 @@ urlpatterns = [
     path('movements/list/', InventoryMovementListView.as_view(), name='movements-list'),
     path('warehouses/list/', WarehouseListView.as_view(), name='warehouses-list'),
     path('authorize-inventory-movement/', AuthorizeInventoryMovementView.as_view(), name='authorize-inventory-movement'),
+    path('cancel-movement/<int:movement_id>/', CancelMovementView.as_view(), name='cancel-movement'),
     path('current-inventory/', CurrentInventoryView.as_view(), name='current-inventory'),
     path('user-menu-options/', user_menu_options, name='user-menu-options'),
     path('', include(router.urls)),

@@ -222,14 +222,8 @@ main() {
     
     # Determinar tipo de base de datos y ejecutar respaldo
     case "$DATABASE_ENGINE" in
-        *sqlite3*)
-            backup_sqlite
-            ;;
-        *postgresql*)
+
             backup_postgresql
-            ;;
-        *mysql*)
-            backup_mysql
             ;;
         *)
             error "Motor de base de datos no soportado: $DATABASE_ENGINE"
