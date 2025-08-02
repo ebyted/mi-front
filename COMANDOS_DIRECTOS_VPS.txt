@@ -1,0 +1,38 @@
+# COMANDOS DIRECTOS - Copiar y Pegar
+# Reemplaza 'tu_usuario' con tu usuario real del VPS
+
+# 1. Subir archivo (ejecutar desde tu PC local)
+scp bdtotal_local.sql tu_usuario@168.231.67.221:/tmp/
+
+# 2. Conectar al VPS
+ssh tu_usuario@168.231.67.221
+
+# 3. Una vez conectado al VPS, ejecutar estos comandos:
+
+# Verificar contenedor
+docker ps | grep maestro_db
+
+# Crear BD de prueba
+docker exec maestro_db psql -U maestro -c "DROP DATABASE IF EXISTS bdtotal_test; CREATE DATABASE bdtotal_test;"
+
+# Restaurar respaldo
+docker exec -i maestro_db psql -U maestro -d bdtotal_test < /tmp/bdtotal_local.sql
+
+# Verificar restauración
+docker exec maestro_db psql -U maestro -d bdtotal_test -c "
+SELECT 'users' as tabla, COUNT(*) as registros FROM users
+UNION ALL
+SELECT 'businesses', COUNT(*) FROM businesses
+UNION ALL  
+SELECT 'business_users', COUNT(*) FROM business_users;
+"
+
+# Ver todas las tablas creadas
+docker exec maestro_db psql -U maestro -d bdtotal_test -c "\dt"
+
+# Limpiar archivo temporal
+rm /tmp/bdtotal_local.sql
+
+# OPCIONAL: Si todo funciona, reemplazar BD principal
+# docker exec maestro_db psql -U maestro -c "DROP DATABASE IF EXISTS maestro;"
+# docker exec maestro_db psql -U maestro -c "ALTER DATABASE bdtotal_test RENAME TO maestro;"

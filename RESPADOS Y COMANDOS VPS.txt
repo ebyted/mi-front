@@ -1,0 +1,45 @@
+# COMANDOS DIRECTOS - Copiar y Pegar
+# Reemplaza 'tu_usuario' con tu usuario real del VPS
+
+# 1. Subir archivo (ejecutar desde tu PC local) - USANDO NUEVO ARCHIVO UTF8
+scp bdtotal_local_utf8.sql root@168.231.67.221:/tmp/
+
+# 2. Conectar al VPS
+ssh root@168.231.67.221
+
+# 3. Una vez conectado al VPS, ejecutar estos comandos:
+
+# Verificar contenedor
+docker ps | grep maestro_db
+
+# Crear BD de prueba
+docker exec maestro_db psql -U maestro -c "DROP DATABASE IF EXISTS bdtotal_test; CREATE DATABASE bdtotal_test;"
+
+# Restaurar respaldo - USANDO ARCHIVO UTF8
+docker exec -i maestro_db psql -U maestro -d bdtotal_test < /tmp/bdtotal_local_utf8.sql
+
+# Verificar restauración
+docker exec maestro_db psql -U maestro -d bdtotal_test -c "
+SELECT 'core_product' as tabla, COUNT(*) as registros FROM core_product
+UNION ALL
+SELECT 'core_inventorymovement', COUNT(*) FROM core_inventorymovement
+UNION ALL
+SELECT 'core_inventorymovementdetail', COUNT(*) FROM core_inventorymovementdetail
+UNION ALL
+SELECT 'core_user', COUNT(*) FROM core_user
+ORDER BY tabla;
+"
+
+# OPCIONAL: Si todo funciona, reemplazar BD principal maestro_inventario
+# docker exec maestro_db psql -U maestro -c "DROP DATABASE IF EXISTS maestro_inventario;"
+# docker exec maestro_db psql -U maestro -c "ALTER DATABASE bdtotal_test RENAME TO maestro_inventario;"
+
+# Ver todas las tablas creadas
+docker exec maestro_db psql -U maestro -d bdtotal_test -c "\dt"
+
+# Limpiar archivo temporal
+rm /tmp/bdtotal_local_utf8.sql
+
+# OPCIONAL: Si todo funciona, reemplazar BD principal
+# docker exec maestro_db psql -U maestro -c "DROP DATABASE IF EXISTS maestro;"
+# docker exec maestro_db psql -U maestro -c "ALTER DATABASE bdtotal_test RENAME TO maestro;"

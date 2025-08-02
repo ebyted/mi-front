@@ -1,0 +1,4 @@
+docker exec maestro_db psql -U maestro -c "DROP DATABASE IF EXISTS bdtotal_test; CREATE DATABASE bdtotal_test;"
+docker exec -i maestro_db psql -U maestro -d bdtotal_test < /tmp/bdtotal_local_utf8.sql
+docker exec maestro_db psql -U maestro -d bdtotal_test -c "SELECT 'core_product' as tabla, COUNT(*) as registros FROM core_product UNION ALL SELECT 'core_user', COUNT(*) FROM core_user UNION ALL SELECT 'core_business', COUNT(*) FROM core_business UNION ALL SELECT 'core_warehouse', COUNT(*) FROM core_warehouse ORDER BY tabla;"
+docker exec maestro_db psql -U maestro -d bdtotal_test -c "\dt"
