@@ -94,6 +94,10 @@ DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', '')
 DATABASE_HOST = os.getenv('DATABASE_HOST', '')
 DATABASE_PORT = os.getenv('DATABASE_PORT', '')
 
+# Forzar SQLite para desarrollo local (comentar en producción)
+DATABASE_ENGINE = 'django.db.backends.sqlite3'
+DATABASE_NAME = BASE_DIR / 'db.sqlite3'
+
 DATABASES = {
     'default': {
         'ENGINE': DATABASE_ENGINE,
