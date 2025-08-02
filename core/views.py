@@ -947,14 +947,14 @@ class CurrentInventoryView(APIView):
                         'id': stock.product_variant.id,
                         'name': stock.product_variant.name,
                         'sku': stock.product_variant.sku,
-                        'price': float(stock.product_variant.price),
-                        'min_stock': float(stock.product_variant.min_stock),
+                        'price': float(stock.product_variant.sale_price),  # CORREGIDO: sale_price
+                        'min_stock': float(stock.product_variant.low_stock_threshold),  # CORREGIDO: low_stock_threshold
                         'product_name': stock.product_variant.product.name,
                     },
                     'warehouse': {
                         'id': stock.warehouse.id,
                         'name': stock.warehouse.name,
-                        'location': stock.warehouse.location,
+                        'location': stock.warehouse.address,  # CORREGIDO: usar address en lugar de location
                     },
                     'quantity': float(stock.quantity),
                     'min_stock': float(stock.min_stock),
