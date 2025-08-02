@@ -94,26 +94,17 @@ DATABASE_PASSWORD = os.getenv('DATABASE_PASSWORD', 'maestro')
 DATABASE_HOST = os.getenv('DATABASE_HOST', 'maestro_db')
 DATABASE_PORT = os.getenv('DATABASE_PORT', '5432')
 
-# Configuración condicional para la base de datos
-if DATABASE_ENGINE == 'django.db.backends.postgresql':
-    DATABASES = {
-        'default': {
-            'ENGINE': DATABASE_ENGINE,
-            'NAME': DATABASE_NAME,
-            'USER': DATABASE_USER,
-            'PASSWORD': DATABASE_PASSWORD,
-            'HOST': DATABASE_HOST,
-            'PORT': DATABASE_PORT,
-        }
+# Configuración para la base de datos PostgreSQL
+DATABASES = {
+    'default': {
+        'ENGINE': DATABASE_ENGINE,
+        'NAME': DATABASE_NAME,
+        'USER': DATABASE_USER,
+        'PASSWORD': DATABASE_PASSWORD,
+        'HOST': DATABASE_HOST,
+        'PORT': DATABASE_PORT,
     }
-else:
-    # Fallback a SQLite solo en desarrollo
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 
 # Password validation
