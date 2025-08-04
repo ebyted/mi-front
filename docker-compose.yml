@@ -10,7 +10,6 @@ services:
       - --api.dashboard=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=maestro_network
 
       # Entry points
       - --entrypoints.web.address=:80
