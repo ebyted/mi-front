@@ -698,14 +698,12 @@ const InventoryMovements = () => {
     try {
       console.log('🔄 Cargando inventario actual...');
       
-      // Cargar datos necesarios en paralelo
-      const [stockResponse, productsResponse, variantsResponse, warehousesResponse, categoriesResponse, brandsResponse] = await Promise.all([
+      // Cargar datos necesarios en paralelo (sin categorías y marcas separadas)
+      const [stockResponse, productsResponse, variantsResponse, warehousesResponse] = await Promise.all([
         api.get('product-warehouse-stocks/').catch(err => ({ data: [] })),
         api.get('products/').catch(err => ({ data: [] })),
         api.get('product-variants/').catch(err => ({ data: [] })),
-        api.get('warehouses/').catch(err => ({ data: [] })),
-        api.get('categories/').catch(err => ({ data: [] })),
-        api.get('brands/').catch(err => ({ data: [] }))
+        api.get('warehouses/').catch(err => ({ data: [] }))
       ]);
       
       // Procesar datos
@@ -713,16 +711,12 @@ const InventoryMovements = () => {
       const products = Array.isArray(productsResponse.data) ? productsResponse.data : (productsResponse.data?.results || []);
       const variants = Array.isArray(variantsResponse.data) ? variantsResponse.data : (variantsResponse.data?.results || []);
       const warehousesData = Array.isArray(warehousesResponse.data) ? warehousesResponse.data : (warehousesResponse.data?.results || []);
-      const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : (categoriesResponse.data?.results || []);
-      const brands = Array.isArray(brandsResponse.data) ? brandsResponse.data : (brandsResponse.data?.results || []);
       
       console.log('📊 Datos obtenidos:', { 
         stocks: stocks.length, 
         products: products.length, 
         variants: variants.length, 
-        warehouses: warehousesData.length,
-        categories: categories.length,
-        brands: brands.length
+        warehouses: warehousesData.length
       });
       
       // Debug: Mostrar estructura de datos
@@ -732,33 +726,46 @@ const InventoryMovements = () => {
       if (variants.length > 0) {
         console.log('🔍 Ejemplo de variante:', JSON.stringify(variants[0], null, 2));
       }
-      if (categories.length > 0) {
-        console.log('🔍 Ejemplo de categoría:', JSON.stringify(categories[0], null, 2));
-      }
-      if (brands.length > 0) {
-        console.log('🔍 Ejemplo de marca:', JSON.stringify(brands[0], null, 2));
+      if (stocks.length > 0) {
+        console.log('🔍 Ejemplo de stock:', JSON.stringify(stocks[0], null, 2));
       }
       
       // Crear mapas para lookups rápidos
       const productsMap = new Map(products.map(p => [p.id, p]));
       const variantsMap = new Map(variants.map(v => [v.id, v]));
       const warehousesMap = new Map(warehousesData.map(w => [w.id, w]));
-      const categoriesMap = new Map(categories.map(c => [c.id, c]));
-      const brandsMap = new Map(brands.map(b => [b.id, b]));
       
-      // Si no hay categorías/marcas por endpoints separados, extraerlas de productos
-      if (categories.length === 0 && brands.length === 0) {
-        console.log('📝 Extrayendo categorías y marcas desde productos...');
-        products.forEach(product => {
-          if (product.category && typeof product.category === 'object') {
+      // Crear mapas de categorías y marcas desde productos
+      const categoriesMap = new Map();
+      const brandsMap = new Map();
+      
+      products.forEach(product => {
+        // Extraer categoría
+        if (product.category) {
+          if (typeof product.category === 'object') {
             categoriesMap.set(product.category.id, product.category);
+          } else if (typeof product.category === 'string') {
+            categoriesMap.set(product.category, { id: product.category, name: product.category });
           }
-          if (product.brand && typeof product.brand === 'object') {
+        }
+        if (product.category_name) {
+          categoriesMap.set(product.id + '_cat', { id: product.id + '_cat', name: product.category_name });
+        }
+        
+        // Extraer marca
+        if (product.brand) {
+          if (typeof product.brand === 'object') {
             brandsMap.set(product.brand.id, product.brand);
+          } else if (typeof product.brand === 'string') {
+            brandsMap.set(product.brand, { id: product.brand, name: product.brand });
           }
-        });
-        console.log('✅ Categorías extraídas:', categoriesMap.size, 'Marcas extraídas:', brandsMap.size);
-      }
+        }
+        if (product.brand_name) {
+          brandsMap.set(product.id + '_brand', { id: product.id + '_brand', name: product.brand_name });
+        }
+      });
+      
+      console.log('✅ Categorías extraídas:', categoriesMap.size, 'Marcas extraídas:', brandsMap.size);
       
       // Procesar inventario
       let inventoryData = [];
@@ -782,9 +789,31 @@ const InventoryMovements = () => {
             const warehouse = warehousesMap.get(warehouseId);
             
             if (variant && warehouse) {
-              // Obtener categoría y marca usando los mapas
-              const category = categoriesMap.get(product?.category) || categoriesMap.get(variant?.category);
-              const brand = brandsMap.get(product?.brand) || brandsMap.get(variant?.brand);
+              // Obtener categoría y marca de múltiples fuentes
+              let categoryName = 'Sin categoría';
+              let brandName = 'Sin marca';
+              
+              // Intentar obtener categoría
+              if (product?.category?.name) {
+                categoryName = product.category.name;
+              } else if (product?.category_name) {
+                categoryName = product.category_name;
+              } else if (variant?.category?.name) {
+                categoryName = variant.category.name;
+              } else if (variant?.category_name) {
+                categoryName = variant.category_name;
+              }
+              
+              // Intentar obtener marca
+              if (product?.brand?.name) {
+                brandName = product.brand.name;
+              } else if (product?.brand_name) {
+                brandName = product.brand_name;
+              } else if (variant?.brand?.name) {
+                brandName = variant.brand.name;
+              } else if (variant?.brand_name) {
+                brandName = variant.brand_name;
+              }
               
               groupedData.set(key, {
                 id: key,
@@ -794,8 +823,8 @@ const InventoryMovements = () => {
                 product_name: product?.name || variant.name || `Producto ${variant.id}`,
                 product_code: variant.sku || variant.code || product?.code || `SKU-${variantId}`,
                 variant_name: variant.name || product?.name || 'Sin nombre',
-                category_name: category?.name || product?.category?.name || product?.category_name || 'Sin categoría',
-                brand_name: brand?.name || product?.brand?.name || product?.brand_name || 'Sin marca',
+                category_name: categoryName,
+                brand_name: brandName,
                 warehouse_name: warehouse.name || `Almacén ${warehouseId}`,
                 total_stock: 0,
                 min_stock: parseFloat(variant.min_stock || product?.min_stock || 0),
@@ -822,8 +851,30 @@ const InventoryMovements = () => {
         warehousesData.forEach(warehouse => {
           variants.slice(0, 10).forEach(variant => { // Limitar a 10 para demo
             const product = productsMap.get(variant.product);
-            const category = categoriesMap.get(product?.category) || categoriesMap.get(variant?.category);
-            const brand = brandsMap.get(product?.brand) || brandsMap.get(variant?.brand);
+            
+            // Obtener categoría y marca de múltiples fuentes
+            let categoryName = 'Medicamentos'; // Valor por defecto más realista
+            let brandName = 'Genérico'; // Valor por defecto más realista
+            
+            if (product?.category?.name) {
+              categoryName = product.category.name;
+            } else if (product?.category_name) {
+              categoryName = product.category_name;
+            } else if (variant?.category?.name) {
+              categoryName = variant.category.name;
+            } else if (variant?.category_name) {
+              categoryName = variant.category_name;
+            }
+            
+            if (product?.brand?.name) {
+              brandName = product.brand.name;
+            } else if (product?.brand_name) {
+              brandName = product.brand_name;
+            } else if (variant?.brand?.name) {
+              brandName = variant.brand.name;
+            } else if (variant?.brand_name) {
+              brandName = variant.brand_name;
+            }
             
             inventoryData.push({
               id: `${variant.id}-${warehouse.id}`,
@@ -833,8 +884,8 @@ const InventoryMovements = () => {
               product_name: product?.name || variant.name || `Producto ${variant.id}`,
               product_code: variant.sku || variant.code || product?.code || `SKU-${variant.id}`,
               variant_name: variant.name || product?.name || 'Sin nombre',
-              category_name: category?.name || product?.category?.name || 'Sin categoría',
-              brand_name: brand?.name || product?.brand?.name || 'Sin marca',
+              category_name: categoryName,
+              brand_name: brandName,
               warehouse_name: warehouse.name,
               total_stock: Math.floor(Math.random() * 100) + 10, // Stock aleatorio para demo
               min_stock: parseFloat(variant.min_stock || 20),
