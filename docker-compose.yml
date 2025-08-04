@@ -1,50 +1,57 @@
+version: "3.9"
+
 services:
+  # =======================
   # Traefik Reverse Proxy
+  # =======================
   traefik:
     image: traefik:v3.0
     container_name: maestro_traefik
     restart: unless-stopped
     command:
-      # Enable Docker provider
       - --api.dashboard=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=maestro_network
-      
+
       # Entry points
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      
+
       # Redirect HTTP to HTTPS
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      
-      # Let's Encrypt configuration
-      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
+
+      # Let's Encrypt (HTTP challenge)
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
       - --certificatesresolvers.letsencrypt.acme.email=admin@sanchodistribuidora.com
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      
+
       # Logs
       - --log.level=INFO
       - --accesslog=true
+
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Traefik dashboard
+      - "8080:8080"  # Dashboard Traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_letsencrypt:/letsencrypt
     labels:
-      # Dashboard configuration
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.sanchodistribuidora.com`)
       - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
       - traefik.http.routers.dashboard.service=api@internal
       - traefik.http.routers.dashboard.middlewares=dashboard-auth
-      - traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$2y$$10$$K8qr/T8W8jVhCGf0YgG3AemW7fWN9p1uT7Q3K8tOZGqKf8Qw4W.gK # admin:admin123
+      - traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$2y$$10$$K8qr/T8W8jVhCGf0YgG3AemW7fWN9p1uT7Q3K8tOZGqKf8Qw4W.gK
     networks:
       - maestro_network
 
+  # =======================
+  # Backend (Django API)
+  # =======================
   backend:
     build:
       context: .
@@ -59,58 +66,58 @@ services:
       - .env
     depends_on:
       - db
-      - traefik
     labels:
-      # Traefik configuration for backend API
+      # API principal
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`api.sanchodistribuidora.com`)
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.routers.backend.service=backend
+      - traefik.http.services.backend.loadbalancer.server.port=8030
+
+      # API secundaria en /api de www
       - traefik.http.routers.backend-alt.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
       - traefik.http.routers.backend-alt.service=backend
       - traefik.http.routers.backend-alt.tls.certresolver=letsencrypt
-      - traefik.http.services.backend.loadbalancer.server.port=8030
-      
-      # CORS middleware for API
+
+      # CORS
       - traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
       - traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*
       - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com,https://sanchodistribuidora.com
       - traefik.http.middlewares.cors.headers.accesscontrolmaxage=86400
       - traefik.http.routers.backend.middlewares=cors
-      - traefik.http.routers.backend-alt.middlewares=cors
     networks:
       - maestro_network
 
+  # =======================
+  # Frontend (Nginx estático)
+  # =======================
   frontend:
     build:
       context: ./dbackf
       dockerfile: Dockerfile
     container_name: maestro_frontend
-    expose:
-      - "80"
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - VITE_API_URL=https://api.sanchodistribuidora.com/api/
     depends_on:
       - backend
-      - traefik
     labels:
-      # Traefik configuration for frontend
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`) || Host(`sanchodistribuidora.com`)
       - traefik.http.routers.frontend.tls.certresolver=letsencrypt
       - traefik.http.routers.frontend.service=frontend
       - traefik.http.services.frontend.loadbalancer.server.port=80
-      
-      # Redirect root domain to www
+
+      # Redirección de no-www a www
       - traefik.http.middlewares.redirect-to-www.redirectregex.regex=^https://sanchodistribuidora.com/(.*)
-      - traefik.http.middlewares.redirect-to-www.redirectregex.replacement=https://www.sanchodistribuidora.com/$${1}
+      - traefik.http.middlewares.redirect-to-www.redirectregex.replacement=https://www.sanchodistribuidora.com/$$1
       - traefik.http.routers.frontend-redirect.rule=Host(`sanchodistribuidora.com`)
       - traefik.http.routers.frontend-redirect.middlewares=redirect-to-www
       - traefik.http.routers.frontend-redirect.tls.certresolver=letsencrypt
     networks:
       - maestro_network
+
+  # =======================
+  # Database (PostgreSQL)
+  # =======================
   db:
     image: postgres:15
     container_name: maestro_db
@@ -120,14 +127,12 @@ services:
       POSTGRES_PASSWORD: maestro
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    expose:
-      - "5432"
     networks:
       - maestro_network
 
 networks:
   maestro_network:
-    external: false
+    external: true
 
 volumes:
   postgres_data:
