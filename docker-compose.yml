@@ -43,8 +43,6 @@ services:
       - traefik.http.routers.dashboard.service=api@internal
       - traefik.http.routers.dashboard.middlewares=dashboard-auth
       - traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$2y$$10$$K8qr/T8W8jVhCGf0YgG3AemW7fWN9p1uT7Q3K8tOZGqKf8Qw4W.gK
-    networks:
-      - maestro_network
 
   # =======================
   # Backend (Django API)
@@ -83,8 +81,6 @@ services:
       - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com,https://sanchodistribuidora.com
       - traefik.http.middlewares.cors.headers.accesscontrolmaxage=86400
       - traefik.http.routers.backend.middlewares=cors
-    networks:
-      - maestro_network
 
   # =======================
   # Frontend (Nginx estático)
@@ -110,8 +106,6 @@ services:
       - traefik.http.routers.frontend-redirect.rule=Host(`sanchodistribuidora.com`)
       - traefik.http.routers.frontend-redirect.middlewares=redirect-to-www
       - traefik.http.routers.frontend-redirect.tls.certresolver=letsencrypt
-    networks:
-      - maestro_network
 
   # =======================
   # Database (PostgreSQL)
@@ -125,12 +119,6 @@ services:
       POSTGRES_PASSWORD: maestro
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    networks:
-      - maestro_network
-
-networks:
-  maestro_network:
-    driver: bridge
 
 volumes:
   postgres_data:
