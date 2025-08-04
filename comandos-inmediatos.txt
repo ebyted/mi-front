@@ -1,0 +1,52 @@
+# 🚀 COMANDOS INMEDIATOS PARA TU TERMINAL BASH DEL SERVIDOR
+# =========================================================
+# Copia y pega estos comandos uno por uno en tu terminal bash
+
+# 1. VERIFICAR UBICACIÓN Y ARCHIVOS
+echo "=== 1. VERIFICANDO UBICACIÓN ==="
+pwd
+ls -la | grep -E "(docker-compose|\.yml|\.sh)"
+
+# 2. VERIFICAR ESTADO DE CONTENEDORES
+echo "=== 2. ESTADO DE CONTENEDORES ==="
+docker-compose ps
+
+# 3. VERIFICAR LOGS DE TRAEFIK (últimas 10 líneas)
+echo "=== 3. LOGS DE TRAEFIK ==="
+docker-compose logs traefik --tail=10
+
+# 4. VERIFICAR PUERTOS ABIERTOS
+echo "=== 4. PUERTOS ABIERTOS ==="
+netstat -tlnp | grep -E ':80|:443|:8080'
+
+# 5. VERIFICAR IP EXTERNA
+echo "=== 5. IP EXTERNA ==="
+curl -s ifconfig.me
+
+# 6. TEST DE CONECTIVIDAD LOCAL
+echo "=== 6. TEST LOCAL ==="
+curl -I http://localhost:80
+echo "---"
+curl -I http://localhost:8080
+
+# 7. VERIFICAR CERTIFICADOS SSL
+echo "=== 7. CERTIFICADOS SSL ==="
+docker-compose exec traefik ls -la /letsencrypt/ 2>/dev/null || echo "No se puede acceder a certificados"
+
+# 8. VER CONFIGURACIÓN DE TRAEFIK
+echo "=== 8. CONFIGURACIÓN TRAEFIK ==="
+docker-compose logs traefik | grep -i "certificate\|ssl\|https" | tail -5
+
+# 9. PROBAR DNS
+echo "=== 9. RESOLUCIÓN DNS ==="
+nslookup www.sanchodistribuidora.com
+
+# 10. ESTADO DEL FIREWALL
+echo "=== 10. FIREWALL ==="
+ufw status
+
+# SI HAY PROBLEMAS, EJECUTAR ESTOS COMANDOS DE REINICIO:
+echo "=== COMANDOS DE EMERGENCIA (solo si hay problemas) ==="
+echo "docker-compose down"
+echo "docker-compose up -d --build"
+echo "docker-compose logs -f traefik"

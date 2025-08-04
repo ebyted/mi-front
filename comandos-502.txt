@@ -1,0 +1,31 @@
+# 🚨 COMANDOS PARA SOLUCIONAR ERROR 502
+# ====================================
+
+# PASO 1: Ver estado actual
+docker ps | grep maestro
+
+# PASO 2: Ver logs del frontend
+docker logs maestro_frontend --tail=10
+
+# PASO 3: Reiniciar el frontend
+docker restart maestro_frontend
+
+# PASO 4: Esperar 15 segundos
+sleep 15
+
+# PASO 5: Verificar que esté funcionando
+docker ps | grep maestro_frontend
+
+# PASO 6: Test local
+curl -I http://localhost:80
+
+# SI EL PROBLEMA PERSISTE, EJECUTAR ESTOS:
+
+# PASO 7: Reiniciar todos los servicios
+docker-compose restart
+
+# PASO 8: Ver logs en tiempo real
+docker logs maestro_frontend -f
+
+# PASO 9: Si necesitas encontrar el docker-compose.yml
+find /root -name "docker-compose.yml" -exec grep -l "maestro" {} \;
