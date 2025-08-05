@@ -12,7 +12,7 @@ import Warehouses from './pages/Warehouses';
 import PurchaseOrders from './pages/PurchaseOrders';
 import Quotations from './pages/Quotations';
 import SalesOrders from './pages/SalesOrders';
-import InventoryMovements from './pages/InventoryMovements';
+import InventoryMovements from './pages/InventoryMovementsFixed';
 import InventoryMovementsSimple from './pages/InventoryMovementsSimple';
 import Categories from './pages/Categories';
 import Brands from './pages/Brands';
