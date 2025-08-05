@@ -29,6 +29,8 @@ api.interceptors.request.use(config => {
       // Opcional: puedes mostrar un mensaje o redirigir al login
       alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
       localStorage.removeItem('token');
+      localStorage.removeItem('refresh');
+      localStorage.removeItem('user');
       // Opcional: window.location.href = '/login';
       return Promise.reject(new Error('Token expirado'));
     }
@@ -36,5 +38,24 @@ api.interceptors.request.use(config => {
   }
   return config;
 });
+
+// Interceptor de respuesta para manejar errores 401
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      // Token inválido o expirado
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh');
+      localStorage.removeItem('user');
+      
+      // Solo redirigir si no estamos ya en login
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;
