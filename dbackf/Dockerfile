@@ -5,7 +5,7 @@ COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 # Establecer variable de entorno para el build
-ENV VITE_API_URL=http://168.231.67.221:8030/api/
+ENV VITE_API_URL=https://www.sanchodistribuidora.com/api/
 RUN npm run build
 
 # Servidor estático nginx
