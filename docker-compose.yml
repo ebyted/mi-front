@@ -4,7 +4,7 @@ services:
   # =======================
   traefik:
     image: traefik:v3.0
-    container_name: sancho_traefik
+    container_name: sancho_traefik_v2
     restart: unless-stopped
     command:
       - --api.dashboard=true
@@ -53,7 +53,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sancho_backend
+    container_name: sancho_backend_v2
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8030"
     volumes:
       - .:/app
@@ -64,14 +64,21 @@ services:
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
-      - DATABASE_HOST=sancho_db
+      - DATABASE_HOST=sancho_db_v2
       - DATABASE_PORT=5432
       - DEBUG=False
       - ALLOWED_HOSTS=www.sanchodistribuidora.com,sanchodistribuidora.com,localhost,127.0.0.1
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - sancho_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8030/api/health/", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
@@ -97,10 +104,11 @@ services:
     build:
       context: ./dbackf
       dockerfile: Dockerfile
-    container_name: sancho_frontend
+    container_name: sancho_frontend_v2
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     networks:
       - sancho_network
     labels:
@@ -117,7 +125,7 @@ services:
   # =======================
   db:
     image: postgres:15
-    container_name: sancho_db
+    container_name: sancho_db_v2
     restart: unless-stopped
     environment:
       POSTGRES_DB: maestro_inventario
