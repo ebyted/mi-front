@@ -4,7 +4,7 @@ services:
   # =======================
   traefik:
     image: traefik:v3.0
-    container_name: maestro_traefik
+    container_name: sancho_traefik
     restart: unless-stopped
     command:
       - --api.dashboard=true
@@ -35,13 +35,13 @@ services:
       - "8080:8080"  # Dashboard Traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_letsencrypt:/letsencrypt
+      - sancho_letsencrypt:/letsencrypt
     networks:
-      - maestro_network
+      - sancho_network
     labels:
       - traefik.enable=true
-      # Solo Dashboard local sin SSL (ya que no hay DNS para traefik.sanchodistribuidora.com)
-      - traefik.http.routers.dashboard.rule=Host(`localhost`) || Host(`127.0.0.1`) || HostRegexp(`{host:.+}`) && PathPrefix(`/dashboard`)
+      # Dashboard accesible localmente
+      - traefik.http.routers.dashboard.rule=Host(`localhost`) || Host(`127.0.0.1`) || PathPrefix(`/dashboard`)
       - traefik.http.routers.dashboard.service=api@internal
       - traefik.http.routers.dashboard.entrypoints=web
 
@@ -52,28 +52,37 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: maestro_backend
+    container_name: sancho_backend
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8030"
     volumes:
       - .:/app
     expose:
       - "8030"
-    env_file:
-      - .env
+    environment:
+      - DATABASE_ENGINE=django.db.backends.postgresql
+      - DATABASE_NAME=maestro_inventario
+      - DATABASE_USER=maestro
+      - DATABASE_PASSWORD=maestro
+      - DATABASE_HOST=sancho_db
+      - DATABASE_PORT=5432
+      - DEBUG=False
+      - ALLOWED_HOSTS=www.sanchodistribuidora.com,sanchodistribuidora.com,localhost,127.0.0.1
     depends_on:
       - db
     networks:
-      - maestro_network
+      - sancho_network
     labels:
-      # Solo www.sanchodistribuidora.com funciona con DNS
       - traefik.enable=true
-      - traefik.http.routers.backend-alt.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
-      - traefik.http.routers.backend-alt.service=backend
-      - traefik.http.routers.backend-alt.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-alt.middlewares=cors
+      - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
+      - traefik.http.routers.backend.service=backend
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend.middlewares=backend-stripprefix,cors
       - traefik.http.services.backend.loadbalancer.server.port=8030
+      
+      # Strip /api prefix antes de enviar al backend
+      - traefik.http.middlewares.backend-stripprefix.stripprefix.prefixes=/api
 
-      # CORS
+      # CORS middleware
       - traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
       - traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*
       - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com,https://sanchodistribuidora.com
@@ -86,12 +95,12 @@ services:
     build:
       context: ./dbackf
       dockerfile: Dockerfile
-    container_name: maestro_frontend
+    container_name: sancho_frontend
     restart: unless-stopped
     depends_on:
       - backend
     networks:
-      - maestro_network
+      - sancho_network
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
@@ -104,20 +113,30 @@ services:
   # =======================
   db:
     image: postgres:15
-    container_name: maestro_db
+    container_name: sancho_db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: maestro_inventario
       POSTGRES_USER: maestro
       POSTGRES_PASSWORD: maestro
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - sancho_postgres_data:/var/lib/postgresql/data/
     networks:
-      - maestro_network
+      - sancho_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
-  maestro_network:
-    external: true
+  sancho_network:
+    driver: bridge
+    name: sancho_network
 
 volumes:
-  postgres_data:
-  traefik_letsencrypt:
+  sancho_postgres_data:
+    driver: local
+  sancho_letsencrypt:
+    driver: local
