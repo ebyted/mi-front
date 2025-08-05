@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainMenu from './components/MainMenu';
 import Sidebar from './pages/Sidebar';
@@ -18,12 +18,24 @@ import Categories from './pages/Categories';
 import Brands from './pages/Brands';
 import ExchangeRates from './pages/ExchangeRates';
 import ModernShop from './pages/ModernShop.jsx';
-import { AuthProvider } from './context/AuthContext.jsx';
-import { AuthContext } from './context/AuthContext.jsx';
+import DebugAuth from './pages/DebugAuth.jsx';
+import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 
-function App() {
+function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isAuthenticated, isLoading } = useContext(AuthContext);
+
+  // Mostrar loading mientras se verifica la autenticación
+  if (isLoading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center min-vh-100">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Helper para renderizar rutas protegidas con sidebar
   const renderWithSidebar = (Component) => (
@@ -46,28 +58,50 @@ function App() {
   );
 
   return (
+    <Router>
+      <Routes>
+        {/* Ruta raíz redirige según autenticación */}
+        <Route path="/" element={
+          isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+        } />
+        
+        {/* Login - solo accesible si NO está autenticado */}
+        <Route path="/login" element={
+          isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Login />
+        } />
+        
+        {/* Ruta de debug - siempre accesible */}
+        <Route path="/debug-auth" element={<DebugAuth />} />
+        
+        {/* Rutas protegidas */}
+        <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
+        <Route path="/users" element={renderWithSidebar(Users)} />
+        <Route path="/products" element={renderWithSidebar(Products)} />
+        <Route path="/warehouses" element={renderWithSidebar(Warehouses)} />
+        <Route path="/purchase-orders" element={renderWithSidebar(PurchaseOrders)} />
+        <Route path="/quotations" element={renderWithSidebar(Quotations)} />
+        <Route path="/sales-orders" element={renderWithSidebar(SalesOrders)} />
+        <Route path="/inventory-movements" element={renderWithSidebar(InventoryMovements)} />
+        <Route path="/inventory-movements-simple" element={renderWithSidebar(InventoryMovementsSimple)} />
+        <Route path="/categories" element={renderWithSidebar(Categories)} />
+        <Route path="/brands" element={renderWithSidebar(Brands)} />
+        <Route path="/exchange-rates" element={renderWithSidebar(ExchangeRates)} />
+        <Route path="/store" element={renderWithSidebar(() => <ModernShop user={null} />)} />
+        
+        {/* Cualquier otra ruta redirige según autenticación */}
+        <Route path="*" element={
+          isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+        } />
+      </Routes>
+    </Router>
+  );
+}
+
+function App() {
+  return (
     <AuthProvider>
       <ThemeProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
-            <Route path="/users" element={renderWithSidebar(Users)} />
-            <Route path="/products" element={renderWithSidebar(Products)} />
-            <Route path="/warehouses" element={renderWithSidebar(Warehouses)} />
-            <Route path="/purchase-orders" element={renderWithSidebar(PurchaseOrders)} />
-            <Route path="/quotations" element={renderWithSidebar(Quotations)} />
-            <Route path="/sales-orders" element={renderWithSidebar(SalesOrders)} />
-            <Route path="/inventory-movements" element={renderWithSidebar(InventoryMovements)} />
-            <Route path="/inventory-movements-simple" element={renderWithSidebar(InventoryMovementsSimple)} />
-            <Route path="/categories" element={renderWithSidebar(Categories)} />
-            <Route path="/brands" element={renderWithSidebar(Brands)} />
-            <Route path="/exchange-rates" element={renderWithSidebar(ExchangeRates)} />
-            <Route path="/store" element={renderWithSidebar(() => <ModernShop user={null} />)} />
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-          </Routes>
-        </Router>
+        <AppContent />
       </ThemeProvider>
     </AuthProvider>
   );

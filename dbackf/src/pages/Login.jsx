@@ -17,13 +17,30 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const result = await apiLogin(email, password);
-    if (result.success) {
-      // Simula usuario, normalmente vendría del backend
-      login({ name: email.split('@')[0], email });
-      navigate('/dashboard');
-    } else {
-      setError(result.message);
+    
+    try {
+      const result = await apiLogin(email, password);
+      if (result.success) {
+        // Verificar que el token se haya guardado correctamente
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Obtener información del usuario desde el token o hacer una llamada a la API
+          const userData = { 
+            name: email.split('@')[0], 
+            email,
+            authenticated: true 
+          };
+          login(userData);
+          navigate('/dashboard');
+        } else {
+          setError('Error: No se pudo obtener el token de autenticación');
+        }
+      } else {
+        setError(result.message);
+      }
+    } catch (error) {
+      console.error('Error en login:', error);
+      setError('Error de conexión. Verifica tu conexión a internet.');
     }
   };
 
