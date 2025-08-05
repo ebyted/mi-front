@@ -1,7 +1,6 @@
 services:
   traefik:
     image: traefik:v3.0
-    container_name: maestro_traefik
     restart: unless-stopped
     command:
       - "--api.dashboard=true"
@@ -35,7 +34,6 @@ services:
 
   frontend:
     image: sancho-distribuidora-mi-front-npxvvf-frontend
-    container_name: maestro_frontend
     restart: unless-stopped
     networks:
       - maestro_network
@@ -48,7 +46,6 @@ services:
 
   backend:
     image: sancho-distribuidora-mi-front-npxvvf-backend
-    container_name: maestro_backend_api
     restart: unless-stopped
     networks:
       - maestro_network
