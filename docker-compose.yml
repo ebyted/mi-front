@@ -30,9 +30,9 @@ services:
       - --accesslog=true
 
     ports:
-      - "8080:80"   # HTTP en puerto 8080
-      - "8443:443"  # HTTPS en puerto 8443
-      - "8090:8080" # Dashboard Traefik en puerto 8090
+      - "80:80"     # HTTP estándar
+      - "443:443"   # HTTPS estándar
+      - "8080:8080" # Dashboard Traefik
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - sancho_letsencrypt:/letsencrypt
@@ -40,10 +40,11 @@ services:
       - sancho_network
     labels:
       - traefik.enable=true
-      # Dashboard accesible en puerto 8090
-      - traefik.http.routers.dashboard.rule=PathPrefix(`/dashboard`) || PathPrefix(`/api`)
+      # Dashboard accesible en puerto 8080
+      - traefik.http.routers.dashboard.rule=Host(`traefik.sanchodistribuidora.com`) || (Host(`www.sanchodistribuidora.com`) && PathPrefix(`/dashboard`))
       - traefik.http.routers.dashboard.service=api@internal
-      - traefik.http.routers.dashboard.entrypoints=web
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
 
   # =======================
   # Backend (Django API)
@@ -73,9 +74,10 @@ services:
       - sancho_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.backend.rule=PathPrefix(`/api/`)
+      - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
       - traefik.http.routers.backend.service=backend
       - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.routers.backend.middlewares=backend-stripprefix,cors
       - traefik.http.services.backend.loadbalancer.server.port=8030
       
@@ -85,7 +87,7 @@ services:
       # CORS middleware
       - traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
       - traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*
-      - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=*
+      - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com,https://sanchodistribuidora.com
       - traefik.http.middlewares.cors.headers.accesscontrolmaxage=86400
 
   # =======================
@@ -103,9 +105,10 @@ services:
       - sancho_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
       - traefik.http.routers.frontend.service=frontend
       - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
       - traefik.http.routers.frontend.priority=1
       - traefik.http.services.frontend.loadbalancer.server.port=80
 
