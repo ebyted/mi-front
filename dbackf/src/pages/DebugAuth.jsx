@@ -12,11 +12,30 @@ function DebugAuth() {
     const refresh = localStorage.getItem('refresh');
     const userStored = localStorage.getItem('user');
     
+    let tokenInfo = { valid: false, expired: true, exp: null };
+    
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const now = Math.floor(Date.now() / 1000);
+        tokenInfo = {
+          valid: true,
+          expired: payload.exp < now,
+          exp: new Date(payload.exp * 1000).toLocaleString(),
+          remainingTime: payload.exp - now,
+          payload
+        };
+      } catch (e) {
+        tokenInfo = { valid: false, expired: true, error: e.message };
+      }
+    }
+    
     return {
       hasToken: !!token,
       hasRefresh: !!refresh,
       hasUser: !!userStored,
       token: token ? token.substring(0, 20) + '...' : null,
+      tokenInfo,
       user: userStored ? JSON.parse(userStored) : null,
       isAuthenticatedResult: isAuthenticated()
     };
@@ -63,6 +82,13 @@ function DebugAuth() {
     }
   };
 
+  const clearExpiredToken = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refresh');
+    localStorage.removeItem('user');
+    setTestResult('✅ Token expirado eliminado. Recarga la página.');
+  };
+
   const authStatus = checkAuthStatus();
 
   return (
@@ -88,6 +114,26 @@ function DebugAuth() {
                     <td>{authStatus.hasToken ? '✅ Sí' : '❌ No'}</td>
                   </tr>
                   <tr>
+                    <td><strong>Token Válido:</strong></td>
+                    <td>{authStatus.tokenInfo?.valid ? '✅ Sí' : '❌ No'}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Token Expirado:</strong></td>
+                    <td>{authStatus.tokenInfo?.expired ? '❌ Sí' : '✅ No'}</td>
+                  </tr>
+                  {authStatus.tokenInfo?.exp && (
+                    <tr>
+                      <td><strong>Expira:</strong></td>
+                      <td>{authStatus.tokenInfo.exp}</td>
+                    </tr>
+                  )}
+                  {authStatus.tokenInfo?.remainingTime && (
+                    <tr>
+                      <td><strong>Tiempo restante:</strong></td>
+                      <td>{authStatus.tokenInfo.remainingTime > 0 ? `${Math.floor(authStatus.tokenInfo.remainingTime / 3600)}h ${Math.floor((authStatus.tokenInfo.remainingTime % 3600) / 60)}m` : 'EXPIRADO'}</td>
+                    </tr>
+                  )}
+                  <tr>
                     <td><strong>Tiene Refresh:</strong></td>
                     <td>{authStatus.hasRefresh ? '✅ Sí' : '❌ No'}</td>
                   </tr>
@@ -101,6 +147,16 @@ function DebugAuth() {
                   </tr>
                 </tbody>
               </table>
+
+              {authStatus.tokenInfo?.expired && (
+                <div className="alert alert-warning">
+                  <strong>⚠️ Token Expirado!</strong> Esto explica los errores 401.
+                  <br />
+                  <button className="btn btn-sm btn-warning mt-2" onClick={clearExpiredToken}>
+                    Limpiar Token Expirado
+                  </button>
+                </div>
+              )}
 
               {authStatus.token && (
                 <div className="mt-3">
