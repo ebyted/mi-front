@@ -7,7 +7,8 @@ echo "======================================================="
 cd /root/mi-front
 
 echo "🛑 Paso 1: Deteniendo TODOS los contenedores relacionados..."
-docker-compose -f docker-compose-fixed.yml down --remove-orphans
+docker-compose down --remove-orphans
+docker-compose -f docker-compose-fixed.yml down --remove-orphans 2>/dev/null || echo "docker-compose-fixed.yml no encontrado o ya detenido"
 
 echo "🗑️ Paso 2: Eliminando contenedores específicos problemáticos..."
 # Eliminar por nombres específicos (ignorar errores si no existen)
@@ -16,6 +17,10 @@ docker rm -f maestro_frontend 2>/dev/null || echo "maestro_frontend ya eliminado
 docker rm -f maestro_backend 2>/dev/null || echo "maestro_backend ya eliminado"
 docker rm -f maestro_backend_api 2>/dev/null || echo "maestro_backend_api ya eliminado"
 docker rm -f maestro_db 2>/dev/null || echo "maestro_db ya eliminado"
+
+# Eliminar cualquier contenedor que contenga "maestro" en el nombre
+echo "🗑️ Paso 2b: Eliminando TODOS los contenedores que contengan 'maestro'..."
+docker ps -aq --filter "name=maestro" | xargs -r docker rm -f
 
 echo "🗑️ Paso 3: Eliminando contenedores por IDs específicos..."
 # Eliminar los IDs específicos que aparecen en los errores
@@ -36,13 +41,13 @@ echo "🌐 Paso 7: Creando/verificando red externa..."
 docker network create maestro_network 2>/dev/null || echo "Red maestro_network ya existe"
 
 echo "🚀 Paso 8: Iniciando servicios con configuración limpia..."
-docker-compose -f docker-compose-fixed.yml up -d
+docker-compose up -d --build
 
 echo "⏳ Paso 9: Esperando que los servicios se inicialicen..."
-sleep 10
+sleep 15
 
 echo "✅ Paso 10: Verificando estado final..."
-docker-compose -f docker-compose-fixed.yml ps
+docker-compose ps
 
 echo ""
 echo "🎯 DESPLIEGUE COMPLETADO"
@@ -55,4 +60,4 @@ echo "Si sigues viendo errores 401, ve a /debug-auth y limpia tokens expirados."
 # Mostrar logs de los últimos servicios para debug
 echo ""
 echo "📋 Logs recientes del frontend:"
-docker-compose -f docker-compose-fixed.yml logs --tail=5 frontend
+docker-compose logs --tail=5 frontend
