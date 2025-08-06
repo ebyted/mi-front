@@ -1,18 +1,20 @@
 from django.urls import path, include
+from django.http import JsonResponse
 from .views_welcome import welcome
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
 from .views import (
     UserViewSet, BusinessViewSet, CategoryViewSet, BrandViewSet, UnitViewSet, ProductViewSet, ProductVariantViewSet,
     WarehouseViewSet, ProductWarehouseStockViewSet, SupplierViewSet, SupplierProductViewSet, PurchaseOrderViewSet,
-    PurchaseOrderItemViewSet, PurchaseOrderReceiptViewSet, PurchaseOrderReceiptItemViewSet, InventoryMovementViewSet,
+    PurchaseOrderItemViewSet, PurchaseOrderReceiptViewSet, PurchaseOrderReceiptItemViewSet, SimpleInventoryMovementViewSet,
     ExchangeRateViewSet, CustomerTypeViewSet, CustomerViewSet, SalesOrderViewSet, SalesOrderItemViewSet,
     QuotationViewSet, QuotationItemViewSet, RoleViewSet, MenuOptionViewSet,
     ProductImportView, BrandImportView, CategoryImportView, SalesOrderImportView,
     PurchaseOrderImportView, QuotationImportView, InventoryMovementImportView, AuthorizeInventoryMovementView,
     AuditLogViewSet, CurrentInventoryView, user_menu_options,
     InventoryMovementImportValidateView, InventoryMovementImportConfirmView, 
-    InventoryMovementListView, WarehouseListView, CancelMovementView
+    InventoryMovementListView, WarehouseListView, CancelMovementView,
+    InventoryMovementDetailViewSet
 )
 
 
@@ -32,7 +34,7 @@ router.register(r'purchase-orders', PurchaseOrderViewSet)
 router.register(r'purchase-order-items', PurchaseOrderItemViewSet)
 router.register(r'purchase-order-receipts', PurchaseOrderReceiptViewSet)
 router.register(r'purchase-order-receipt-items', PurchaseOrderReceiptItemViewSet)
-router.register(r'inventory-movements', InventoryMovementViewSet)
+router.register(r'inventory-movements', SimpleInventoryMovementViewSet)
 router.register(r'exchange-rates', ExchangeRateViewSet)
 router.register(r'customer-types', CustomerTypeViewSet)
 router.register(r'customers', CustomerViewSet)
@@ -43,15 +45,12 @@ router.register(r'quotation-items', QuotationItemViewSet)
 router.register(r'roles', RoleViewSet)
 router.register(r'audit-logs', AuditLogViewSet)
 router.register(r'menu-options', MenuOptionViewSet)
-
-# Registrar el ViewSet de detalles de movimientos de inventario
-from .views import InventoryMovementDetailViewSet
 router.register(r'inventory-movement-details', InventoryMovementDetailViewSet)
 
 urlpatterns = [
-    path('', welcome, name='welcome'),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('test-token/', lambda request: JsonResponse({'message': 'Token endpoint test working'}), name='test_token'),
     path('import-products/', ProductImportView.as_view(), name='import-products'),
     path('import-brands/', BrandImportView.as_view(), name='import-brands'),
     path('import-categories/', CategoryImportView.as_view(), name='import-categories'),
@@ -68,4 +67,5 @@ urlpatterns = [
     path('current-inventory/', CurrentInventoryView.as_view(), name='current-inventory'),
     path('user-menu-options/', user_menu_options, name='user-menu-options'),
     path('', include(router.urls)),
+    path('', welcome, name='welcome'),
 ]

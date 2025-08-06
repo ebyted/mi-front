@@ -1393,3 +1393,31 @@ class CancelMovementView(APIView):
             return Response({
                 'error': f'Error interno: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ViewSet simplificado para movimientos de inventario
+class SimpleInventoryMovementViewSet(viewsets.ModelViewSet):
+    """ViewSet simplificado para depurar problemas con movimientos de inventario"""
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return InventoryMovement.objects.all()
+    
+    def list(self, request, *args, **kwargs):
+        try:
+            # Obtener datos básicos sin serialización compleja - solo campos básicos garantizados
+            movements = InventoryMovement.objects.values(
+                'id',
+                'movement_type',
+                'reference_document',
+                'notes',
+                'created_at'
+            ).order_by('-created_at')
+            
+            data = list(movements)
+            return Response(data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error al obtener movimientos: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
