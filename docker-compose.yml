@@ -74,7 +74,7 @@ services:
     networks:
       - sancho_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8030/api/health/", "||", "exit", "1"]
+      test: ["CMD", "python", "manage.py", "check", "--deploy"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -86,6 +86,7 @@ services:
       - traefik.http.routers.backend.entrypoints=websecure
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
       - traefik.http.routers.backend.middlewares=backend-stripprefix,cors
+      - traefik.http.routers.backend.priority=20
       - traefik.http.services.backend.loadbalancer.server.port=8030
       
       # Strip /api prefix antes de enviar al backend
@@ -117,7 +118,7 @@ services:
       - traefik.http.routers.frontend.service=frontend
       - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.routers.frontend.tls.certresolver=letsencrypt
-      - traefik.http.routers.frontend.priority=1
+      - traefik.http.routers.frontend.priority=10
       - traefik.http.services.frontend.loadbalancer.server.port=80
 
   # =======================
