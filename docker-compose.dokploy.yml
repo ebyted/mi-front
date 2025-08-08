@@ -53,7 +53,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: sancho_backend_v2
-    command: sh -c "nohup python -W ignore::RuntimeWarning manage.py runserver 0.0.0.0:8030 > /tmp/django.log 2>&1 && tail -f /tmp/django.log"
+    # Let the Dockerfile CMD handle the startup
     volumes:
       - .:/app
       # Persistent volumes for application data
