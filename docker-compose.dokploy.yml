@@ -65,7 +65,7 @@ services:
     env_file:
       - .env.dokploy
     depends_on:
-      - db
+      - maestro_db
     networks:
       - sancho_network
     labels:
@@ -107,7 +107,7 @@ services:
   # =======================
   # Database (PostgreSQL)
   # =======================
-  db:
+  maestro_db:
     image: postgres:15
     container_name: sancho_db_v2
     environment:
