@@ -4,37 +4,36 @@ from .views_welcome import welcome
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
 from .views import (
-    UserViewSet, SimpleBusinessViewSet, SimpleCategoryViewSet, SimpleBrandViewSet, UnitViewSet, SimpleProductViewSet, ProductVariantViewSet,
-    SimpleWarehouseViewSet, SimpleProductWarehouseStockViewSet, SupplierViewSet, SupplierProductViewSet, PurchaseOrderViewSet,
-    PurchaseOrderItemViewSet, PurchaseOrderReceiptViewSet, PurchaseOrderReceiptItemViewSet, SimpleInventoryMovementViewSet,
+    UserViewSet, BusinessViewSet, CategoryViewSet, BrandViewSet, UnitViewSet, ProductViewSet, ProductVariantViewSet,
+    WarehouseViewSet, ProductWarehouseStockViewSet, SupplierViewSet, SupplierProductViewSet, PurchaseOrderViewSet,
+    PurchaseOrderItemViewSet, PurchaseOrderReceiptViewSet, PurchaseOrderReceiptItemViewSet, InventoryMovementViewSet,
     ExchangeRateViewSet, CustomerTypeViewSet, CustomerViewSet, SalesOrderViewSet, SalesOrderItemViewSet,
     QuotationViewSet, QuotationItemViewSet, RoleViewSet, MenuOptionViewSet,
     ProductImportView, BrandImportView, CategoryImportView, SalesOrderImportView,
     PurchaseOrderImportView, QuotationImportView, InventoryMovementImportView, AuthorizeInventoryMovementView,
     AuditLogViewSet, CurrentInventoryView, user_menu_options,
     InventoryMovementImportValidateView, InventoryMovementImportConfirmView, 
-    InventoryMovementListView, WarehouseListView, CancelMovementView,
-    InventoryMovementDetailViewSet
+    InventoryMovementListView, WarehouseListView, CancelMovementView
 )
 
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
-router.register(r'businesses', SimpleBusinessViewSet)
-router.register(r'categories', SimpleCategoryViewSet)
-router.register(r'brands', SimpleBrandViewSet)
+router.register(r'businesses', BusinessViewSet)
+router.register(r'categories', CategoryViewSet)
+router.register(r'brands', BrandViewSet)
 router.register(r'units', UnitViewSet)
-router.register(r'products', SimpleProductViewSet)
+router.register(r'products', ProductViewSet)
 router.register(r'product-variants', ProductVariantViewSet)
-router.register(r'warehouses', SimpleWarehouseViewSet)
-router.register(r'product-warehouse-stocks', SimpleProductWarehouseStockViewSet)
+router.register(r'warehouses', WarehouseViewSet)
+router.register(r'product-warehouse-stocks', ProductWarehouseStockViewSet)
 router.register(r'suppliers', SupplierViewSet)
 router.register(r'supplier-products', SupplierProductViewSet)
 router.register(r'purchase-orders', PurchaseOrderViewSet)
 router.register(r'purchase-order-items', PurchaseOrderItemViewSet)
 router.register(r'purchase-order-receipts', PurchaseOrderReceiptViewSet)
 router.register(r'purchase-order-receipt-items', PurchaseOrderReceiptItemViewSet)
-router.register(r'inventory-movements', SimpleInventoryMovementViewSet)
+router.register(r'inventory-movements', InventoryMovementViewSet)
 router.register(r'exchange-rates', ExchangeRateViewSet)
 router.register(r'customer-types', CustomerTypeViewSet)
 router.register(r'customers', CustomerViewSet)
@@ -45,6 +44,9 @@ router.register(r'quotation-items', QuotationItemViewSet)
 router.register(r'roles', RoleViewSet)
 router.register(r'audit-logs', AuditLogViewSet)
 router.register(r'menu-options', MenuOptionViewSet)
+
+# Registrar el ViewSet de detalles de movimientos de inventario
+from .views import InventoryMovementDetailViewSet
 router.register(r'inventory-movement-details', InventoryMovementDetailViewSet)
 
 urlpatterns = [
