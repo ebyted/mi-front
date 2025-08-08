@@ -4,8 +4,8 @@ from .views_welcome import welcome
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
 from .views import (
-    UserViewSet, BusinessViewSet, CategoryViewSet, BrandViewSet, UnitViewSet, ProductViewSet, ProductVariantViewSet,
-    WarehouseViewSet, ProductWarehouseStockViewSet, SupplierViewSet, SupplierProductViewSet, PurchaseOrderViewSet,
+    UserViewSet, SimpleBusinessViewSet, SimpleCategoryViewSet, SimpleBrandViewSet, UnitViewSet, SimpleProductViewSet, ProductVariantViewSet,
+    SimpleWarehouseViewSet, SimpleProductWarehouseStockViewSet, SupplierViewSet, SupplierProductViewSet, PurchaseOrderViewSet,
     PurchaseOrderItemViewSet, PurchaseOrderReceiptViewSet, PurchaseOrderReceiptItemViewSet, SimpleInventoryMovementViewSet,
     ExchangeRateViewSet, CustomerTypeViewSet, CustomerViewSet, SalesOrderViewSet, SalesOrderItemViewSet,
     QuotationViewSet, QuotationItemViewSet, RoleViewSet, MenuOptionViewSet,
@@ -20,14 +20,14 @@ from .views import (
 
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet)
-router.register(r'businesses', BusinessViewSet)
-router.register(r'categories', CategoryViewSet)
-router.register(r'brands', BrandViewSet)
+router.register(r'businesses', SimpleBusinessViewSet)
+router.register(r'categories', SimpleCategoryViewSet)
+router.register(r'brands', SimpleBrandViewSet)
 router.register(r'units', UnitViewSet)
-router.register(r'products', ProductViewSet)
+router.register(r'products', SimpleProductViewSet)
 router.register(r'product-variants', ProductVariantViewSet)
-router.register(r'warehouses', WarehouseViewSet)
-router.register(r'product-warehouse-stocks', ProductWarehouseStockViewSet)
+router.register(r'warehouses', SimpleWarehouseViewSet)
+router.register(r'product-warehouse-stocks', SimpleProductWarehouseStockViewSet)
 router.register(r'suppliers', SupplierViewSet)
 router.register(r'supplier-products', SupplierProductViewSet)
 router.register(r'purchase-orders', PurchaseOrderViewSet)

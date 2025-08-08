@@ -729,6 +729,10 @@ const InventoryMovements = () => {
       if (stocks.length > 0) {
         console.log('🔍 Ejemplo de stock:', JSON.stringify(stocks[0], null, 2));
       }
+      if (warehousesData.length > 0) {
+        console.log('🏢 Ejemplo de almacén:', JSON.stringify(warehousesData[0], null, 2));
+        console.log('🏢 Todos los almacenes:', warehousesData.map(w => ({ id: w.id, name: w.name })));
+      }
       
       // Crear mapas para lookups rápidos
       const productsMap = new Map(products.map(p => [p.id, p]));
@@ -776,7 +780,19 @@ const InventoryMovements = () => {
         
         stocks.forEach(stock => {
           const variantId = stock.product_variant?.id || stock.product_variant;
-          const warehouseId = stock.warehouse?.id || stock.warehouse_id || stock.warehouse;
+          // Handle both new format (with warehouse_info) and old format
+          let warehouseId, warehouseInfo;
+          
+          if (stock.warehouse_info) {
+            // New format from SimpleProductWarehouseStockViewSet
+            warehouseId = stock.warehouse_info.id;
+            warehouseInfo = stock.warehouse_info;
+          } else {
+            // Old format - fallback
+            warehouseId = stock.warehouse?.id || stock.warehouse_id || stock.warehouse;
+            warehouseInfo = null;
+          }
+          
           const quantity = parseFloat(stock.quantity || 0);
           
           if (!variantId || !warehouseId) return;
@@ -786,7 +802,17 @@ const InventoryMovements = () => {
           if (!groupedData.has(key)) {
             const variant = variantsMap.get(variantId);
             const product = variant ? productsMap.get(variant.product) : null;
-            const warehouse = warehousesMap.get(warehouseId);
+            const warehouse = warehousesMap.get(warehouseId) || warehouseInfo;
+            
+            console.log('🔍 Debug procesamiento:', {
+              variantId,
+              warehouseId,
+              hasVariant: !!variant,
+              hasProduct: !!product,
+              hasWarehouse: !!warehouse,
+              warehouseName: warehouse?.name,
+              stockData: stock
+            });
             
             if (variant && warehouse) {
               // Obtener categoría y marca de múltiples fuentes
@@ -815,6 +841,15 @@ const InventoryMovements = () => {
                 brandName = variant.brand_name;
               }
               
+              const warehouseName = warehouse.name || `Almacén ${warehouseId}`;
+              
+              console.log('🏢 Información almacén:', {
+                warehouseId,
+                warehouse,
+                warehouseName,
+                finalWarehouseName: warehouseName
+              });
+              
               groupedData.set(key, {
                 id: key,
                 product_variant_id: variantId,
@@ -825,7 +860,7 @@ const InventoryMovements = () => {
                 variant_name: variant.name || product?.name || 'Sin nombre',
                 category_name: categoryName,
                 brand_name: brandName,
-                warehouse_name: warehouse.name || `Almacén ${warehouseId}`,
+                warehouse_name: warehouseName,
                 total_stock: 0,
                 min_stock: parseFloat(variant.min_stock || product?.min_stock || 0),
                 product_price: parseFloat(variant.price || product?.price || 0),
@@ -842,6 +877,17 @@ const InventoryMovements = () => {
         inventoryData = Array.from(groupedData.values())
           .filter(item => item.total_stock > 0) // Solo mostrar items con stock
           .sort((a, b) => a.product_name.localeCompare(b.product_name));
+          
+        console.log('📦 Datos finales de inventario:', inventoryData.length);
+        if (inventoryData.length > 0) {
+          console.log('🔍 Ejemplo de item final:', JSON.stringify(inventoryData[0], null, 2));
+          console.log('🏢 Almacenes en datos finales:', 
+            inventoryData.map(item => ({ 
+              warehouse_id: item.warehouse_id, 
+              warehouse_name: item.warehouse_name 
+            })).slice(0, 5)
+          );
+        }
       }
       
       // Si no hay datos de stock, crear estructura desde productos y almacenes
@@ -1005,7 +1051,7 @@ const InventoryMovements = () => {
 
   // Filtrar inventario para la pestaña
   const getFilteredInventoryTab = () => {
-    return currentInventory.filter(item => {
+    const filtered = currentInventory.filter(item => {
       // Filtro por almacén
       if (inventoryFiltersTab.warehouse && item.warehouse_name !== inventoryFiltersTab.warehouse) {
         return false;
@@ -1042,6 +1088,21 @@ const InventoryMovements = () => {
       
       return true;
     });
+    
+    // Debug: Log datos filtrados
+    if (filtered.length > 0) {
+      console.log('🔍 Datos filtrados para renderizar:', filtered.length);
+      console.log('🔍 Ejemplo de item a renderizar:', JSON.stringify(filtered[0], null, 2));
+      console.log('🏢 Warehouse names en datos filtrados:', 
+        filtered.slice(0, 3).map(item => ({ 
+          warehouse_name: item.warehouse_name, 
+          warehouse_id: item.warehouse_id,
+          product_name: item.product_name
+        }))
+      );
+    }
+    
+    return filtered;
   };
 
   // Funciones del modal
@@ -3800,7 +3861,7 @@ Cantidad: ${movement.total_quantity || 0}
                     <tr key={index}>
                       <td>
                         <span className="badge bg-primary">
-                          {item.warehouse_name}
+                          {item.warehouse_name || item.warehouse?.name || `Almacén ${item.warehouse_id}` || 'Sin almacén'}
                         </span>
                       </td>
                       <td>
