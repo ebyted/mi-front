@@ -1,0 +1,20 @@
+# Quick commands to run on VPS to fix container name conflicts
+
+# Connect to VPS:
+# ssh root@168.231.67.221
+
+# Then run these commands:
+
+echo "🛑 Stopping existing containers..."
+docker stop sancho_traefik_v2 sancho_backend_v2 sancho_frontend_v2 sancho_db_v2 2>/dev/null || echo "Some containers already stopped"
+
+echo "🗑️ Removing existing containers..."
+docker rm sancho_traefik_v2 sancho_backend_v2 sancho_frontend_v2 sancho_db_v2 2>/dev/null || echo "Some containers already removed"
+
+echo "✅ Verification - checking containers are gone:"
+docker ps -a | grep sancho || echo "✅ All sancho containers removed successfully"
+
+echo "🚀 Ready for Dokploy deployment - container names are now available!"
+
+# Optional: Check what's still running
+# docker ps
