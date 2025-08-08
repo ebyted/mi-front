@@ -2,6 +2,8 @@
 
 Sistema integral de gestión de inventario con backend robusto en Django y frontend moderno en React + Vite + TailwindCSS.
 
+**Estado:** Desplegado en producción con Dokploy + Docker
+
 ---
 
 ## Backend (Django)
