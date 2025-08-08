@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # =======================
   # Traefik Reverse Proxy
@@ -40,7 +42,7 @@ services:
       - sancho_network
     labels:
       - traefik.enable=true
-      # Solo Dashboard local sin SSL (ya que no hay DNS para traefik.sanchodistribuidora.com)
+      # Dashboard accessible via Dokploy
       - traefik.http.routers.dashboard.rule=Host(`localhost`) || Host(`127.0.0.1`) || HostRegexp(`{host:.+}`) && PathPrefix(`/dashboard`)
       - traefik.http.routers.dashboard.service=api@internal
       - traefik.http.routers.dashboard.entrypoints=web
@@ -56,16 +58,19 @@ services:
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8030"
     volumes:
       - .:/app
+      # Persistent volumes for application data
+      - backend_media:/app/media
+      - backend_static:/app/static
+      - backend_logs:/app/logs
     expose:
       - "8030"
     env_file:
-      - .env
+      - .env.dokploy
     depends_on:
       - db
     networks:
       - sancho_network
     labels:
-      # Solo www.sanchodistribuidora.com funciona con DNS
       - traefik.enable=true
       - traefik.http.routers.backend-alt.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
       - traefik.http.routers.backend-alt.priority=20
@@ -113,8 +118,16 @@ services:
       POSTGRES_PASSWORD: maestro
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+      # Backup location
+      - db_backups:/backups
     networks:
       - sancho_network
+    # Health check for better monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 networks:
   sancho_network:
@@ -122,4 +135,10 @@ networks:
 
 volumes:
   postgres_data:
+    external: true
   traefik_letsencrypt:
+    external: true
+  backend_media:
+  backend_static:
+  backend_logs:
+  db_backups:
