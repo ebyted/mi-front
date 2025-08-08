@@ -53,7 +53,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: sancho_backend_v2
-    # Let the Dockerfile CMD handle the startup
+    command: bash -c "echo 'Starting Django...' && python manage.py check && python manage.py runserver 0.0.0.0:8030"
     volumes:
       - .:/app
       # Persistent volumes for application data

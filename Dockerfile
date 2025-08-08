@@ -7,10 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Make entrypoint script executable
-RUN chmod +x entrypoint.sh
-
 EXPOSE 8030
 
-CMD ["./entrypoint.sh"]
+# Default command, can be overridden by docker-compose
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8030"]
 
