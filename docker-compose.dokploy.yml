@@ -129,13 +129,11 @@ services:
 
 networks:
   sancho_network:
-    external: true
+    driver: bridge
 
 volumes:
   postgres_data:
-    external: true
   traefik_letsencrypt:
-    external: true
   backend_media:
   backend_static:
   backend_logs:
