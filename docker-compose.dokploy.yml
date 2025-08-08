@@ -53,7 +53,19 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: sancho_backend_v2
-    command: bash -c "echo 'Starting Django...' && python manage.py migrate --run-syncdb && echo 'Migrations complete, starting server...' && python manage.py runserver 0.0.0.0:8030"
+    restart: unless-stopped
+    command: >
+      bash -c "
+        echo 'Iniciando backend Django...' &&
+        echo 'Verificando archivos...' &&
+        ls -la manage.py &&
+        echo 'Instalando dependencias...' &&
+        pip install --no-cache-dir -r requirements.txt &&
+        echo 'Ejecutando migraciones...' &&
+        python manage.py migrate --noinput &&
+        echo 'Iniciando servidor Django...' &&
+        python manage.py runserver 0.0.0.0:8030
+      "
     volumes:
       - .:/app
       # Persistent volumes for application data
