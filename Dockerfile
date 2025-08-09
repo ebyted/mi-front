@@ -20,7 +20,7 @@ RUN mkdir -p media static logs
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-EXPOSE 8000
+EXPOSE 8030
 
 # Usar script de entrada personalizado
 ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,7 +1,4 @@
 services:
-  # =======================
-  # Traefik Reverse Proxy
-  # =======================
   traefik:
     image: traefik:v3.0
     container_name: sancho_traefik_v2
@@ -25,9 +22,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
 
-  # =======================
-  # Database (PostgreSQL)
-  # =======================
   db:
     image: postgres:15
     container_name: sancho_db_v2
@@ -44,9 +38,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # =======================
-  # Backend (Django API)
-  # =======================
   backend:
     build:
       context: .
@@ -71,11 +62,8 @@ services:
       - "traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+      - "traefik.http.services.backend.loadbalancer.server.port=8030"
 
-  # =======================
-  # Frontend (React/Nginx)
-  # =======================
   frontend:
     build:
       context: ./dbackf
@@ -93,7 +81,3 @@ services:
 
 volumes:
   postgres_data:
-
-networks:
-  default:
-    driver: bridge

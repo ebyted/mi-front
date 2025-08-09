@@ -59,4 +59,4 @@ else:
 "
 
 echo "🎉 Configuración completada, iniciando servidor Django..."
-exec python manage.py runserver 0.0.0.0:8000 --noreload
+exec python manage.py runserver 0.0.0.0:8030 --noreload
