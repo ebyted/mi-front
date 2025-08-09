@@ -19,6 +19,7 @@ services:
     # depends_on: backend  # Backend es contenedor externo
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=code_default"
       - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
