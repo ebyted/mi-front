@@ -1,8 +1,8 @@
-# Maestro Inventario
+# Maestro Inventario (Simplificado 8.8.2025)
 
 Sistema integral de gestión de inventario con backend robusto en Django y frontend moderno en React + Vite + TailwindCSS.
 
-**Estado:** Desplegado en producción con Dokploy + Docker
+**Estado:** Desplegado en producción con Dokploy + Docker - Configuración Traefik Simplificada
 
 ---
 
