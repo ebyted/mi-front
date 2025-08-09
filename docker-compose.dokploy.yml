@@ -25,8 +25,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_letsencrypt:/letsencrypt
-    networks:
-      - web
 
   # =======================
   # Frontend (Nginx estático)
@@ -37,8 +35,6 @@ services:
       dockerfile: Dockerfile
     container_name: sancho_frontend_v2
     restart: unless-stopped
-    networks:
-      - web
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
@@ -67,9 +63,6 @@ services:
       - ALLOWED_HOSTS=www.sanchodistribuidora.com
     depends_on:
       - db
-    networks:
-      - web
-      - internal
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)
@@ -90,16 +83,7 @@ services:
       POSTGRES_PASSWORD: maestro
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - internal
-
-networks:
-  web:
-    driver: bridge
-  internal:
-    driver: bridge
 
 volumes:
   postgres_data:
   traefik_letsencrypt:
-# Fix para redes internas - no externas
