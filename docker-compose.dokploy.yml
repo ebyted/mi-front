@@ -87,3 +87,4 @@ services:
 volumes:
   postgres_data:
   traefik_letsencrypt:
+# Incluye makemigrations automático
