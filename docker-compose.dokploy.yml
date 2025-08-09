@@ -2,21 +2,8 @@ services:
   # Traefik ya está corriendo como contenedor independiente
   # No necesita ser recreado por docker-compose
   
-  db:
-    image: postgres:15
-    container_name: sancho_db_v2
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: maestro_inventario
-      POSTGRES_USER: maestro
-      POSTGRES_PASSWORD: maestro
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+  # Base de datos ya está corriendo como contenedor independiente
+  # No necesita ser recreada por docker-compose
 
   backend:
     build:
@@ -35,8 +22,7 @@ services:
       - SECRET_KEY=your-secret-key-change-in-production
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
-    depends_on:
-      - db
+    # depends_on: db  # DB es contenedor externo
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
@@ -59,5 +45,4 @@ services:
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
-volumes:
-  postgres_data:
+# Volúmenes externos manejados independientemente
