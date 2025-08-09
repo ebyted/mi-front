@@ -1,0 +1,48 @@
+services:
+  # Traefik ya está corriendo como contenedor independiente
+  # No necesita ser recreado por docker-compose
+  
+  # Base de datos ya está corriendo como contenedor independiente
+  # No necesita ser recreada por docker-compose
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sancho_backend_v2
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - DATABASE_HOST=db
+      - DATABASE_NAME=maestro_inventario
+      - DATABASE_USER=maestro
+      - DATABASE_PASSWORD=maestro
+      - DATABASE_PORT=5432
+      - ALLOWED_HOSTS=www.sanchodistribuidora.com,localhost,127.0.0.1
+      - SECRET_KEY=your-secret-key-change-in-production
+      - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
+      - PYTHONUNBUFFERED=1
+    # depends_on: db  # DB es contenedor externo
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=8030"
+
+  frontend:
+    build:
+      context: ./dbackf
+      dockerfile: Dockerfile
+    container_name: sancho_frontend_v2
+    restart: unless-stopped
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+# Volúmenes externos manejados independientemente
