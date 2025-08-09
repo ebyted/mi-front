@@ -1,7 +1,6 @@
 services:
   traefik:
     image: traefik:v3.0
-    container_name: sancho_traefik_${DEPLOY_ID:-$(date +%s)}
     restart: unless-stopped
     command:
       - --api.dashboard=true
@@ -24,7 +23,6 @@ services:
 
   db:
     image: postgres:15
-    container_name: sancho_db_v2
     restart: unless-stopped
     environment:
       POSTGRES_DB: maestro_inventario
@@ -42,7 +40,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sancho_backend_${DEPLOY_ID:-$(date +%s)}
     restart: unless-stopped
     environment:
       - DEBUG=False
@@ -68,7 +65,6 @@ services:
     build:
       context: ./dbackf
       dockerfile: Dockerfile
-    container_name: sancho_frontend_${DEPLOY_ID:-$(date +%s)}
     restart: unless-stopped
     depends_on:
       - backend
