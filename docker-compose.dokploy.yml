@@ -12,21 +12,21 @@ services:
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
       - --certificatesresolvers.letsencrypt.acme.email=admin@sanchodistribuidora.com
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --log.level=DEBUG
-      - --accesslog=true
+      - --log.level=ERROR
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_letsencrypt:/letsencrypt
     networks:
-      - sancho_network
+      - web
 
   # =======================
   # Frontend (Nginx estático)
@@ -38,18 +38,12 @@ services:
     container_name: sancho_frontend_v2
     restart: unless-stopped
     networks:
-      - sancho_network
+      - web
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
       - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.routers.frontend.tls.certresolver=letsencrypt
-      - traefik.http.services.frontend.loadbalancer.server.port=80
-      # HTTP to HTTPS redirect
-      - traefik.http.routers.frontend-http.rule=Host(`www.sanchodistribuidora.com`)
-      - traefik.http.routers.frontend-http.entrypoints=web
-      - traefik.http.routers.frontend-http.middlewares=redirect-to-https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
 
   # =======================
   # Backend (Django API)
@@ -60,59 +54,51 @@ services:
       dockerfile: Dockerfile
     container_name: sancho_backend_v2
     restart: unless-stopped
-    command: >
-      bash -c "
-        echo 'Iniciando backend Django...' &&
-        pip install --no-cache-dir -r requirements.txt &&
-        python manage.py migrate --noinput &&
-        python manage.py runserver 0.0.0.0:8030
-      "
+    command: bash -c "pip install -r requirements.txt && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
-      - backend_media:/app/media
-      - backend_static:/app/static
-    expose:
-      - "8030"
-    env_file:
-      - .env.dokploy
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_HOST=db
+      - DATABASE_NAME=maestro_inventario
+      - DATABASE_USER=maestro
+      - DATABASE_PASSWORD=maestro
+      - DEBUG=False
+      - ALLOWED_HOSTS=www.sanchodistribuidora.com
     depends_on:
-      - maestro_db
+      - db
     networks:
-      - sancho_network
+      - web
+      - internal
     labels:
       - traefik.enable=true
       - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)
       - traefik.http.routers.backend.entrypoints=websecure
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend.priority=10
-      - traefik.http.services.backend.loadbalancer.server.port=8030
+      - traefik.http.services.backend.loadbalancer.server.port=8000
 
   # =======================
   # Database (PostgreSQL)
   # =======================
-  maestro_db:
+  db:
     image: postgres:15
     container_name: sancho_db_v2
+    restart: unless-stopped
     environment:
       POSTGRES_DB: maestro_inventario
       POSTGRES_USER: maestro
       POSTGRES_PASSWORD: maestro
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - sancho_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - internal
 
 networks:
-  sancho_network:
-    driver: bridge
+  web:
+    external: true
+  internal:
+    external: false
 
 volumes:
   postgres_data:
   traefik_letsencrypt:
-  backend_media:
-  backend_static:
