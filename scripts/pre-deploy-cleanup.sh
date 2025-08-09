@@ -1,22 +1,23 @@
 #!/bin/bash
 # Script de limpieza pre-deploy
-# Limpia todos los contenedores para evitar conflictos de nombres
+# Usa docker-compose down para limpiar todo el proyecto
 # Los datos persisten en volúmenes externos
 
 echo "🧹 Iniciando limpieza pre-deploy..."
 
-# Detener todos los contenedores de la aplicación
-echo "📦 Deteniendo contenedores..."
-docker stop $(docker ps -q --filter "name=sancho_traefik") 2>/dev/null || true
-docker stop $(docker ps -q --filter "name=sancho_backend") 2>/dev/null || true
-docker stop $(docker ps -q --filter "name=sancho_frontend") 2>/dev/null || true
-docker stop $(docker ps -q --filter "name=sancho_db") 2>/dev/null || true
+# Buscar directorio del proyecto Dokploy
+PROJECT_DIR="/etc/dokploy/compose/sancho-distribuidora-mi-front-npxvvf/code"
 
-echo "🗑️ Eliminando contenedores..."
-docker rm $(docker ps -aq --filter "name=sancho_traefik") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "name=sancho_backend") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "name=sancho_frontend") 2>/dev/null || true
-docker rm $(docker ps -aq --filter "name=sancho_db") 2>/dev/null || true
+if [[ -d "$PROJECT_DIR" ]]; then
+    echo "📦 Deteniendo y eliminando contenedores del proyecto..."
+    cd "$PROJECT_DIR"
+    docker-compose down --remove-orphans --volumes 2>/dev/null || true
+else
+    echo "📦 Directorio del proyecto no encontrado, limpiando contenedores individuales..."
+    # Fallback: limpiar contenedores que puedan existir
+    docker stop $(docker ps -q --filter "name=sancho") 2>/dev/null || true
+    docker rm $(docker ps -aq --filter "name=sancho") 2>/dev/null || true
+fi
 
 # Limpiar imágenes no utilizadas
 echo "🧽 Limpiando imágenes no utilizadas..."
