@@ -52,16 +52,6 @@ services:
       dockerfile: Dockerfile
     container_name: sancho_backend_v2
     restart: unless-stopped
-    command: >
-      bash -c "pip install -r requirements.txt &&
-      echo 'Running makemigrations...' &&
-      python manage.py makemigrations --noinput &&
-      echo 'Running migrations...' &&
-      python manage.py migrate --noinput &&
-      echo 'Collecting static files...' &&
-      python manage.py collectstatic --noinput &&
-      echo 'Starting Django server...' &&
-      python manage.py runserver 0.0.0.0:8000 --noreload"
     environment:
       - DEBUG=False
       - DATABASE_HOST=db

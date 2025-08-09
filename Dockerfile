@@ -16,8 +16,12 @@ COPY . .
 # Crear directorios necesarios
 RUN mkdir -p media static logs
 
+# Copiar script de entrada y hacer ejecutable
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 EXPOSE 8000
 
-# Default command, can be overridden by docker-compose
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Usar script de entrada personalizado
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
