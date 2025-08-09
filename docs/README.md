@@ -1,3 +1,11 @@
+# Comando rápido para verificar antes de deploy:
+ssh root@168.231.67.221 "ls -la /etc/dokploy/compose/sancho-distribuidora-mi-front-npxvvf/code/letsencrypt/"
+
+# Si falla el SSL después de deploy, usar:
+# /docs/comandos-emergencia-ssl.md
+
+
+
 # 📚 Documentación - Sancho Distribuidora
 
 Este directorio contiene toda la documentación crítica para mantener y recuperar el sistema de inventario.
