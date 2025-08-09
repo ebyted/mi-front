@@ -15,6 +15,11 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
 
+      # Global HTTP to HTTPS redirect
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+
       # Let's Encrypt (HTTP challenge)
       - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
@@ -53,13 +58,15 @@ services:
     command: >
       bash -c "
         echo 'Iniciando backend Django...' &&
-        echo 'Verificando archivos...' &&
-        ls -la manage.py &&
         echo 'Instalando dependencias...' &&
         pip install --no-cache-dir -r requirements.txt &&
+        echo 'Verificando conexión a base de datos...' &&
+        python manage.py check --database default &&
         echo 'Ejecutando migraciones...' &&
         python manage.py migrate --noinput &&
-        echo 'Iniciando servidor Django...' &&
+        echo 'Creando directorio static...' &&
+        mkdir -p static &&
+        echo 'Iniciando servidor Django en 0.0.0.0:8030...' &&
         python manage.py runserver 0.0.0.0:8030
       "
     volumes:
@@ -78,35 +85,27 @@ services:
       - sancho_network
     # Health check para verificar que Django responde
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8030/api/", "||", "exit", "1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8030/api/')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
     labels:
       - traefik.enable=true
-      - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && PathPrefix(`/api/`)
+      
+      # Backend API routes (HTTPS)
+      - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
       - traefik.http.routers.backend.entrypoints=websecure
-      - traefik.http.routers.backend.priority=20
-      - traefik.http.routers.backend.service=backend
       - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend.service=backend
       - traefik.http.routers.backend.middlewares=cors
       - traefik.http.services.backend.loadbalancer.server.port=8030
-
-      # HTTP redirect for backend
-      - traefik.http.routers.backend-http.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && PathPrefix(`/api/`)
-      - traefik.http.routers.backend-http.entrypoints=web
-      - traefik.http.routers.backend-http.middlewares=redirect-to-https
 
       # CORS middleware
       - traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
       - traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*
-      - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com,https://sanchodistribuidora.com
+      - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com
       - traefik.http.middlewares.cors.headers.accesscontrolmaxage=86400
-      
-      # HTTPS redirect middleware
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
 
   # =======================
   # Frontend (Nginx estático)
@@ -123,17 +122,13 @@ services:
       - sancho_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`)
+      
+      # Frontend routes (HTTPS)
+      - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
       - traefik.http.routers.frontend.entrypoints=websecure
-      - traefik.http.routers.frontend.priority=10
       - traefik.http.routers.frontend.tls.certresolver=letsencrypt
       - traefik.http.routers.frontend.service=frontend
       - traefik.http.services.frontend.loadbalancer.server.port=80
-
-      # HTTP redirect for frontend
-      - traefik.http.routers.frontend-http.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`)
-      - traefik.http.routers.frontend-http.entrypoints=web
-      - traefik.http.routers.frontend-http.middlewares=redirect-to-https
 
   # =======================
   # Database (PostgreSQL)
