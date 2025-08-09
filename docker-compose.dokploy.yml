@@ -10,36 +10,46 @@ services:
       - --api.dashboard=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
-
-      # Entry points
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-
-      # Let's Encrypt (HTTP challenge)
       - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
       - --certificatesresolvers.letsencrypt.acme.email=admin@sanchodistribuidora.com
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-
-      # Logs
-      - --log.level=INFO
+      - --log.level=DEBUG
       - --accesslog=true
-
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"  # Dashboard Traefik
+      - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_letsencrypt:/letsencrypt
     networks:
       - sancho_network
+
+  # =======================
+  # Frontend (Nginx estático)
+  # =======================
+  frontend:
+    build:
+      context: ./dbackf
+      dockerfile: Dockerfile
+    container_name: sancho_frontend_v2
+    restart: unless-stopped
+    networks:
+      - sancho_network
     labels:
       - traefik.enable=true
-      # Dashboard accessible via Dokploy
-      - traefik.http.routers.dashboard.rule=Host(`localhost`) || Host(`127.0.0.1`) || HostRegexp(`{host:.+}`) && PathPrefix(`/dashboard`)
-      - traefik.http.routers.dashboard.service=api@internal
-      - traefik.http.routers.dashboard.entrypoints=web
+      - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
+      - traefik.http.routers.frontend.entrypoints=websecure
+      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+      # HTTP to HTTPS redirect
+      - traefik.http.routers.frontend-http.rule=Host(`www.sanchodistribuidora.com`)
+      - traefik.http.routers.frontend-http.entrypoints=web
+      - traefik.http.routers.frontend-http.middlewares=redirect-to-https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
 
   # =======================
   # Backend (Django API)
@@ -53,23 +63,14 @@ services:
     command: >
       bash -c "
         echo 'Iniciando backend Django...' &&
-        echo 'Instalando dependencias...' &&
         pip install --no-cache-dir -r requirements.txt &&
-        echo 'Verificando conexión a base de datos...' &&
-        python manage.py check --database default &&
-        echo 'Ejecutando migraciones...' &&
         python manage.py migrate --noinput &&
-        echo 'Creando directorio static...' &&
-        mkdir -p static &&
-        echo 'Iniciando servidor Django en 0.0.0.0:8030...' &&
         python manage.py runserver 0.0.0.0:8030
       "
     volumes:
       - .:/app
-      # Persistent volumes for application data
       - backend_media:/app/media
       - backend_static:/app/static
-      - backend_logs:/app/logs
     expose:
       - "8030"
     env_file:
@@ -78,70 +79,13 @@ services:
       - maestro_db
     networks:
       - sancho_network
-    # Health check simplificado
-    healthcheck:
-      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8030), timeout=5)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 90s
     labels:
       - traefik.enable=true
-      
-      # API Backend HTTPS
-      - traefik.http.routers.api.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)
-      - traefik.http.routers.api.entrypoints=websecure
-      - traefik.http.routers.api.tls.certresolver=letsencrypt
-      - traefik.http.routers.api.service=api
-      - traefik.http.routers.api.priority=100
-      - traefik.http.services.api.loadbalancer.server.port=8030
-
-      # API Backend HTTP redirect
-      - traefik.http.routers.api-http.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)
-      - traefik.http.routers.api-http.entrypoints=web
-      - traefik.http.routers.api-http.middlewares=https-redirect
-      - traefik.http.routers.api-http.priority=100
-
-      # CORS headers
-      - traefik.http.routers.api.middlewares=api-cors
-      - traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
-      - traefik.http.middlewares.api-cors.headers.accesscontrolallowheaders=*
-      - traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com
-      - traefik.http.middlewares.api-cors.headers.accesscontrolmaxage=86400
-
-      # HTTPS redirect middleware
-      - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
-      - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
-
-  # =======================
-  # Frontend (Nginx estático)
-  # =======================
-  frontend:
-    build:
-      context: ./dbackf
-      dockerfile: Dockerfile
-    container_name: sancho_frontend_v2
-    restart: unless-stopped
-    depends_on:
-      - backend
-    networks:
-      - sancho_network
-    labels:
-      - traefik.enable=true
-      
-      # Frontend HTTPS
-      - traefik.http.routers.web.rule=Host(`www.sanchodistribuidora.com`)
-      - traefik.http.routers.web.entrypoints=websecure
-      - traefik.http.routers.web.tls.certresolver=letsencrypt
-      - traefik.http.routers.web.service=web
-      - traefik.http.routers.web.priority=1
-      - traefik.http.services.web.loadbalancer.server.port=80
-
-      # Frontend HTTP redirect
-      - traefik.http.routers.web-http.rule=Host(`www.sanchodistribuidora.com`)
-      - traefik.http.routers.web-http.entrypoints=web
-      - traefik.http.routers.web-http.middlewares=https-redirect
-      - traefik.http.routers.web-http.priority=1
+      - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend.priority=10
+      - traefik.http.services.backend.loadbalancer.server.port=8030
 
   # =======================
   # Database (PostgreSQL)
@@ -155,11 +99,8 @@ services:
       POSTGRES_PASSWORD: maestro
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-      # Backup location
-      - db_backups:/backups
     networks:
       - sancho_network
-    # Health check for better monitoring
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
       interval: 30s
@@ -175,5 +116,3 @@ volumes:
   traefik_letsencrypt:
   backend_media:
   backend_static:
-  backend_logs:
-  db_backups:
