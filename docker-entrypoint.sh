@@ -50,7 +50,7 @@ python manage.py collectstatic --noinput
 # Crear superusuario si no existe
 echo "👤 Verificando superusuario..."
 python manage.py shell -c "
-from django.contrib.auth.models import User
+from core.models import User
 if not User.objects.filter(username='admin').exists():
     User.objects.create_superuser('admin', 'admin@sanchodistribuidora.com', 'admin123')
     print('✅ Superusuario admin creado')
@@ -58,5 +58,13 @@ else:
     print('✅ Superusuario admin ya existe')
 "
 
-echo "🎉 Configuración completada, iniciando servidor Django..."
-exec python manage.py runserver 0.0.0.0:8030 --noreload
+echo "🎉 Configuración completada, iniciando servidor Django con Gunicorn..."
+exec gunicorn maestro_inventario_backend.wsgi:application \
+    --bind 0.0.0.0:8030 \
+    --workers 3 \
+    --timeout 120 \
+    --keep-alive 2 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --access-logfile - \
+    --error-logfile -
