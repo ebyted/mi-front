@@ -15,8 +15,8 @@ COPY . .
 # Crear directorios necesarios
 RUN mkdir -p media static logs
 
-EXPOSE 8000
+EXPOSE 8004
 
 # Default command, can be overridden by docker-compose
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8004"]
 
