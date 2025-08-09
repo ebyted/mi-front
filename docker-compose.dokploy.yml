@@ -26,22 +26,23 @@ services:
       - ./letsencrypt:/letsencrypt
 
   # =======================
-  # Frontend (Nginx estático)
+  # Database (PostgreSQL)
   # =======================
-  frontend:
-    build:
-      context: ./dbackf
-      dockerfile: Dockerfile
-    container_name: sancho_frontend_v2
+  db:
+    image: postgres:15
+    container_name: sancho_db_v2
     restart: unless-stopped
-    depends_on:
-      - backend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    environment:
+      POSTGRES_DB: maestro_inventario
+      POSTGRES_USER: maestro
+      POSTGRES_PASSWORD: maestro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   # =======================
   # Backend (Django API)
@@ -65,12 +66,6 @@ services:
       - PYTHONUNBUFFERED=1
     depends_on:
       - db
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/", "||", "exit", "1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
@@ -79,23 +74,22 @@ services:
       - "traefik.http.services.backend.loadbalancer.server.port=8000"
 
   # =======================
-  # Database (PostgreSQL)
+  # Frontend (React/Nginx)
   # =======================
-  db:
-    image: postgres:15
-    container_name: sancho_db_v2
+  frontend:
+    build:
+      context: ./dbackf
+      dockerfile: Dockerfile
+    container_name: sancho_frontend_v2
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: maestro_inventario
-      POSTGRES_USER: maestro
-      POSTGRES_PASSWORD: maestro
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
 
 volumes:
   postgres_data:
