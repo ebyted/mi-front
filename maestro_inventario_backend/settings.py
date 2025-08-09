@@ -197,5 +197,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://168.231.67.221:8030",   
     "http://www.sanchodistribuidora.com",
     "https://www.sanchodistribuidora.com",
-    "https://sanchodistribuidora.com"
+    "https://sanchodistribuidora.com",
+    "https://sanchodistribuidora.com/login",
+    "https://www.sanchodistribuidora.com/login",
+
 ]
