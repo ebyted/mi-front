@@ -1,8 +1,19 @@
-# Maestro Inventario (Simplificado 8.8.2025)
+# Maestro Inventario (Fix Red Externa - 8.8.2025)
 
 Sistema integral de gestión de inventario con backend robusto en Django y frontend moderno en React + Vite + TailwindCSS.
 
-**Estado:** Desplegado en producción con Dokploy + Docker - Configuración Traefik Simplificada
+**Estado:** Desplegado en producción con Dokploy + Docker - Creando Red Externa
+
+## 🔧 COMANDO PARA EJECUTAR EN EL SERVIDOR:
+
+```bash
+ssh root@168.231.67.221 "docker network create web"
+```
+
+**Después ejecutar:**
+```bash
+ssh root@168.231.67.221 "cd /root/sancho-app && docker compose -f docker-compose.dokploy.yml up -d"
+```
 
 ---
 

@@ -95,9 +95,9 @@ services:
 
 networks:
   web:
-    external: true
+    driver: bridge
   internal:
-    external: false
+    driver: bridge
 
 volumes:
   postgres_data:
