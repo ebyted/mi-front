@@ -14,6 +14,8 @@ services:
       dockerfile: Dockerfile
     container_name: sancho_frontend_v2
     restart: unless-stopped
+    networks:
+      - code_default
     # depends_on: backend  # Backend es contenedor externo
     labels:
       - "traefik.enable=true"
@@ -21,5 +23,9 @@ services:
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+networks:
+  code_default:
+    external: true
 
 # Volúmenes externos manejados independientemente
