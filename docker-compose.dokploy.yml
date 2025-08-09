@@ -52,6 +52,9 @@ services:
       - SECRET_KEY=your-secret-key-change-in-production
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
+    volumes:
+      - backend_static:/app/staticfiles
+      - backend_media:/app/mediafiles
     depends_on:
       - db
     labels:
