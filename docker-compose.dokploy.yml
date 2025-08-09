@@ -1,7 +1,7 @@
 services:
   traefik:
     image: traefik:v3.0
-    container_name: sancho_traefik_persistent
+    container_name: sancho_traefik_${DEPLOY_ID:-$(date +%s)}
     restart: unless-stopped
     command:
       - --api.dashboard=true
@@ -20,7 +20,7 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./letsencrypt:/letsencrypt
+      - sancho-distribuidora-mi-front-npxvvf_traefik_letsencrypt:/letsencrypt
 
   db:
     image: postgres:15
@@ -81,4 +81,6 @@ services:
 
 volumes:
   sancho_postgres_data:
+    external: true
+  sancho-distribuidora-mi-front-npxvvf_traefik_letsencrypt:
     external: true

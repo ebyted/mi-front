@@ -1,39 +1,36 @@
-# Estrategia de Persistencia de Infraestructura
+# Estrategia de Persistencia con Volúmenes Externos
 
 ## 🎯 Objetivo
-Garantizar que la infraestructura (BD y Traefik) nunca se recree durante los deploys, mientras que los contenedores de aplicación (backend/frontend) pueden recrearse libremente.
+Garantizar que los datos (BD y certificados SSL) persistan entre deploys, mientras que todos los contenedores se pueden recrear libremente para evitar conflictos de nombres.
 
 ## 🔧 Implementación
 
-### 1. Volumen Externo Persistente
+### 1. Volúmenes Externos Persistentes
 ```bash
-# El volumen sancho_postgres_data es externo y persistente
+# Volúmenes que persisten entre deploys
 docker volume create sancho_postgres_data
+docker volume ls --filter "name=traefik_letsencrypt"
 ```
 
-### 2. Contenedores con Estrategia Mixta
-- **Infraestructura**: Nombres fijos que nunca cambian
-  - Base de datos: `sancho_db_v2` (nombre original mantenido)
-  - Traefik: `sancho_traefik_persistent`
-- **Aplicación**: `sancho_[servicio]_${DEPLOY_ID}` (nombres únicos por deploy)
-  - Backend: `sancho_backend_${DEPLOY_ID}`
-  - Frontend: `sancho_frontend_${DEPLOY_ID}`
+### 2. Estrategia de Contenedores
+- **Todos los contenedores**: Se recrean en cada deploy con nombres únicos
+- **Datos persistentes**: Se mantienen en volúmenes externos
+- **Sin conflictos**: No hay problemas de nombres duplicados
 
 ### 3. Configuración Docker Compose
 ```yaml
 services:
-  # INFRAESTRUCTURA (PERSISTENTE)
+  # TODOS LOS CONTENEDORES (RECREABLES)
   traefik:
-    container_name: sancho_traefik_persistent  # FIJO
+    container_name: sancho_traefik_${DEPLOY_ID:-$(date +%s)}  # ÚNICO
     volumes:
-      - ./letsencrypt:/letsencrypt  # Certificados SSL persistentes
+      - sancho-distribuidora-mi-front-npxvvf_traefik_letsencrypt:/letsencrypt
 
   db:
-    container_name: sancho_db_v2  # FIJO (nombre original)
+    container_name: sancho_db_v2  # ÚNICO POR DEPLOY
     volumes:
       - sancho_postgres_data:/var/lib/postgresql/data
 
-  # APLICACIÓN (RECREABLE)
   backend:
     container_name: sancho_backend_${DEPLOY_ID:-$(date +%s)}  # ÚNICO
 
@@ -43,54 +40,54 @@ services:
 volumes:
   sancho_postgres_data:
     external: true  # PERSISTE ENTRE DEPLOYS
+  sancho-distribuidora-mi-front-npxvvf_traefik_letsencrypt:
+    external: true  # PERSISTE ENTRE DEPLOYS
 ```
 
 ## 🚀 Proceso de Deploy
 
 ### Antes del Deploy
 ```bash
-# Ejecutar script de limpieza
+# Ejecutar script de limpieza (elimina TODOS los contenedores)
 ./scripts/pre-deploy-cleanup.sh
 ```
 
 ### Durante el Deploy
-1. ✅ **Infraestructura** mantiene nombres fijos y datos persistentes
-   - BD: datos en volumen externo
-   - Traefik: certificados SSL en directorio local
-2. ✅ **Aplicación** usa nombres únicos (sin conflictos)
-3. ✅ Deploy procede sin errores
+1. ✅ **Todos los contenedores** se recrean con nombres únicos
+2. ✅ **Datos persistentes** se mantienen en volúmenes externos
+3. ✅ **Sin conflictos** de nombres duplicados
+4. ✅ Deploy procede sin errores
 
 ## 🛡️ Ventajas
 
-- **Datos Seguros**: La BD nunca se recrea
-- **SSL Persistente**: Certificados no se pierden
-- **Deploy Limpio**: No hay conflictos de nombres en aplicación
-- **Rollback Fácil**: Infraestructura siempre disponible
+- **Datos Seguros**: BD y SSL persisten en volúmenes externos
+- **Deploy Limpio**: Nunca hay conflictos de nombres de contenedores
+- **Rollback Fácil**: Datos siempre disponibles en volúmenes
 - **Mantenimiento Simple**: Scripts automatizados
+- **Alta Disponibilidad**: Contenedores se recrean rápidamente
 
 ## 📋 Comandos de Verificación
 
 ```bash
-# Verificar estado de la infraestructura
-docker ps --filter "name=sancho_db_v2"
-docker ps --filter "name=sancho_traefik_persistent"
+# Verificar volúmenes persistentes
+docker volume ls --filter "name=sancho_postgres_data"
+docker volume ls --filter "name=traefik_letsencrypt"
 
-# Verificar volumen persistente
+# Verificar datos en volúmenes
 docker volume inspect sancho_postgres_data
+docker volume inspect sancho-distribuidora-mi-front-npxvvf_traefik_letsencrypt
 
-# Conectar a la BD
-docker exec -it sancho_db_v2 psql -U maestro -d maestro_inventario
-
-# Verificar certificados SSL
-ls -la ./letsencrypt/
+# Conectar a la BD (buscar contenedor activo)
+docker ps --filter "name=sancho_db"
+docker exec -it <container_name> psql -U maestro -d maestro_inventario
 ```
 
 ## ⚠️ Consideraciones
 
-- El volumen `sancho_postgres_data` debe existir antes del primer deploy
-- Los certificados SSL se almacenan en `./letsencrypt/`
-- Los scripts de limpieza nunca tocan contenedores `sancho_db_v2` y `sancho_traefik_persistent`
-- Solo se recrean contenedores de aplicación (backend/frontend)
+- Los volúmenes externos deben existir antes del primer deploy
+- Los contenedores se recrean en cada deploy (sin problemas)
+- Los scripts de limpieza eliminan TODOS los contenedores
+- Los datos persisten solo en volúmenes externos
 
 ## 🆘 Recuperación de Emergencia
 

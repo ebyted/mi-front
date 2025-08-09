@@ -1,38 +1,42 @@
 #!/bin/bash
 # Script de limpieza pre-deploy
-# Solo limpia contenedores de aplicación (backend/frontend)
-# Preserva BD y Traefik (infraestructura)
+# Limpia todos los contenedores para evitar conflictos de nombres
+# Los datos persisten en volúmenes externos
 
 echo "🧹 Iniciando limpieza pre-deploy..."
 
-# Detener y eliminar solo contenedores de aplicación
-echo "📦 Deteniendo contenedores de aplicación..."
+# Detener todos los contenedores de la aplicación
+echo "📦 Deteniendo contenedores..."
+docker stop $(docker ps -q --filter "name=sancho_traefik") 2>/dev/null || true
 docker stop $(docker ps -q --filter "name=sancho_backend") 2>/dev/null || true
 docker stop $(docker ps -q --filter "name=sancho_frontend") 2>/dev/null || true
+docker stop $(docker ps -q --filter "name=sancho_db") 2>/dev/null || true
 
-echo "🗑️ Eliminando contenedores de aplicación..."
+echo "🗑️ Eliminando contenedores..."
+docker rm $(docker ps -aq --filter "name=sancho_traefik") 2>/dev/null || true
 docker rm $(docker ps -aq --filter "name=sancho_backend") 2>/dev/null || true
 docker rm $(docker ps -aq --filter "name=sancho_frontend") 2>/dev/null || true
+docker rm $(docker ps -aq --filter "name=sancho_db") 2>/dev/null || true
 
 # Limpiar imágenes no utilizadas
 echo "🧽 Limpiando imágenes no utilizadas..."
 docker image prune -f
 
-# Verificar que la infraestructura sigue corriendo
-echo "🔍 Verificando estado de la infraestructura..."
-DB_STATUS=$(docker ps --filter "name=sancho_db_v2" --format "{{.Status}}" 2>/dev/null)
-TRAEFIK_STATUS=$(docker ps --filter "name=sancho_traefik_persistent" --format "{{.Status}}" 2>/dev/null)
+# Verificar que los volúmenes persisten
+echo "🔍 Verificando volúmenes persistentes..."
+POSTGRES_VOL=$(docker volume ls -q --filter "name=sancho_postgres_data")
+SSL_VOL=$(docker volume ls -q --filter "name=traefik_letsencrypt")
 
-if [[ -n "$DB_STATUS" ]]; then
-    echo "✅ Base de datos OK: $DB_STATUS"
+if [[ -n "$POSTGRES_VOL" ]]; then
+    echo "✅ Volumen de BD encontrado: $POSTGRES_VOL"
 else
-    echo "⚠️  Base de datos no encontrada, será creada en el deploy"
+    echo "⚠️  Volumen de BD no encontrado, será creado en el deploy"
 fi
 
-if [[ -n "$TRAEFIK_STATUS" ]]; then
-    echo "✅ Traefik OK: $TRAEFIK_STATUS"
+if [[ -n "$SSL_VOL" ]]; then
+    echo "✅ Volumen SSL encontrado: $SSL_VOL"
 else
-    echo "⚠️  Traefik no encontrado, será creado en el deploy"
+    echo "⚠️  Volumen SSL no encontrado, será creado en el deploy"
 fi
 
 echo "✅ Limpieza completada. El deploy puede proceder."
