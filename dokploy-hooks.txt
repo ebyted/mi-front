@@ -1,0 +1,13 @@
+# Hook de Dokploy para ejecutar antes de cada deploy
+# Este archivo debe configurarse en Dokploy para ejecutar automáticamente
+
+# Comando pre-deploy que Dokploy debe ejecutar:
+# /etc/dokploy/compose/sancho-distribuidora-mi-front-npxvvf/code/pre-deploy.sh
+
+# Configuración recomendada en Dokploy:
+# 1. Ir a la configuración del proyecto en Dokploy
+# 2. En "Build & Deploy" > "Pre Deploy Command" agregar:
+#    cd /etc/dokploy/compose/sancho-distribuidora-mi-front-npxvvf/code && ./pre-deploy.sh
+
+# Comando post-deploy para verificación:
+# curl -f https://www.sanchodistribuidora.com || echo "Warning: Site not responding"
