@@ -12,8 +12,8 @@ docker volume create sancho_postgres_data
 ```
 
 ### 2. Contenedores con Estrategia Mixta
-- **Infraestructura**: `sancho_[servicio]_persistent` (nombres fijos)
-  - Base de datos: `sancho_db_persistent`
+- **Infraestructura**: Nombres fijos que nunca cambian
+  - Base de datos: `sancho_db_v2` (nombre original mantenido)
   - Traefik: `sancho_traefik_persistent`
 - **Aplicación**: `sancho_[servicio]_${DEPLOY_ID}` (nombres únicos por deploy)
   - Backend: `sancho_backend_${DEPLOY_ID}`
@@ -29,7 +29,7 @@ services:
       - ./letsencrypt:/letsencrypt  # Certificados SSL persistentes
 
   db:
-    container_name: sancho_db_persistent  # FIJO
+    container_name: sancho_db_v2  # FIJO (nombre original)
     volumes:
       - sancho_postgres_data:/var/lib/postgresql/data
 
@@ -72,14 +72,14 @@ volumes:
 
 ```bash
 # Verificar estado de la infraestructura
-docker ps --filter "name=sancho_db_persistent"
+docker ps --filter "name=sancho_db_v2"
 docker ps --filter "name=sancho_traefik_persistent"
 
 # Verificar volumen persistente
 docker volume inspect sancho_postgres_data
 
 # Conectar a la BD
-docker exec -it sancho_db_persistent psql -U maestro -d maestro_inventario
+docker exec -it sancho_db_v2 psql -U maestro -d maestro_inventario
 
 # Verificar certificados SSL
 ls -la ./letsencrypt/
@@ -89,7 +89,7 @@ ls -la ./letsencrypt/
 
 - El volumen `sancho_postgres_data` debe existir antes del primer deploy
 - Los certificados SSL se almacenan en `./letsencrypt/`
-- Los scripts de limpieza nunca tocan contenedores `*_persistent`
+- Los scripts de limpieza nunca tocan contenedores `sancho_db_v2` y `sancho_traefik_persistent`
 - Solo se recrean contenedores de aplicación (backend/frontend)
 
 ## 🆘 Recuperación de Emergencia
@@ -98,7 +98,7 @@ Si la BD se elimina accidentalmente:
 ```bash
 # Crear nuevo contenedor con el volumen persistente
 docker run -d \
-  --name sancho_db_persistent \
+  --name sancho_db_v2 \
   --restart unless-stopped \
   -e POSTGRES_DB=maestro_inventario \
   -e POSTGRES_USER=maestro \

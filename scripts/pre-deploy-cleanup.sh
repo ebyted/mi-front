@@ -20,7 +20,7 @@ docker image prune -f
 
 # Verificar que la infraestructura sigue corriendo
 echo "🔍 Verificando estado de la infraestructura..."
-DB_STATUS=$(docker ps --filter "name=sancho_db_persistent" --format "{{.Status}}" 2>/dev/null)
+DB_STATUS=$(docker ps --filter "name=sancho_db_v2" --format "{{.Status}}" 2>/dev/null)
 TRAEFIK_STATUS=$(docker ps --filter "name=sancho_traefik_persistent" --format "{{.Status}}" 2>/dev/null)
 
 if [[ -n "$DB_STATUS" ]]; then

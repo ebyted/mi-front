@@ -24,7 +24,7 @@ services:
 
   db:
     image: postgres:15
-    container_name: sancho_db_persistent
+    container_name: sancho_db_v2
     restart: unless-stopped
     environment:
       POSTGRES_DB: maestro_inventario

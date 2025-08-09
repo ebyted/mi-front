@@ -27,7 +27,7 @@ docker image prune -f
 
 # Verificar que la infraestructura sigue corriendo
 Write-Host "🔍 Verificando estado de la infraestructura..." -ForegroundColor Yellow
-$dbStatus = docker ps --filter "name=sancho_db_persistent" --format "{{.Status}}"
+$dbStatus = docker ps --filter "name=sancho_db_v2" --format "{{.Status}}"
 $traefikStatus = docker ps --filter "name=sancho_traefik_persistent" --format "{{.Status}}"
 
 if ($dbStatus) {
