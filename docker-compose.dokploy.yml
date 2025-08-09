@@ -102,3 +102,4 @@ networks:
 volumes:
   postgres_data:
   traefik_letsencrypt:
+# Fix para redes internas - no externas
