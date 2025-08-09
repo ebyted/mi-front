@@ -1,7 +1,7 @@
-# Estrategia de Persistencia de Base de Datos
+# Estrategia de Persistencia de Infraestructura
 
 ## 🎯 Objetivo
-Garantizar que la base de datos nunca se recree durante los deploys, mientras que los otros contenedores pueden recrearse libremente.
+Garantizar que la infraestructura (BD y Traefik) nunca se recree durante los deploys, mientras que los contenedores de aplicación (backend/frontend) pueden recrearse libremente.
 
 ## 🔧 Implementación
 
@@ -11,18 +11,29 @@ Garantizar que la base de datos nunca se recree durante los deploys, mientras qu
 docker volume create sancho_postgres_data
 ```
 
-### 2. Contenedores con Nombres Únicos
-- **BD**: `sancho_db_persistent` (nombre fijo, nunca cambia)
-- **Otros**: `sancho_[servicio]_${DEPLOY_ID}` (nombres únicos por deploy)
+### 2. Contenedores con Estrategia Mixta
+- **Infraestructura**: `sancho_[servicio]_persistent` (nombres fijos)
+  - Base de datos: `sancho_db_persistent`
+  - Traefik: `sancho_traefik_persistent`
+- **Aplicación**: `sancho_[servicio]_${DEPLOY_ID}` (nombres únicos por deploy)
+  - Backend: `sancho_backend_${DEPLOY_ID}`
+  - Frontend: `sancho_frontend_${DEPLOY_ID}`
 
 ### 3. Configuración Docker Compose
 ```yaml
 services:
+  # INFRAESTRUCTURA (PERSISTENTE)
+  traefik:
+    container_name: sancho_traefik_persistent  # FIJO
+    volumes:
+      - ./letsencrypt:/letsencrypt  # Certificados SSL persistentes
+
   db:
     container_name: sancho_db_persistent  # FIJO
     volumes:
       - sancho_postgres_data:/var/lib/postgresql/data
 
+  # APLICACIÓN (RECREABLE)
   backend:
     container_name: sancho_backend_${DEPLOY_ID:-$(date +%s)}  # ÚNICO
 
@@ -43,35 +54,43 @@ volumes:
 ```
 
 ### Durante el Deploy
-1. ✅ BD mantiene nombre fijo y datos persistentes
-2. ✅ Otros contenedores usan nombres únicos (sin conflictos)
+1. ✅ **Infraestructura** mantiene nombres fijos y datos persistentes
+   - BD: datos en volumen externo
+   - Traefik: certificados SSL en directorio local
+2. ✅ **Aplicación** usa nombres únicos (sin conflictos)
 3. ✅ Deploy procede sin errores
 
 ## 🛡️ Ventajas
 
 - **Datos Seguros**: La BD nunca se recrea
-- **Deploy Limpio**: No hay conflictos de nombres
-- **Rollback Fácil**: Datos siempre disponibles
+- **SSL Persistente**: Certificados no se pierden
+- **Deploy Limpio**: No hay conflictos de nombres en aplicación
+- **Rollback Fácil**: Infraestructura siempre disponible
 - **Mantenimiento Simple**: Scripts automatizados
 
 ## 📋 Comandos de Verificación
 
 ```bash
-# Verificar estado de la BD
+# Verificar estado de la infraestructura
 docker ps --filter "name=sancho_db_persistent"
+docker ps --filter "name=sancho_traefik_persistent"
 
 # Verificar volumen persistente
 docker volume inspect sancho_postgres_data
 
 # Conectar a la BD
 docker exec -it sancho_db_persistent psql -U maestro -d maestro_inventario
+
+# Verificar certificados SSL
+ls -la ./letsencrypt/
 ```
 
 ## ⚠️ Consideraciones
 
 - El volumen `sancho_postgres_data` debe existir antes del primer deploy
-- Los scripts de limpieza nunca tocan el contenedor `sancho_db_persistent`
-- En caso de problemas, la BD siempre se puede restaurar desde el volumen persistente
+- Los certificados SSL se almacenan en `./letsencrypt/`
+- Los scripts de limpieza nunca tocan contenedores `*_persistent`
+- Solo se recrean contenedores de aplicación (backend/frontend)
 
 ## 🆘 Recuperación de Emergencia
 

@@ -1,7 +1,7 @@
 services:
   traefik:
     image: traefik:v3.0
-    container_name: sancho_traefik_${DEPLOY_ID:-$(date +%s)}
+    container_name: sancho_traefik_persistent
     restart: unless-stopped
     command:
       - --api.dashboard=true
