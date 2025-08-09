@@ -15,10 +15,6 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
 
-      # Redirect HTTP to HTTPS
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-
       # Let's Encrypt (HTTP challenge)
       - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
       - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
@@ -80,20 +76,37 @@ services:
       - maestro_db
     networks:
       - sancho_network
+    # Health check para verificar que Django responde
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8030/api/", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     labels:
       - traefik.enable=true
-      - traefik.http.routers.backend-alt.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
-      - traefik.http.routers.backend-alt.priority=20
-      - traefik.http.routers.backend-alt.service=backend
-      - traefik.http.routers.backend-alt.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-alt.middlewares=cors
+      - traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && PathPrefix(`/api/`)
+      - traefik.http.routers.backend.entrypoints=websecure
+      - traefik.http.routers.backend.priority=20
+      - traefik.http.routers.backend.service=backend
+      - traefik.http.routers.backend.tls.certresolver=letsencrypt
+      - traefik.http.routers.backend.middlewares=cors
       - traefik.http.services.backend.loadbalancer.server.port=8030
 
-      # CORS
+      # HTTP redirect for backend
+      - traefik.http.routers.backend-http.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && PathPrefix(`/api/`)
+      - traefik.http.routers.backend-http.entrypoints=web
+      - traefik.http.routers.backend-http.middlewares=redirect-to-https
+
+      # CORS middleware
       - traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
       - traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*
       - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com,https://sanchodistribuidora.com
       - traefik.http.middlewares.cors.headers.accesscontrolmaxage=86400
+      
+      # HTTPS redirect middleware
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
 
   # =======================
   # Frontend (Nginx estático)
@@ -110,11 +123,17 @@ services:
       - sancho_network
     labels:
       - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
+      - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`)
+      - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.routers.frontend.priority=10
       - traefik.http.routers.frontend.tls.certresolver=letsencrypt
       - traefik.http.routers.frontend.service=frontend
       - traefik.http.services.frontend.loadbalancer.server.port=80
+
+      # HTTP redirect for frontend
+      - traefik.http.routers.frontend-http.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`)
+      - traefik.http.routers.frontend-http.entrypoints=web
+      - traefik.http.routers.frontend-http.middlewares=redirect-to-https
 
   # =======================
   # Database (PostgreSQL)
