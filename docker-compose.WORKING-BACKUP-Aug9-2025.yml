@@ -1,0 +1,83 @@
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: sancho_traefik_v2
+    restart: unless-stopped
+    command:
+      - --api.dashboard=true
+      - --api.debug=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=admin@sanchodistribuidora.com
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --log.level=DEBUG
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+
+  db:
+    image: postgres:15
+    container_name: sancho_db_v2
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: maestro_inventario
+      POSTGRES_USER: maestro
+      POSTGRES_PASSWORD: maestro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sancho_backend_v2
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - DATABASE_HOST=db
+      - DATABASE_NAME=maestro_inventario
+      - DATABASE_USER=maestro
+      - DATABASE_PASSWORD=maestro
+      - DATABASE_PORT=5432
+      - ALLOWED_HOSTS=www.sanchodistribuidora.com,localhost,127.0.0.1
+      - SECRET_KEY=your-secret-key-change-in-production
+      - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=8030"
+
+  frontend:
+    build:
+      context: ./dbackf
+      dockerfile: Dockerfile
+    container_name: sancho_frontend_v2
+    restart: unless-stopped
+    depends_on:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+volumes:
+  postgres_data:
