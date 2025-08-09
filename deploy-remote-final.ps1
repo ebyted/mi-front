@@ -1,6 +1,6 @@
 # Script PowerShell para ejecutar deploy desde Windows
 # Ejecuta el deploy automatizado en el VPS remoto
-# Versión actualizada con verificaciones mejoradas
+# Versión simplificada y funcional
 
 param(
     [switch]$Help,
@@ -14,10 +14,10 @@ if ($Help) {
     Write-Host "================================================" -ForegroundColor Green
     Write-Host ""
     Write-Host "USO:" -ForegroundColor Cyan
-    Write-Host "  .\deploy-remote-clean.ps1                # Deploy normal con confirmación"
-    Write-Host "  .\deploy-remote-clean.ps1 -Status        # Solo verificar estado actual"
-    Write-Host "  .\deploy-remote-clean.ps1 -Force         # Deploy sin confirmación"
-    Write-Host "  .\deploy-remote-clean.ps1 -Help          # Mostrar esta ayuda"
+    Write-Host "  .\deploy-remote-final.ps1                # Deploy normal con confirmación"
+    Write-Host "  .\deploy-remote-final.ps1 -Status        # Solo verificar estado actual"
+    Write-Host "  .\deploy-remote-final.ps1 -Force         # Deploy sin confirmación"
+    Write-Host "  .\deploy-remote-final.ps1 -Help          # Mostrar esta ayuda"
     Write-Host ""
     Write-Host "DESCRIPCIÓN:" -ForegroundColor Cyan
     Write-Host "  Este script ejecuta el deploy automatizado del frontend en el VPS remoto."
@@ -26,9 +26,10 @@ if ($Help) {
     exit 0
 }
 
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 Write-Host "🚀 DEPLOY REMOTO - Sancho Distribuidora Frontend" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Green
-Write-Host "📅 Iniciado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Gray
+Write-Host "📅 Iniciado: $timestamp" -ForegroundColor Gray
 
 $VpsHost = "root@168.231.67.221"
 $DeployPath = "/etc/dokploy/compose/sancho-distribuidora-mi-front-npxvvf/code"
@@ -55,10 +56,8 @@ Write-Host ""
 
 # Mostrar estado actual
 Write-Host "📊 Estado actual del frontend:" -ForegroundColor Cyan
-$statusOutput = ssh $VpsHost "docker ps --filter name=sancho_frontend_v2 --format 'table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}' 2>nul"
-if ($LASTEXITCODE -eq 0 -and $statusOutput) {
-    Write-Host $statusOutput
-} else {
+ssh $VpsHost "docker ps --filter name=sancho_frontend_v2"
+if ($LASTEXITCODE -ne 0) {
     Write-Host "⚠️  Frontend no está corriendo o no existe" -ForegroundColor Yellow
 }
 
@@ -112,7 +111,8 @@ $deployDuration = $deployEnd - $deployStart
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "🎉 DEPLOY COMPLETADO EXITOSAMENTE" -ForegroundColor Green
-    Write-Host "⏱️  Duración total: $([math]::Round($deployDuration.TotalMinutes, 1)) minutos" -ForegroundColor Gray
+    $minutes = [math]::Round($deployDuration.TotalMinutes, 1)
+    Write-Host "⏱️  Duración total: $minutes minutos" -ForegroundColor Gray
     Write-Host "🌐 Sitio disponible en: https://www.sanchodistribuidora.com" -ForegroundColor Cyan
     
     # Verificación final mejorada
@@ -139,40 +139,31 @@ if ($LASTEXITCODE -eq 0) {
 else {
     Write-Host ""
     Write-Host "❌ ERROR EN EL DEPLOY" -ForegroundColor Red
-    Write-Host "⏱️  Duración antes del error: $([math]::Round($deployDuration.TotalMinutes, 1)) minutos" -ForegroundColor Gray
+    $minutes = [math]::Round($deployDuration.TotalMinutes, 1)
+    Write-Host "⏱️  Duración antes del error: $minutes minutos" -ForegroundColor Gray
     Write-Host "📋 Revisando logs del frontend..." -ForegroundColor Yellow
     
     # Mostrar logs detallados para diagnóstico
-    ssh $VpsHost "docker logs sancho_frontend_v2 --tail 20 2>nul"
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "No se pudieron obtener logs del frontend" -ForegroundColor Gray
-    }
+    ssh $VpsHost "docker logs sancho_frontend_v2 --tail 20"
     
     Write-Host ""
     Write-Host "📋 Revisando logs de Traefik..." -ForegroundColor Yellow
-    ssh $VpsHost "docker logs sancho_traefik_v2 --tail 10 2>nul"
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "No se pudieron obtener logs de Traefik" -ForegroundColor Gray
-    }
+    ssh $VpsHost "docker logs sancho_traefik_v2 --tail 10"
     
     Write-Host ""
     Write-Host "💡 Sugerencias para resolver problemas:" -ForegroundColor Cyan
     Write-Host "   1. Verificar que todos los contenedores estén en la misma red" -ForegroundColor Gray
     Write-Host "   2. Revisar las etiquetas de Traefik en el contenedor frontend" -ForegroundColor Gray
-    Write-Host "   3. Ejecutar: ssh $VpsHost `"cd $DeployPath && ./auto-deploy.sh`" para reintentar" -ForegroundColor Gray
+    Write-Host "   3. Ejecutar manualmente el comando de deploy en el VPS" -ForegroundColor Gray
     
     exit 1
 }
 
 Write-Host ""
 Write-Host "📊 Estado final del sistema:" -ForegroundColor Cyan
-$finalStatus = ssh $VpsHost "docker ps --filter name=sancho --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>nul"
-if ($finalStatus) {
-    Write-Host $finalStatus
-} else {
-    Write-Host "⚠️  No se pudo obtener el estado de los contenedores" -ForegroundColor Yellow
-}
+ssh $VpsHost "docker ps --filter name=sancho"
 
 Write-Host ""
-Write-Host "📅 Finalizado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Gray
+$finalTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+Write-Host "📅 Finalizado: $finalTime" -ForegroundColor Gray
 Write-Host "✨ Deploy remoto completado" -ForegroundColor Green
