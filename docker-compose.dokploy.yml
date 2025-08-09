@@ -18,15 +18,57 @@ services:
       - code_default
     # depends_on: backend  # Backend es contenedor externo
     labels:
+      # Configuración básica de Traefik
       - "traefik.enable=true"
       - "traefik.docker.network=code_default"
+      
+      # Router para HTTPS (websecure)
       - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      
+      # Router para HTTP (redirección a HTTPS)
+      - "traefik.http.routers.frontend-http.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.frontend-http.entrypoints=web"
+      - "traefik.http.routers.frontend-http.middlewares=redirect-to-https@file"
+      
+      # Servicio y puerto
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      
+      # Headers de seguridad para nginx
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.routers.frontend.middlewares=security-headers"
 
 networks:
   code_default:
     external: true
 
 # Volúmenes externos manejados independientemente
+
+# ========================================
+# NOTAS DE CONFIGURACIÓN Y TROUBLESHOOTING
+# ========================================
+#
+# CONFIGURACIÓN CRÍTICA:
+# - traefik.docker.network=code_default: OBLIGATORIO para conectividad
+# - container_name: sancho_frontend_v2: Nombre fijo para scripts de deploy
+# - networks: code_default: Misma red que Traefik, Backend y DB
+#
+# DEPLOY COMMANDS:
+# - Deploy completo: ./auto-deploy.sh
+# - Solo frontend: ./deploy-frontend.sh  
+# - Pre-cleanup: ./pre-deploy.sh
+#
+# VERIFICACIÓN POST-DEPLOY:
+# - Estado: docker ps --filter name=sancho_frontend_v2
+# - Web: curl -I https://www.sanchodistribuidora.com
+# - Logs: docker logs sancho_frontend_v2
+#
+# TROUBLESHOOTING:
+# - Error 502/504: Verificar que todos los contenedores estén en code_default
+# - Container conflicts: Usar los scripts de deploy automatizados
+# - SSL issues: Verificar que letsencrypt certresolver esté configurado
+#
+# ÚLTIMA ACTUALIZACIÓN: 2025-08-09
+# ESTADO: PRODUCCIÓN - FUNCIONANDO ✅
