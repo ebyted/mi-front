@@ -9,6 +9,7 @@ const menuItems = [
   { name: "Órdenes de Compra", path: "/purchase-orders" },
   { name: "Cotizaciones", path: "/quotations" },
   { name: "Ventas", path: "/sales-orders" },
+  { name: "Detalles de Ventas", path: "/sales-order-details" },
   { name: "Movimientos", path: "/inventory-movements" },
   { name: "Categorías", path: "/categories" },
   { name: "Marcas", path: "/brands" },

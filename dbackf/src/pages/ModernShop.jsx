@@ -43,7 +43,7 @@ const ModernShop = ({ user }) => {
 
   // Estados de paginación
   const [page, setPage] = useState(1);
-  const pageSize = 12; // Aumentado para mejor experiencia
+  const [pageSize, setPageSize] = useState(12); // Aumentado para mejor experiencia, ahora configurable
 
   // Estados del carrito con persistencia
   const [cart, setCart] = useState(() => {
@@ -567,7 +567,7 @@ const ModernShop = ({ user }) => {
   // Si el filtro cambia y la página actual queda fuera de rango, regresa a la primera página
   useEffect(() => {
     if (page > totalPages) setPage(1);
-  }, [filteredProducts, totalPages]);
+  }, [filteredProducts, totalPages, page]);
 
   const currentPage = Math.max(1, Math.min(page, totalPages));
   const paginatedProducts = filteredProducts.slice(
@@ -1658,6 +1658,34 @@ const ModernShop = ({ user }) => {
               </div>
             </div>
 
+            {/* Barra de opciones de visualización y paginación */}
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="d-flex align-items-center gap-3">
+                <small className="text-muted">
+                  {filteredProducts.length > 0 && (
+                    <>Mostrando {((page - 1) * pageSize) + 1}-{Math.min(page * pageSize, filteredProducts.length)} de {filteredProducts.length} productos</>
+                  )}
+                </small>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <small className="text-muted me-2">Por página:</small>
+                <select 
+                  className="form-select form-select-sm" 
+                  style={{width: 'auto'}}
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(1); // Reset to first page when changing page size
+                  }}
+                >
+                  <option value={12}>12</option>
+                  <option value={24}>24</option>
+                  <option value={48}>48</option>
+                  <option value={96}>96</option>
+                </select>
+              </div>
+            </div>
+
             {/* Lista de productos */}
             {filteredProducts.length === 0 ? (
               <div className="text-center py-5">
@@ -1908,38 +1936,80 @@ const ModernShop = ({ user }) => {
                   })}
                 </div>
 
-                {/* Paginación */}
+                {/* Paginación mejorada */}
                 {totalPages > 1 && (
                   <nav className="mt-4">
                     <ul className="pagination justify-content-center">
+                      {/* Botón Anterior */}
                       <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
                         <button
                           className="page-link"
                           onClick={() => setPage(currentPage - 1)}
                           disabled={currentPage === 1}
                         >
-                          Anterior
+                          <i className="bi bi-chevron-left"></i> Anterior
                         </button>
                       </li>
                       
-                      {[...Array(totalPages)].map((_, i) => (
-                        <li key={i + 1} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                          <button
-                            className="page-link"
-                            onClick={() => setPage(i + 1)}
-                          >
-                            {i + 1}
-                          </button>
-                        </li>
-                      ))}
+                      {/* Primera página */}
+                      {currentPage > 3 && (
+                        <>
+                          <li className="page-item">
+                            <button className="page-link" onClick={() => setPage(1)}>1</button>
+                          </li>
+                          {currentPage > 4 && (
+                            <li className="page-item disabled">
+                              <span className="page-link">...</span>
+                            </li>
+                          )}
+                        </>
+                      )}
                       
+                      {/* Páginas alrededor de la actual */}
+                      {(() => {
+                        const start = Math.max(1, currentPage - 2);
+                        const end = Math.min(totalPages, currentPage + 2);
+                        const pages = [];
+                        
+                        for (let i = start; i <= end; i++) {
+                          pages.push(
+                            <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
+                              <button
+                                className="page-link"
+                                onClick={() => setPage(i)}
+                              >
+                                {i}
+                              </button>
+                            </li>
+                          );
+                        }
+                        return pages;
+                      })()}
+                      
+                      {/* Última página */}
+                      {currentPage < totalPages - 2 && (
+                        <>
+                          {currentPage < totalPages - 3 && (
+                            <li className="page-item disabled">
+                              <span className="page-link">...</span>
+                            </li>
+                          )}
+                          <li className="page-item">
+                            <button className="page-link" onClick={() => setPage(totalPages)}>
+                              {totalPages}
+                            </button>
+                          </li>
+                        </>
+                      )}
+                      
+                      {/* Botón Siguiente */}
                       <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
                         <button
                           className="page-link"
                           onClick={() => setPage(currentPage + 1)}
                           disabled={currentPage === totalPages}
                         >
-                          Siguiente
+                          Siguiente <i className="bi bi-chevron-right"></i>
                         </button>
                       </li>
                     </ul>

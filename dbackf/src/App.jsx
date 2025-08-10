@@ -12,6 +12,7 @@ import Warehouses from './pages/Warehouses';
 import PurchaseOrders from './pages/PurchaseOrders';
 import Quotations from './pages/Quotations';
 import SalesOrders from './pages/SalesOrders';
+import SalesOrderDetails from './pages/SalesOrderDetails';
 import InventoryMovements from './pages/InventoryMovements';
 import InventoryMovementsSimple from './pages/InventoryMovementsSimple';
 import Categories from './pages/Categories';
@@ -81,6 +82,7 @@ function AppContent() {
         <Route path="/purchase-orders" element={renderWithSidebar(PurchaseOrders)} />
         <Route path="/quotations" element={renderWithSidebar(Quotations)} />
         <Route path="/sales-orders" element={renderWithSidebar(SalesOrders)} />
+        <Route path="/sales-order-details" element={renderWithSidebar(SalesOrderDetails)} />
         <Route path="/inventory-movements" element={renderWithSidebar(InventoryMovements)} />
         <Route path="/inventory-movements-simple" element={renderWithSidebar(InventoryMovementsSimple)} />
         <Route path="/categories" element={renderWithSidebar(Categories)} />
