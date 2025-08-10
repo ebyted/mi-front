@@ -1669,18 +1669,21 @@ const EnhancedTijuanaStore = ({ user }) => {
           <div 
             className="modal fade show d-block" 
             style={{ 
-              backgroundColor: 'rgba(0,0,0,0.5)', 
-              zIndex: 9999,
+              backgroundColor: 'rgba(0,0,0,0.8)', 
+              zIndex: 99999,
               position: 'fixed',
               top: 0,
               left: 0,
-              width: '100%',
-              height: '100%'
+              width: '100vw',
+              height: '100vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             {console.log('🎯 Modal de checkout se está renderizando, showCheckout:', showCheckout)}
-            <div className="modal-dialog modal-lg" style={{ marginTop: '2rem' }}>
-              <div className="modal-content">
+            <div className="modal-dialog modal-lg" style={{ margin: 'auto', maxWidth: '800px', width: '90%' }}>
+              <div className="modal-content" style={{ border: '3px solid #28a745', boxShadow: '0 0 30px rgba(0,0,0,0.5)' }}>
                 <div className="modal-header bg-success text-white">
                   <h5 className="modal-title">
                     <i className="bi bi-credit-card me-2"></i>
@@ -1689,8 +1692,26 @@ const EnhancedTijuanaStore = ({ user }) => {
                   <button
                     type="button"
                     className="btn-close btn-close-white"
-                    onClick={() => setShowCheckout(false)}
+                    onClick={() => {
+                      console.log('🚫 Cerrando modal de checkout');
+                      setShowCheckout(false);
+                    }}
                   ></button>
+                </div>
+                
+                {/* Botón de prueba visible */}
+                <div className="alert alert-info m-3">
+                  <h4>🎯 MODAL DE CHECKOUT ABIERTO</h4>
+                  <p>Si puedes ver este mensaje, el modal está funcionando correctamente.</p>
+                  <button 
+                    className="btn btn-danger btn-lg"
+                    onClick={() => {
+                      console.log('🚫 Cerrando modal con botón de prueba');
+                      setShowCheckout(false);
+                    }}
+                  >
+                    ❌ CERRAR MODAL (PRUEBA)
+                  </button>
                 </div>
                 
                 <div className="modal-body">
