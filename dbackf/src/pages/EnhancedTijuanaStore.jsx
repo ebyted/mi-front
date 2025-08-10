@@ -48,6 +48,17 @@ const EnhancedTijuanaStore = ({ user }) => {
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [showQuickView, setShowQuickView] = useState(false);
 
+  // Estados de checkout y venta
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [customerData, setCustomerData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
+  const [orderNotes, setOrderNotes] = useState('');
+
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
@@ -298,6 +309,111 @@ const EnhancedTijuanaStore = ({ user }) => {
       const price = item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price;
       return sum + (price * item.quantity);
     }, 0);
+  };
+
+  // Funciones de checkout y venta
+  const createOrGetDefaultCustomer = async () => {
+    try {
+      // Primero intentar buscar si existe un cliente por defecto
+      const customersResponse = await api.get('/customers/');
+      let defaultCustomer = customersResponse.data.find(c => c.email === 'cliente@tienda.com');
+      
+      if (!defaultCustomer) {
+        // Si no existe, crear un cliente por defecto
+        const customerTypesResponse = await api.get('/customer-types/');
+        let defaultCustomerType = customerTypesResponse.data[0];
+        
+        if (!defaultCustomerType) {
+          // Crear un tipo de cliente por defecto si no existe
+          defaultCustomerType = await api.post('/customer-types/', {
+            name: 'Cliente General',
+            discount_percentage: 0,
+            description: 'Tipo de cliente general para la tienda'
+          });
+          defaultCustomerType = defaultCustomerType.data;
+        }
+
+        // Crear el cliente por defecto
+        const customerData = {
+          name: 'Cliente de Tienda',
+          code: 'TIENDA001',
+          email: 'cliente@tienda.com',
+          phone: '',
+          address: '',
+          customer_type: defaultCustomerType.id
+        };
+        
+        const customerResponse = await api.post('/customers/', customerData);
+        defaultCustomer = customerResponse.data;
+      }
+      
+      return defaultCustomer;
+    } catch (error) {
+      console.error('Error creating/getting default customer:', error);
+      throw new Error('No se pudo crear el cliente para la venta');
+    }
+  };
+
+  const processSale = async () => {
+    if (cart.length === 0) {
+      showNotification('El carrito está vacío', 'error');
+      return;
+    }
+
+    setCheckoutLoading(true);
+    try {
+      // Crear o obtener cliente por defecto
+      const customer = await createOrGetDefaultCustomer();
+      
+      // Preparar los items para la venta
+      const items = cart.map(item => ({
+        product: item.id,
+        quantity: item.quantity,
+        price: item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price
+      }));
+
+      // Crear la orden de venta
+      const salesOrderData = {
+        customer: customer.id,
+        total_amount: getCartTotal(),
+        status: 'completed',
+        notes: orderNotes || `Venta desde Tienda TIJUANA - Cliente: ${customerData.name || 'Cliente Web'}`,
+        items: items
+      };
+
+      const response = await api.post('/sales-orders/', salesOrderData);
+      
+      // Limpiar carrito y mostrar éxito
+      setCart([]);
+      localStorage.removeItem('tijuana_cart');
+      setShowCheckout(false);
+      setShowCart(false);
+      
+      showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id}`, 'success');
+      
+      // Limpiar datos del formulario
+      setCustomerData({ name: '', email: '', phone: '', address: '' });
+      setOrderNotes('');
+      
+    } catch (error) {
+      console.error('Error processing sale:', error);
+      let errorMessage = 'Error al procesar la venta';
+      
+      if (error.response?.data) {
+        errorMessage = error.response.data.detail || error.response.data.message || errorMessage;
+      }
+      
+      showNotification(errorMessage, 'error');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleCustomerDataChange = (field, value) => {
+    setCustomerData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   if (loading) {
@@ -1202,13 +1318,20 @@ const EnhancedTijuanaStore = ({ user }) => {
                 </div>
                 
                 <div className="d-grid gap-2">
-                  <button className="btn btn-success btn-lg">
+                  <button 
+                    className="btn btn-success btn-lg"
+                    onClick={() => setShowCheckout(true)}
+                    disabled={cart.length === 0}
+                  >
                     <i className="bi bi-credit-card me-2"></i>
                     Proceder al checkout
                   </button>
                   <button
                     className="btn btn-outline-secondary"
-                    onClick={() => setCart([])}
+                    onClick={() => {
+                      setCart([]);
+                      localStorage.removeItem('tijuana_cart');
+                    }}
                   >
                     <i className="bi bi-trash me-2"></i>
                     Vaciar carrito
@@ -1319,6 +1442,134 @@ const EnhancedTijuanaStore = ({ user }) => {
                       </button>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Checkout */}
+        {showCheckout && (
+          <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal-dialog modal-lg">
+              <div className="modal-content">
+                <div className="modal-header bg-success text-white">
+                  <h5 className="modal-title">
+                    <i className="bi bi-credit-card me-2"></i>
+                    Finalizar Compra
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => setShowCheckout(false)}
+                  ></button>
+                </div>
+                
+                <div className="modal-body">
+                  {/* Resumen del pedido */}
+                  <div className="row">
+                    <div className="col-md-8">
+                      <h6 className="border-bottom pb-2 mb-3">Información del Cliente (Opcional)</h6>
+                      <div className="row g-3">
+                        <div className="col-md-6">
+                          <label className="form-label">Nombre</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={customerData.name}
+                            onChange={(e) => handleCustomerDataChange('name', e.target.value)}
+                            placeholder="Nombre del cliente"
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label">Email</label>
+                          <input
+                            type="email"
+                            className="form-control"
+                            value={customerData.email}
+                            onChange={(e) => handleCustomerDataChange('email', e.target.value)}
+                            placeholder="cliente@email.com"
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label">Teléfono</label>
+                          <input
+                            type="tel"
+                            className="form-control"
+                            value={customerData.phone}
+                            onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
+                            placeholder="Teléfono"
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label">Dirección</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={customerData.address}
+                            onChange={(e) => handleCustomerDataChange('address', e.target.value)}
+                            placeholder="Dirección"
+                          />
+                        </div>
+                        <div className="col-12">
+                          <label className="form-label">Notas del pedido</label>
+                          <textarea
+                            className="form-control"
+                            rows="3"
+                            value={orderNotes}
+                            onChange={(e) => setOrderNotes(e.target.value)}
+                            placeholder="Instrucciones especiales o comentarios..."
+                          ></textarea>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="col-md-4">
+                      <h6 className="border-bottom pb-2 mb-3">Resumen del Pedido</h6>
+                      <div className="bg-light p-3 rounded">
+                        {cart.map(item => (
+                          <div key={item.id} className="d-flex justify-content-between mb-2 small">
+                            <span>{item.name} x{item.quantity}</span>
+                            <span>{formatCurrency((item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price) * item.quantity)}</span>
+                          </div>
+                        ))}
+                        <hr />
+                        <div className="d-flex justify-content-between fw-bold">
+                          <span>Total:</span>
+                          <span className="text-success">{formatCurrency(getCartTotal())}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowCheckout(false)}
+                  >
+                    <i className="bi bi-x-circle me-2"></i>
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={processSale}
+                    disabled={checkoutLoading}
+                  >
+                    {checkoutLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-circle me-2"></i>
+                        Confirmar Venta ({formatCurrency(getCartTotal())})
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
