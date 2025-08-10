@@ -14,12 +14,10 @@ import Quotations from './pages/Quotations';
 import SalesOrders from './pages/SalesOrders';
 import SalesOrderDetails from './pages/SalesOrderDetails';
 import InventoryMovements from './pages/InventoryMovements';
-import InventoryMovementsSimple from './pages/InventoryMovementsSimple';
 import Categories from './pages/Categories';
 import Brands from './pages/Brands';
 import ExchangeRates from './pages/ExchangeRates';
 import ModernShop from './pages/ModernShop.jsx';
-import DebugAuth from './pages/DebugAuth.jsx';
 import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 
@@ -71,9 +69,6 @@ function AppContent() {
           isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Login />
         } />
         
-        {/* Ruta de debug - siempre accesible */}
-        <Route path="/debug-auth" element={<DebugAuth />} />
-        
         {/* Rutas protegidas */}
         <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
         <Route path="/users" element={renderWithSidebar(Users)} />
@@ -84,7 +79,6 @@ function AppContent() {
         <Route path="/sales-orders" element={renderWithSidebar(SalesOrders)} />
         <Route path="/sales-order-details" element={renderWithSidebar(SalesOrderDetails)} />
         <Route path="/inventory-movements" element={renderWithSidebar(InventoryMovements)} />
-        <Route path="/inventory-movements-simple" element={renderWithSidebar(InventoryMovementsSimple)} />
         <Route path="/categories" element={renderWithSidebar(Categories)} />
         <Route path="/brands" element={renderWithSidebar(Brands)} />
         <Route path="/exchange-rates" element={renderWithSidebar(ExchangeRates)} />
