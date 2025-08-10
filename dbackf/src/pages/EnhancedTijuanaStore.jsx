@@ -997,9 +997,12 @@ const EnhancedTijuanaStore = ({ user }) => {
                 }}
               >
                 <option value="">Todas las categorías</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
+                {categories
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))
+                }
               </select>
             </div>
             
@@ -1013,9 +1016,12 @@ const EnhancedTijuanaStore = ({ user }) => {
                 }}
               >
                 <option value="">Todas las marcas</option>
-                {brands.map(brand => (
-                  <option key={brand.id} value={brand.id}>{brand.name}</option>
-                ))}
+                {brands
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(brand => (
+                    <option key={brand.id} value={brand.id}>{brand.name}</option>
+                  ))
+                }
               </select>
             </div>
             

@@ -132,9 +132,11 @@ function Quotations() {
                           required
                         >
                           <option value="">Producto</option>
-                          {products.map(p => (
-                            <option key={p.id} value={p.name}>{p.name}</option>
-                          ))}
+                          {products
+                            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                            .map(p => (
+                              <option key={p.id} value={p.name}>{p.name}</option>
+                            ))}
                         </select>
                       </div>
                       <div className="col-md-3">
