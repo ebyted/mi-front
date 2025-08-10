@@ -314,42 +314,57 @@ const EnhancedTijuanaStore = ({ user }) => {
   // Funciones de checkout y venta
   const createOrGetDefaultCustomer = async () => {
     try {
+      console.log('🔍 Buscando clientes existentes...');
       // Primero intentar buscar si existe un cliente por defecto
       const customersResponse = await api.get('/customers/');
+      console.log('📋 Clientes encontrados:', customersResponse.data);
+      
       let defaultCustomer = customersResponse.data.find(c => c.email === 'cliente@tienda.com');
       
       if (!defaultCustomer) {
+        console.log('👤 Cliente por defecto no encontrado, creando nuevo...');
+        
         // Si no existe, crear un cliente por defecto
+        console.log('🏷️ Obteniendo tipos de cliente...');
         const customerTypesResponse = await api.get('/customer-types/');
+        console.log('📋 Tipos de cliente:', customerTypesResponse.data);
+        
         let defaultCustomerType = customerTypesResponse.data[0];
         
         if (!defaultCustomerType) {
+          console.log('🏷️ Creando tipo de cliente por defecto...');
           // Crear un tipo de cliente por defecto si no existe
-          defaultCustomerType = await api.post('/customer-types/', {
+          const newCustomerType = await api.post('/customer-types/', {
             name: 'Cliente General',
             discount_percentage: 0,
             description: 'Tipo de cliente general para la tienda'
           });
-          defaultCustomerType = defaultCustomerType.data;
+          defaultCustomerType = newCustomerType.data;
+          console.log('✅ Tipo de cliente creado:', defaultCustomerType);
         }
 
         // Crear el cliente por defecto
-        const customerData = {
+        const newCustomerData = {
           name: 'Cliente de Tienda',
-          code: 'TIENDA001',
+          code: `TIENDA${Date.now()}`, // Usar timestamp para evitar duplicados
           email: 'cliente@tienda.com',
           phone: '',
           address: '',
           customer_type: defaultCustomerType.id
         };
         
-        const customerResponse = await api.post('/customers/', customerData);
+        console.log('👤 Creando cliente con datos:', newCustomerData);
+        const customerResponse = await api.post('/customers/', newCustomerData);
         defaultCustomer = customerResponse.data;
+        console.log('✅ Cliente creado exitosamente:', defaultCustomer);
+      } else {
+        console.log('✅ Cliente por defecto encontrado:', defaultCustomer);
       }
       
       return defaultCustomer;
     } catch (error) {
-      console.error('Error creating/getting default customer:', error);
+      console.error('❌ Error creating/getting default customer:', error);
+      console.error('📄 Error response:', error.response?.data);
       throw new Error('No se pudo crear el cliente para la venta');
     }
   };
@@ -360,10 +375,14 @@ const EnhancedTijuanaStore = ({ user }) => {
       return;
     }
 
+    console.log('🛒 Iniciando proceso de venta con carrito:', cart);
     setCheckoutLoading(true);
+    
     try {
+      console.log('👤 Obteniendo/creando cliente por defecto...');
       // Crear o obtener cliente por defecto
       const customer = await createOrGetDefaultCustomer();
+      console.log('✅ Cliente obtenido:', customer);
       
       // Preparar los items para la venta
       const items = cart.map(item => ({
@@ -371,6 +390,8 @@ const EnhancedTijuanaStore = ({ user }) => {
         quantity: item.quantity,
         price: item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price
       }));
+
+      console.log('📦 Items preparados para la venta:', items);
 
       // Crear la orden de venta
       const salesOrderData = {
@@ -381,7 +402,11 @@ const EnhancedTijuanaStore = ({ user }) => {
         items: items
       };
 
+      console.log('📝 Datos de la orden de venta:', salesOrderData);
+      console.log('💰 Total de la venta:', getCartTotal());
+
       const response = await api.post('/sales-orders/', salesOrderData);
+      console.log('🎉 Respuesta del servidor:', response.data);
       
       // Limpiar carrito y mostrar éxito
       setCart([]);
@@ -396,11 +421,22 @@ const EnhancedTijuanaStore = ({ user }) => {
       setOrderNotes('');
       
     } catch (error) {
-      console.error('Error processing sale:', error);
+      console.error('❌ Error processing sale:', error);
+      console.error('📄 Error response data:', error.response?.data);
+      console.error('📄 Error response status:', error.response?.status);
+      
       let errorMessage = 'Error al procesar la venta';
       
       if (error.response?.data) {
-        errorMessage = error.response.data.detail || error.response.data.message || errorMessage;
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
       }
       
       showNotification(errorMessage, 'error');
