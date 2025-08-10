@@ -37,11 +37,6 @@ const ModernShop = ({ user }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [recentOrders, setRecentOrders] = useState([]);
 
-  // Estados para notificaciones toast
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState('success'); // 'success', 'error', 'info', 'warning'
-  const [showToast, setShowToast] = useState(false);
-
   // Cargar datos iniciales
   useEffect(() => {
     const loadData = async () => {
@@ -233,15 +228,33 @@ const ModernShop = ({ user }) => {
   };
 
   return (
-    <div className="container py-4 animate__animated animate__fadeIn" style={{ maxWidth: 1200 }}>
+    <div className="container-fluid py-4" style={{ maxWidth: 1400, backgroundColor: '#f8f9fa' }}>
       <style jsx>{`
         .product-card {
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          transition: all 0.3s ease;
           cursor: pointer;
+          border: none;
+          border-radius: 15px;
+          overflow: hidden;
+          background: white;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          height: 100%;
         }
         .product-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+          transform: translateY(-8px);
+          box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+          border: 2px solid #0d6efd;
+        }
+        .product-card img {
+          height: 200px;
+          object-fit: cover;
+        }
+        .search-section {
+          background: white;
+          border-radius: 15px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          padding: 1.5rem;
+          margin-bottom: 2rem;
         }
         .stock-badge {
           position: absolute;
@@ -254,6 +267,41 @@ const ModernShop = ({ user }) => {
           top: 20px;
           max-height: calc(100vh - 40px);
           overflow-y: auto;
+          border-radius: 15px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+          border: none;
+        }
+        .cart-sidebar .card-header {
+          background: linear-gradient(135deg, #007bff, #0056b3) !important;
+          border-radius: 15px 15px 0 0 !important;
+          border: none;
+        }
+        .badge {
+          font-size: 0.75rem;
+          padding: 0.4rem 0.8rem;
+          border-radius: 20px;
+          font-weight: 600;
+        }
+        .btn {
+          border-radius: 10px;
+          transition: all 0.3s ease;
+          border: none;
+        }
+        .btn:hover {
+          transform: translateY(-2px);
+        }
+        .btn-primary {
+          background: linear-gradient(45deg, #007bff, #0056b3);
+          box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+        .form-control {
+          border-radius: 10px;
+          border: 2px solid #e9ecef;
+          transition: all 0.3s ease;
+        }
+        .form-control:focus {
+          border-color: #007bff;
+          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
         }
         .customer-search-dropdown {
           position: absolute;
@@ -261,7 +309,9 @@ const ModernShop = ({ user }) => {
           left: 0;
           right: 0;
           z-index: 1000;
-          max-height: 300px;
+          border-radius: 10px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+          max-height: 200px;
           overflow-y: auto;
         }
       `}</style>
@@ -295,7 +345,7 @@ const ModernShop = ({ user }) => {
           {/* Columna principal de productos */}
           <div className="col-lg-8">
             {/* Barra de filtros simplificada */}
-            <div className="card mb-4 shadow-sm">
+            <div className="card mb-4 shadow-sm search-section">
               <div className="card-body">
                 <div className="row g-3">
                   <div className="col-md-6">
@@ -382,30 +432,20 @@ const ModernShop = ({ user }) => {
                     </div>
                   </div>
                   <div className="col-auto ms-auto">
-                    {/* Contador de resultados */}
-                    <div className="d-flex align-items-center gap-3">
-                      {filteredProducts.length > 0 && (
-                        <span className="badge bg-info text-dark">
-                          📊 {filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''} 
-                          {search || selectedBrand || selectedCategory ? ' encontrado' + (filteredProducts.length !== 1 ? 's' : '') : ''}
-                        </span>
-                      )}
-                      
-                      {(search || selectedBrand || selectedCategory) && (
-                        <button
-                          className="btn btn-outline-secondary btn-sm"
-                          onClick={() => {
-                            setSearch('');
-                            setSelectedBrand('');
-                            setSelectedCategory('');
-                            setPage(1);
-                          }}
-                        >
-                          <i className="bi bi-arrow-clockwise me-1"></i>
+                    {(search || selectedBrand || selectedCategory) && (
+                      <button
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => {
+                          setSearch('');
+                          setSelectedBrand('');
+                          setSelectedCategory('');
+                          setPage(1);
+                        }}
+                      >
+                        <i className="bi bi-arrow-clockwise me-1"></i>
                         Limpiar filtros
-                        </button>
-                      )}
-                    </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -573,24 +613,13 @@ const ModernShop = ({ user }) => {
           <div className="col-lg-4">
             <div className="card cart-sidebar shadow">
               <div className="card-header bg-primary text-white">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">
-                    <i className="bi bi-cart me-2"></i>
-                    Carrito de compras
-                  </h5>
-                  <div className="d-flex gap-2">
-                    {cart.length > 0 && (
-                      <>
-                        <span className="badge bg-light text-primary">
-                          {cart.reduce((sum, item) => sum + item.quantity, 0)} items
-                        </span>
-                        <span className="badge bg-warning text-dark">
-                          {formatCurrency(cart.reduce((sum, item) => sum + (item.price * item.quantity), 0))}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <h5 className="mb-0">
+                  <i className="bi bi-cart me-2"></i>
+                  Carrito de compras
+                  {cart.length > 0 && (
+                    <span className="badge bg-light text-primary ms-2">{cart.length}</span>
+                  )}
+                </h5>
               </div>
               <div className="card-body">
                 {/* Selector de cliente */}
