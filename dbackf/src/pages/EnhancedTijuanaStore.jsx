@@ -59,9 +59,6 @@ const EnhancedTijuanaStore = ({ user }) => {
   });
   const [orderNotes, setOrderNotes] = useState('');
 
-  // Debug
-  console.log('Estado showCheckout:', showCheckout);
-
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
@@ -1323,11 +1320,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 <div className="d-grid gap-2">
                   <button 
                     className="btn btn-success btn-lg"
-                    onClick={() => {
-                      console.log('Botón checkout clickeado, cart:', cart);
-                      alert('Modal de checkout debería aparecer ahora');
-                      setShowCheckout(true);
-                    }}
+                    onClick={() => setShowCheckout(true)}
                     disabled={cart.length === 0}
                   >
                     <i className="bi bi-credit-card me-2"></i>
@@ -1469,21 +1462,17 @@ const EnhancedTijuanaStore = ({ user }) => {
               height: '100%'
             }}
           >
-            {console.log('Renderizando modal de checkout, showCheckout:', showCheckout)}
             <div className="modal-dialog modal-lg" style={{ marginTop: '2rem' }}>
               <div className="modal-content">
                 <div className="modal-header bg-success text-white">
                   <h5 className="modal-title">
                     <i className="bi bi-credit-card me-2"></i>
-                    Finalizar Compra - MODAL VISIBLE
+                    Finalizar Compra
                   </h5>
                   <button
                     type="button"
                     className="btn-close btn-close-white"
-                    onClick={() => {
-                      alert('Cerrando modal');
-                      setShowCheckout(false);
-                    }}
+                    onClick={() => setShowCheckout(false)}
                   ></button>
                 </div>
                 
