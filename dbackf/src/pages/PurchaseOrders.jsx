@@ -131,9 +131,11 @@ function PurchaseOrders() {
               required
             >
               <option value="">Selecciona proveedor</option>
-              {suppliers.map(s => (
-                <option key={s.id} value={s.username}>{s.username}</option>
-              ))}
+              {suppliers
+                .sort((a, b) => (a.username || '').localeCompare(b.username || ''))
+                .map(s => (
+                  <option key={s.id} value={s.username}>{s.username}</option>
+                ))}
             </select>
           </div>
           <div className="mb-3">
