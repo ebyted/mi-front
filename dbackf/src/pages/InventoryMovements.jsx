@@ -828,6 +828,7 @@ const InventoryMovements = () => {
                 warehouse_name: warehouse.name || `Almacén ${warehouseId}`,
                 total_stock: 0,
                 min_stock: parseFloat(variant.min_stock || product?.min_stock || 0),
+                max_stock: parseFloat(variant.max_stock || product?.max_stock || 0),
                 product_price: parseFloat(variant.price || product?.price || 0),
                 last_updated: stock.last_updated || new Date().toISOString()
               });
@@ -889,6 +890,7 @@ const InventoryMovements = () => {
               warehouse_name: warehouse.name,
               total_stock: Math.floor(Math.random() * 100) + 10, // Stock aleatorio para demo
               min_stock: parseFloat(variant.min_stock || 20),
+              max_stock: parseFloat(variant.max_stock || 100),
               product_price: parseFloat(variant.price || 50),
               last_updated: new Date().toISOString()
             });
@@ -936,9 +938,12 @@ const InventoryMovements = () => {
     const data = filteredInventory.map(item => ({
       Producto: item.product_name || 'N/A',
       Codigo: item.product_code || 'N/A',
+      Categoria: item.category_name || 'N/A',
+      Marca: item.brand_name || 'N/A',
       Almacen: item.warehouse_name || 'N/A',
       Stock: item.total_stock || 0,
       StockMinimo: item.min_stock || 0,
+      StockMaximo: item.max_stock || 0,
       Precio: item.product_price || 0,
       ValorTotal: (parseFloat(item.total_stock || 0) * parseFloat(item.product_price || 0)),
       Estado: parseFloat(item.total_stock || 0) === 0 ? 'Sin Stock' : 
@@ -3791,7 +3796,9 @@ Cantidad: ${movement.total_quantity || 0}
                     <th>Nombre</th>
                     <th>Categorías</th>
                     <th>Marcas</th>
-                    <th className="text-end">Existencia</th>
+                    <th className="text-end">Stock Actual</th>
+                    <th className="text-end">Stock Mín</th>
+                    <th className="text-end">Stock Máx</th>
                     <th className="text-end">Precio</th>
                   </tr>
                 </thead>
@@ -3832,6 +3839,12 @@ Cantidad: ${movement.total_quantity || 0}
                         </div>
                       </td>
                       <td className="text-end">
+                        <span className="text-muted">{item.min_stock || '0'}</span>
+                      </td>
+                      <td className="text-end">
+                        <span className="text-muted">{item.max_stock || 'Sin límite'}</span>
+                      </td>
+                      <td className="text-end">
                         ${parseFloat(item.product_price || 0).toFixed(2)}
                       </td>
                     </tr>
@@ -3845,6 +3858,8 @@ Cantidad: ${movement.total_quantity || 0}
                         total + parseFloat(item.total_stock || 0), 0
                       )}
                     </th>
+                    <th className="text-end text-muted">-</th>
+                    <th className="text-end text-muted">-</th>
                     <th className="text-end">
                       ${getFilteredInventoryTab().reduce((total, item) => 
                         total + (parseFloat(item.total_stock || 0) * parseFloat(item.product_price || 0)), 0
