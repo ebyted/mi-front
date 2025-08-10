@@ -11,28 +11,21 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => {
-    // Obtener tema guardado o usar 'light' por defecto
-    const savedTheme = localStorage.getItem('modernShop_theme');
-    return savedTheme || 'light';
-  });
+  const [theme, setTheme] = useState('light'); // Forzar tema claro
 
   // Persistir tema en localStorage
   useEffect(() => {
-    localStorage.setItem('modernShop_theme', theme);
+    localStorage.setItem('modernShop_theme', 'light'); // Forzar light
     
-    // Agregar/quitar clase al body para Bootstrap
-    if (theme === 'dark') {
-      document.body.setAttribute('data-bs-theme', 'dark');
-      document.body.classList.add('bg-dark', 'text-light');
-    } else {
-      document.body.setAttribute('data-bs-theme', 'light');
-      document.body.classList.remove('bg-dark', 'text-light');
-    }
+    // Siempre aplicar tema claro
+    document.body.setAttribute('data-bs-theme', 'light');
+    document.body.classList.remove('bg-dark', 'text-light');
+    document.body.classList.add('bg-light', 'text-dark');
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    // Deshabilitar toggle - mantener siempre en light
+    setTheme('light');
   };
 
   const getThemeClasses = (lightClass = '', darkClass = '') => {

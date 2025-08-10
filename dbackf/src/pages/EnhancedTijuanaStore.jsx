@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay, EffectCoverflow } from 'swiper/modules';
+
+// Importar estilos de Swiper
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import 'swiper/css/effect-coverflow';
 
 const EnhancedTijuanaStore = ({ user }) => {
   // Estados principales
@@ -294,13 +302,13 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   if (loading) {
     return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-        <div className="text-center text-white">
-          <div className="spinner-border mb-3" style={{ width: '3rem', height: '3rem' }}>
+      <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" style={{ width: '3rem', height: '3rem' }}>
             <span className="visually-hidden">Cargando...</span>
           </div>
-          <h4>Cargando Tienda TIJUANA...</h4>
-          <p className="text-white-50">Obteniendo productos disponibles</p>
+          <h4 className="text-primary">Cargando Tienda TIJUANA...</h4>
+          <p className="text-muted">Obteniendo productos disponibles</p>
         </div>
       </div>
     );
@@ -328,16 +336,16 @@ const EnhancedTijuanaStore = ({ user }) => {
     <div className="enhanced-tijuana-store">
       <style jsx>{`
         .enhanced-tijuana-store {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           min-height: 100vh;
           padding-bottom: 2rem;
         }
         
         .hero-section {
-          background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('/img/store-bg.jpg');
+          background: linear-gradient(rgba(255,255,255,0.9), rgba(240,240,240,0.9)), url('/img/store-bg.jpg');
           background-size: cover;
           background-position: center;
-          color: white;
+          color: #333;
           padding: 4rem 0;
           margin-bottom: 2rem;
         }
@@ -400,6 +408,32 @@ const EnhancedTijuanaStore = ({ user }) => {
           z-index: 1;
           font-size: 0.8rem;
           padding: 0.3rem 0.6rem;
+        }
+        
+        .featured-carousel {
+          margin: 2rem 0;
+          padding: 2rem;
+          background: rgba(255,255,255,0.95);
+          border-radius: 20px;
+          backdrop-filter: blur(10px);
+        }
+        
+        .featured-product-card {
+          background: white;
+          border-radius: 15px;
+          overflow: hidden;
+          box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+          transition: all 0.3s ease;
+          height: 100%;
+        }
+        
+        .featured-product-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+        }
+        
+        .swiper-slide {
+          height: auto;
         }
         
         .rating {
@@ -579,6 +613,79 @@ const EnhancedTijuanaStore = ({ user }) => {
       </div>
 
       <div className="container">
+        {/* Carrusel de Productos Destacados */}
+        {featuredProducts.length > 0 && (
+          <div className="featured-carousel">
+            <h2 className="text-center mb-4 fw-bold text-primary">
+              ⭐ Productos Destacados
+            </h2>
+            <Swiper
+              modules={[Navigation, Pagination, Autoplay, EffectCoverflow]}
+              spaceBetween={20}
+              slidesPerView={1}
+              navigation
+              pagination={{ clickable: true }}
+              autoplay={{ delay: 4000, disableOnInteraction: false }}
+              effect="coverflow"
+              coverflowEffect={{
+                rotate: 30,
+                stretch: 0,
+                depth: 100,
+                modifier: 1,
+                slideShadows: true,
+              }}
+              breakpoints={{
+                640: { slidesPerView: 2 },
+                768: { slidesPerView: 3 },
+                1024: { slidesPerView: 4 },
+              }}
+            >
+              {featuredProducts.map(product => (
+                <SwiperSlide key={product.id}>
+                  <div className="featured-product-card">
+                    <div className="position-relative">
+                      <span className="badge bg-warning stock-badge">
+                        ⭐ Destacado
+                      </span>
+                      <img
+                        src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
+                        alt={product.name}
+                        className="card-img-top"
+                        style={{ height: '200px', objectFit: 'cover' }}
+                        onError={e => { e.target.src = '/img/producto-fallback.svg'; }}
+                      />
+                    </div>
+                    <div className="p-3">
+                      <h6 className="fw-bold text-truncate">{product.name}</h6>
+                      <p className="text-muted small mb-2">
+                        {product.brand.name} | Stock: {product.stock}
+                      </p>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="h6 text-success mb-0">{formatCurrency(product.price)}</span>
+                        <div className="d-flex gap-1">
+                          <button
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => toggleWishlist(product.id)}
+                            title={wishlist.includes(product.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+                          >
+                            <i className={`bi ${wishlist.includes(product.id) ? 'bi-heart-fill' : 'bi-heart'}`}></i>
+                          </button>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => addToCart(product)}
+                          >
+                            <i className="bi bi-cart-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
         {/* Filtros */}
         <div className="filters-section">
           <div className="row g-3">
@@ -720,8 +827,8 @@ const EnhancedTijuanaStore = ({ user }) => {
             <div className="mb-4" style={{ fontSize: '5rem', opacity: 0.3 }}>
               <i className="bi bi-search"></i>
             </div>
-            <h4 className="text-white">No se encontraron productos</h4>
-            <p className="text-white-50">Intenta ajustar los filtros de búsqueda</p>
+            <h4 className="text-secondary">No se encontraron productos</h4>
+            <p className="text-muted">Intenta ajustar los filtros de búsqueda</p>
           </div>
         ) : (
           <>
@@ -924,7 +1031,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 <ul className="pagination justify-content-center">
                   <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
                     <button
-                      className="page-link text-white bg-primary border-primary"
+                      className="page-link"
                       onClick={() => setPage(page - 1)}
                       disabled={page === 1}
                     >
@@ -945,7 +1052,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                   
                   <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
                     <button
-                      className="page-link text-white bg-primary border-primary"
+                      className="page-link"
                       onClick={() => setPage(page + 1)}
                       disabled={page === totalPages}
                     >
@@ -1013,14 +1120,14 @@ const EnhancedTijuanaStore = ({ user }) => {
 
       {/* Carrito Sidebar */}
       <div className={`sidebar ${showCart ? 'show' : ''}`}>
-        <div className="p-3 border-bottom bg-primary text-white">
+        <div className="p-3 border-bottom bg-light">
           <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">
+            <h5 className="mb-0 text-dark">
               <i className="bi bi-cart3 me-2"></i>
               Mi Carrito ({cart.reduce((sum, item) => sum + item.quantity, 0)})
             </h5>
             <button
-              className="btn btn-link text-white p-0"
+              className="btn btn-link text-dark p-0"
               onClick={() => setShowCart(false)}
             >
               <i className="bi bi-x-lg"></i>

@@ -233,16 +233,16 @@ const TijuanaStore = ({ user }) => {
     <div className="tijuana-store">
       <style jsx>{`
         .tijuana-store {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           min-height: 100vh;
           padding-bottom: 2rem;
         }
         
         .hero-section {
-          background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('/img/store-bg.jpg');
+          background: linear-gradient(rgba(255,255,255,0.9), rgba(240,240,240,0.9)), url('/img/store-bg.jpg');
           background-size: cover;
           background-position: center;
-          color: white;
+          color: #333;
           padding: 4rem 0;
           margin-bottom: 2rem;
         }
@@ -604,8 +604,8 @@ const TijuanaStore = ({ user }) => {
             <div className="mb-4" style={{ fontSize: '5rem', opacity: 0.3 }}>
               <i className="bi bi-search"></i>
             </div>
-            <h4 className="text-white">No se encontraron productos</h4>
-            <p className="text-white-50">Intenta ajustar los filtros de búsqueda</p>
+            <h4 className="text-secondary">No se encontraron productos</h4>
+            <p className="text-muted">Intenta ajustar los filtros de búsqueda</p>
           </div>
         ) : (
           <>
@@ -716,7 +716,7 @@ const TijuanaStore = ({ user }) => {
                 <ul className="pagination justify-content-center">
                   <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
                     <button
-                      className="page-link text-white bg-primary border-primary"
+                      className="page-link"
                       onClick={() => setPage(page - 1)}
                       disabled={page === 1}
                     >
@@ -727,7 +727,7 @@ const TijuanaStore = ({ user }) => {
                   {[...Array(totalPages)].map((_, i) => (
                     <li key={i + 1} className={`page-item ${page === i + 1 ? 'active' : ''}`}>
                       <button
-                        className={`page-link ${page === i + 1 ? 'bg-primary border-primary' : 'text-primary'}`}
+                        className={`page-link ${page === i + 1 ? 'active' : ''}`}
                         onClick={() => setPage(i + 1)}
                       >
                         {i + 1}
@@ -737,7 +737,7 @@ const TijuanaStore = ({ user }) => {
                   
                   <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
                     <button
-                      className="page-link text-white bg-primary border-primary"
+                      className="page-link"
                       onClick={() => setPage(page + 1)}
                       disabled={page === totalPages}
                     >
@@ -769,14 +769,14 @@ const TijuanaStore = ({ user }) => {
 
       {/* Sidebar del carrito */}
       <div className="cart-sidebar">
-        <div className="p-3 border-bottom bg-primary text-white">
+        <div className="p-3 border-bottom bg-light border-bottom">
           <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">
+            <h5 className="mb-0 text-dark">
               <i className="bi bi-cart3 me-2"></i>
               Mi Carrito
             </h5>
             <button
-              className="btn btn-link text-white p-0"
+              className="btn btn-link text-dark p-0"
               onClick={() => setShowCart(false)}
             >
               <i className="bi bi-x-lg"></i>
