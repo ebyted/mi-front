@@ -141,14 +141,53 @@ const ModernShop = ({ user }) => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [productsRes, brandsRes, categoriesRes, customersRes] = await Promise.all([
+        const [productsRes, brandsRes, categoriesRes, customersRes, stockRes] = await Promise.all([
           api.get('products/'),
           api.get('brands/'),
           api.get('categories/'),
-          api.get('customers/?is_active=true')
+          api.get('customers/?is_active=true'),
+          api.get('product-warehouse-stocks/')
         ]);
         
-        setProducts(productsRes.data || []);
+        // Obtener stocks del almacén TIJUANA
+        const allStocks = Array.isArray(stockRes.data) ? stockRes.data : (stockRes.data?.results || []);
+        const tijuanaStocks = allStocks.filter(stock => {
+          const warehouseName = stock.warehouse_name || stock.warehouse?.name || '';
+          return warehouseName.toUpperCase().includes('TIJUANA') && parseFloat(stock.quantity || 0) > 0;
+        });
+        
+        console.log('Stocks de TIJUANA con cantidad > 0:', tijuanaStocks.length);
+        console.log('Ejemplo de stocks TIJUANA:', tijuanaStocks.slice(0, 3));
+        
+        // Crear un Set de productos que tienen stock en TIJUANA (usando multiple criterios de identificación)
+        const productsWithTijuanaStockIds = new Set();
+        tijuanaStocks.forEach(stock => {
+          // Intentar múltiples formas de identificar el producto
+          if (stock.product_variant_id) {
+            productsWithTijuanaStockIds.add(`variant_${stock.product_variant_id}`);
+          }
+          if (stock.product_code) {
+            productsWithTijuanaStockIds.add(`sku_${stock.product_code}`);
+          }
+          if (stock.product_variant?.sku) {
+            productsWithTijuanaStockIds.add(`sku_${stock.product_variant.sku}`);
+          }
+          if (stock.product_name) {
+            productsWithTijuanaStockIds.add(`name_${stock.product_name.toLowerCase()}`);
+          }
+        });
+        
+        // Filtrar productos que tienen stock en TIJUANA
+        const allProducts = productsRes.data || [];
+        const productsWithTijuanaStock = allProducts.filter(product => {
+          return productsWithTijuanaStockIds.has(`sku_${product.sku}`) ||
+                 productsWithTijuanaStockIds.has(`name_${product.name?.toLowerCase()}`) ||
+                 productsWithTijuanaStockIds.has(`variant_${product.id}`);
+        });
+        
+        console.log('Productos con stock en TIJUANA:', productsWithTijuanaStock.length, 'de', allProducts.length, 'totales');
+        
+        setProducts(productsWithTijuanaStock);
         setBrands(brandsRes.data || []);
         setCategories(categoriesRes.data || []);
         setCustomers(customersRes.data || []);
@@ -1058,9 +1097,9 @@ const ModernShop = ({ user }) => {
         <span>
           <i className="bi bi-shop me-2"></i>
           Sancho Distribuciones
-          <span className={getBadgeClasses('success') + ' ms-2 fs-6'}>
-            <i className="bi bi-infinity me-1"></i>
-            Stock ilimitado
+          <span className={getBadgeClasses('warning') + ' ms-2 fs-6'}>
+            <i className="bi bi-geo-alt-fill me-1"></i>
+            Solo TIJUANA
           </span>
         </span>
         <div className="d-flex gap-2 align-items-center">
@@ -1481,6 +1520,14 @@ const ModernShop = ({ user }) => {
         <div className="row px-3">
           {/* Columna principal de productos */}
           <div className="col-lg-8">
+            {/* Alerta informativa sobre filtro de almacén */}
+            <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+              <i className="bi bi-info-circle-fill me-2"></i>
+              <div>
+                <strong>Filtro activo:</strong> Solo se muestran productos con stock disponible en el almacén <strong>TIJUANA</strong>.
+              </div>
+            </div>
+
             {/* Barra de filtros mejorada */}
             <div className="card mb-4 shadow-sm">
               <div className="card-body">
