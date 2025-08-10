@@ -1907,6 +1907,68 @@ const EnhancedTijuanaStore = ({ user }) => {
           </div>
         )}
       </div>
+
+      {/* Modal de Checkout Simplificado - Fuera del contenedor principal */}
+      {showCheckout && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(255, 0, 0, 0.9)', // Fondo rojo para que sea muy visible
+            zIndex: 999999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '24px',
+            textAlign: 'center',
+            flexDirection: 'column'
+          }}
+        >
+          <h1>🎯 MODAL DE CHECKOUT VISIBLE</h1>
+          <p>Si puedes ver esto, el modal está funcionando</p>
+          <button
+            style={{
+              padding: '20px 40px',
+              fontSize: '20px',
+              backgroundColor: 'white',
+              color: 'black',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              marginTop: '20px'
+            }}
+            onClick={() => {
+              console.log('🚫 Cerrando modal de prueba');
+              setShowCheckout(false);
+            }}
+          >
+            ❌ CERRAR MODAL
+          </button>
+          
+          <button
+            style={{
+              padding: '20px 40px',
+              fontSize: '20px',
+              backgroundColor: 'green',
+              color: 'white',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              marginTop: '20px'
+            }}
+            onClick={() => {
+              console.log('🔘 Ejecutando venta de prueba');
+              processSale();
+            }}
+          >
+            💰 PROCESAR VENTA
+          </button>
+        </div>
+      )}
     </div>
   );
 };
