@@ -58,12 +58,33 @@ const EnhancedTijuanaStore = ({ user }) => {
     address: ''
   });
   const [orderNotes, setOrderNotes] = useState('');
+  
+  // Estados para búsqueda de clientes
+  const [allCustomers, setAllCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
     loadFromLocalStorage();
   }, []);
+
+  // Cerrar dropdown de clientes al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCustomerDropdown && !event.target.closest('.position-relative')) {
+        setShowCustomerDropdown(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showCustomerDropdown]);
 
   // Guardar en localStorage cuando cambien cart y wishlist
   useEffect(() => {
@@ -121,10 +142,11 @@ const EnhancedTijuanaStore = ({ user }) => {
       setTijuanaWarehouse(tijuana);
 
       // Cargar datos en paralelo
-      const [stockRes, brandsRes, categoriesRes] = await Promise.all([
+      const [stockRes, brandsRes, categoriesRes, customersRes] = await Promise.all([
         api.get(`product-warehouse-stocks/?warehouse=${tijuana.id}`),
         api.get('brands/'),
-        api.get('categories/')
+        api.get('categories/'),
+        api.get('customers/')
       ]);
 
       // Filtrar productos con stock > 0 en TIJUANA
@@ -158,6 +180,7 @@ const EnhancedTijuanaStore = ({ user }) => {
       setFeaturedProducts(productsWithStock.filter(p => p.is_featured).slice(0, 8));
       setBrands(brandsRes.data || []);
       setCategories(categoriesRes.data || []);
+      setAllCustomers(customersRes.data || []);
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -250,9 +273,68 @@ const EnhancedTijuanaStore = ({ user }) => {
     }
   };
 
+  // Funciones de búsqueda de clientes
+  const searchCustomers = (searchTerm) => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setFilteredCustomers([]);
+      setShowCustomerDropdown(false);
+      return;
+    }
+
+    const filtered = allCustomers.filter(customer => 
+      customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone?.includes(searchTerm) ||
+      customer.address?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    setFilteredCustomers(filtered.slice(0, 10)); // Limitar a 10 resultados
+    setShowCustomerDropdown(filtered.length > 0);
+  };
+
+  const handleCustomerSearch = (value) => {
+    setCustomerSearchTerm(value);
+    searchCustomers(value);
+  };
+
+  const selectCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setCustomerData({
+      name: customer.name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      address: customer.address || ''
+    });
+    setCustomerSearchTerm(customer.name || '');
+    setShowCustomerDropdown(false);
+  };
+
+  const clearCustomerSelection = () => {
+    setSelectedCustomer(null);
+    setCustomerData({
+      name: '',
+      email: '',
+      phone: '',
+      address: ''
+    });
+    setCustomerSearchTerm('');
+    setShowCustomerDropdown(false);
+  };
+
   // Filtrar productos
   const getFilteredProducts = () => {
-    return products.filter(product => {
+    const filtered = products.filter(product => {
+      // Debug: Log de los primeros 3 productos para verificar estructura
+      if (products.indexOf(product) < 3) {
+        console.log('Debug product:', {
+          name: product.name,
+          brand: product.brand,
+          category: product.category,
+          selectedBrand,
+          selectedCategory
+        });
+      }
+
       // Filtro de búsqueda
       if (search) {
         const searchLower = search.toLowerCase();
@@ -263,11 +345,11 @@ const EnhancedTijuanaStore = ({ user }) => {
         if (!matchesSearch) return false;
       }
 
-      // Filtro de marca
-      if (selectedBrand && product.brand.id !== selectedBrand) return false;
+      // Filtro de marca (comparar como string para manejar tipos mixtos)
+      if (selectedBrand && String(product.brand.id) !== String(selectedBrand)) return false;
 
-      // Filtro de categoría
-      if (selectedCategory && product.category.id !== selectedCategory) return false;
+      // Filtro de categoría (comparar como string para manejar tipos mixtos)
+      if (selectedCategory && String(product.category.id) !== String(selectedCategory)) return false;
 
       // Filtro de precio
       const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
@@ -294,6 +376,12 @@ const EnhancedTijuanaStore = ({ user }) => {
           return a.name.localeCompare(b.name);
       }
     });
+    
+    // Debug: Log de resultados filtrados
+    console.log(`Productos filtrados: ${filtered.length} de ${products.length} total`);
+    console.log('Filtros activos:', { selectedBrand, selectedCategory, search });
+    
+    return filtered;
   };
 
   // Paginación
@@ -715,6 +803,46 @@ const EnhancedTijuanaStore = ({ user }) => {
           overflow-y: auto;
           transform: scale(${showQuickView ? '1' : '0.8'});
           transition: transform 0.3s ease;
+        }
+        
+        .customer-search-dropdown {
+          background: white;
+          border: 1px solid #dee2e6;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          z-index: 1000;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        
+        .customer-search-item {
+          padding: 12px 16px;
+          border-bottom: 1px solid #f8f9fa;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+        }
+        
+        .customer-search-item:hover {
+          background-color: #f8f9fa !important;
+        }
+        
+        .customer-search-item:last-child {
+          border-bottom: none;
+        }
+        
+        .customer-search-item .fw-bold {
+          color: #495057;
+          font-size: 14px;
+        }
+        
+        .customer-search-item .text-muted {
+          font-size: 12px;
+          color: #6c757d;
+        }
+        
+        .customer-search-item .text-muted i {
+          width: 12px;
+          text-align: center;
         }
       `}</style>
 
@@ -1516,7 +1644,73 @@ const EnhancedTijuanaStore = ({ user }) => {
                   {/* Resumen del pedido */}
                   <div className="row">
                     <div className="col-md-8">
-                      <h6 className="border-bottom pb-2 mb-3">Información del Cliente (Opcional)</h6>
+                      <h6 className="border-bottom pb-2 mb-3">Información del Cliente</h6>
+                      
+                      {/* Búsqueda de clientes */}
+                      <div className="mb-3">
+                        <label className="form-label">
+                          <i className="bi bi-search me-2"></i>
+                          Buscar Cliente Existente
+                        </label>
+                        <div className="position-relative">
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={customerSearchTerm}
+                            onChange={(e) => handleCustomerSearch(e.target.value)}
+                            placeholder="Buscar por nombre, email, teléfono o dirección..."
+                            onFocus={() => customerSearchTerm.length >= 2 && setShowCustomerDropdown(true)}
+                          />
+                          {customerSearchTerm && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 h-100"
+                              onClick={clearCustomerSelection}
+                              style={{ borderRadius: '0 6px 6px 0' }}
+                            >
+                              <i className="bi bi-x"></i>
+                            </button>
+                          )}
+                          
+                          {/* Dropdown de resultados */}
+                          {showCustomerDropdown && filteredCustomers.length > 0 && (
+                            <div className="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style={{ zIndex: 1000, maxHeight: '300px', overflowY: 'auto' }}>
+                              {filteredCustomers.map(customer => (
+                                <div
+                                  key={customer.id}
+                                  className="p-3 border-bottom cursor-pointer hover-bg-light"
+                                  onClick={() => selectCustomer(customer)}
+                                  style={{ cursor: 'pointer' }}
+                                  onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                  onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                                >
+                                  <div className="fw-bold">{customer.name}</div>
+                                  <div className="text-muted small">
+                                    {customer.email && <div><i className="bi bi-envelope me-1"></i>{customer.email}</div>}
+                                    {customer.phone && <div><i className="bi bi-telephone me-1"></i>{customer.phone}</div>}
+                                    {customer.address && <div><i className="bi bi-geo-alt me-1"></i>{customer.address}</div>}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {selectedCustomer && (
+                          <div className="alert alert-success mt-2 d-flex align-items-center">
+                            <i className="bi bi-check-circle me-2"></i>
+                            Cliente seleccionado: <strong className="ms-1">{selectedCustomer.name}</strong>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-success ms-auto"
+                              onClick={clearCustomerSelection}
+                            >
+                              Cambiar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="row g-3">
                         <div className="col-md-6">
                           <label className="form-label">Nombre</label>
@@ -1526,6 +1720,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                             value={customerData.name}
                             onChange={(e) => handleCustomerDataChange('name', e.target.value)}
                             placeholder="Nombre del cliente"
+                            disabled={selectedCustomer}
                           />
                         </div>
                         <div className="col-md-6">
@@ -1536,6 +1731,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                             value={customerData.email}
                             onChange={(e) => handleCustomerDataChange('email', e.target.value)}
                             placeholder="cliente@email.com"
+                            disabled={selectedCustomer}
                           />
                         </div>
                         <div className="col-md-6">
@@ -1546,6 +1742,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                             value={customerData.phone}
                             onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
                             placeholder="Teléfono"
+                            disabled={selectedCustomer}
                           />
                         </div>
                         <div className="col-md-6">
@@ -1556,6 +1753,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                             value={customerData.address}
                             onChange={(e) => handleCustomerDataChange('address', e.target.value)}
                             placeholder="Dirección"
+                            disabled={selectedCustomer}
                           />
                         </div>
                         <div className="col-12">
@@ -1568,6 +1766,15 @@ const EnhancedTijuanaStore = ({ user }) => {
                             placeholder="Instrucciones especiales o comentarios..."
                           ></textarea>
                         </div>
+                        
+                        {!selectedCustomer && (
+                          <div className="col-12">
+                            <div className="alert alert-info">
+                              <i className="bi bi-info-circle me-2"></i>
+                              <strong>Tip:</strong> Puedes buscar un cliente existente arriba o crear uno nuevo completando los campos manualmente.
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
