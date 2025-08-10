@@ -14,7 +14,7 @@ const menuItems = [
   { name: "Categorías", path: "/categories" },
   { name: "Marcas", path: "/brands" },
   { name: "Tasas de Cambio", path: "/exchange-rates" },
-  { name: "Tienda", path: "/store" },
+  { name: "Tienda", path: "/enhanced-store" },
 ];
 
 
