@@ -403,17 +403,26 @@ const EnhancedTijuanaStore = ({ user }) => {
   const createOrGetDefaultCustomer = async () => {
     try {
       console.log('🔍 Buscando clientes existentes...');
+      
+      if (selectedCustomer) {
+        console.log('✅ Usando cliente seleccionado:', selectedCustomer);
+        return selectedCustomer;
+      }
+      
       // Primero intentar buscar si existe un cliente por defecto
       const customersResponse = await api.get('/customers/');
       console.log('📋 Clientes encontrados:', customersResponse.data);
       
-      let defaultCustomer = customersResponse.data.find(c => c.email === 'cliente@tienda.com');
+      let defaultCustomer = customersResponse.data.find(c => 
+        c.email === 'cliente@tienda.com' || 
+        c.name.toLowerCase().includes('tienda') ||
+        c.name.toLowerCase().includes('cliente general')
+      );
       
       if (!defaultCustomer) {
         console.log('👤 Cliente por defecto no encontrado, creando nuevo...');
         
-        // Si no existe, crear un cliente por defecto
-        console.log('🏷️ Obteniendo tipos de cliente...');
+        // Obtener customer types
         const customerTypesResponse = await api.get('/customer-types/');
         console.log('📋 Tipos de cliente:', customerTypesResponse.data);
         
@@ -421,24 +430,26 @@ const EnhancedTijuanaStore = ({ user }) => {
         
         if (!defaultCustomerType) {
           console.log('🏷️ Creando tipo de cliente por defecto...');
-          // Crear un tipo de cliente por defecto si no existe
           const newCustomerType = await api.post('/customer-types/', {
-            name: 'Cliente General',
-            discount_percentage: 0,
-            description: 'Tipo de cliente general para la tienda'
+            level: 1,
+            discount_percentage: 0
           });
           defaultCustomerType = newCustomerType.data;
           console.log('✅ Tipo de cliente creado:', defaultCustomerType);
         }
 
         // Crear el cliente por defecto
+        const customerName = customerData.name || 'Cliente de Tienda';
+        const customerEmail = customerData.email || `cliente${Date.now()}@tienda.com`;
+        
         const newCustomerData = {
-          name: 'Cliente de Tienda',
-          code: `TIENDA${Date.now()}`, // Usar timestamp para evitar duplicados
-          email: 'cliente@tienda.com',
-          phone: '',
-          address: '',
-          customer_type: defaultCustomerType.id
+          name: customerName,
+          code: `TIENDA${Date.now()}`,
+          email: customerEmail,
+          phone: customerData.phone || '',
+          address: customerData.address || '',
+          customer_type: defaultCustomerType.id,
+          is_active: true
         };
         
         console.log('👤 Creando cliente con datos:', newCustomerData);
@@ -453,17 +464,22 @@ const EnhancedTijuanaStore = ({ user }) => {
     } catch (error) {
       console.error('❌ Error creating/getting default customer:', error);
       console.error('📄 Error response:', error.response?.data);
-      throw new Error('No se pudo crear el cliente para la venta');
+      throw new Error(`No se pudo crear el cliente para la venta: ${error.response?.data?.detail || error.message}`);
     }
   };
 
   const processSale = async () => {
+    console.log('🎯 processSale() iniciado');
+    
     if (cart.length === 0) {
+      console.log('❌ Carrito vacío');
       showNotification('El carrito está vacío', 'error');
       return;
     }
 
     console.log('🛒 Iniciando proceso de venta con carrito:', cart);
+    console.log('💰 Total del carrito:', getCartTotal());
+    
     setCheckoutLoading(true);
     
     try {
@@ -473,11 +489,16 @@ const EnhancedTijuanaStore = ({ user }) => {
       console.log('✅ Cliente obtenido:', customer);
       
       // Preparar los items para la venta
-      const items = cart.map(item => ({
-        product: item.id,
-        quantity: item.quantity,
-        price: item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price
-      }));
+      const items = cart.map(item => {
+        const finalPrice = item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price;
+        console.log(`📦 Item: ${item.name}, ID: ${item.id}, Precio: ${finalPrice}, Cantidad: ${item.quantity}`);
+        return {
+          product: item.id,  // ID del producto (que en realidad es variant ID)
+          quantity: item.quantity,
+          unit_price: finalPrice,
+          total_price: finalPrice * item.quantity
+        };
+      });
 
       console.log('📦 Items preparados para la venta:', items);
 
@@ -486,15 +507,16 @@ const EnhancedTijuanaStore = ({ user }) => {
         customer: customer.id,
         total_amount: getCartTotal(),
         status: 'completed',
-        notes: orderNotes || `Venta desde Tienda TIJUANA - Cliente: ${customerData.name || 'Cliente Web'}`,
+        notes: orderNotes || `Venta desde Tienda TIJUANA - Cliente: ${customerData.name || selectedCustomer?.name || 'Cliente Web'}`,
         items: items
       };
 
       console.log('📝 Datos de la orden de venta:', salesOrderData);
-      console.log('💰 Total de la venta:', getCartTotal());
+      console.log('🌐 Enviando petición a:', `${api.defaults.baseURL}sales-orders/`);
 
       const response = await api.post('/sales-orders/', salesOrderData);
       console.log('🎉 Respuesta del servidor:', response.data);
+      console.log('📊 Status de respuesta:', response.status);
       
       // Limpiar carrito y mostrar éxito
       setCart([]);
@@ -502,16 +524,21 @@ const EnhancedTijuanaStore = ({ user }) => {
       setShowCheckout(false);
       setShowCart(false);
       
-      showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id}`, 'success');
+      showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id || response.data.order_number || 'N/A'}`, 'success');
       
       // Limpiar datos del formulario
       setCustomerData({ name: '', email: '', phone: '', address: '' });
       setOrderNotes('');
+      clearCustomerSelection();
       
     } catch (error) {
-      console.error('❌ Error processing sale:', error);
+      console.error('❌ Error completo:', error);
+      console.error('📄 Error response:', error.response);
       console.error('📄 Error response data:', error.response?.data);
       console.error('📄 Error response status:', error.response?.status);
+      console.error('📄 Error response headers:', error.response?.headers);
+      console.error('📄 Error message:', error.message);
+      console.error('📄 Error config:', error.config);
       
       let errorMessage = 'Error al procesar la venta';
       
@@ -524,12 +551,25 @@ const EnhancedTijuanaStore = ({ user }) => {
           errorMessage = error.response.data.message;
         } else if (error.response.data.error) {
           errorMessage = error.response.data.error;
+        } else if (error.response.data.errors) {
+          // Manejar errores de validación
+          const errorMessages = Object.entries(error.response.data.errors)
+            .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
+            .join('\n');
+          errorMessage = `Errores de validación:\n${errorMessages}`;
+        } else {
+          // Si hay otros campos de error, mostrarlos
+          errorMessage = JSON.stringify(error.response.data, null, 2);
         }
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
+      console.log('💬 Mensaje de error final:', errorMessage);
       showNotification(errorMessage, 'error');
     } finally {
       setCheckoutLoading(false);
+      console.log('🏁 processSale() terminado');
     }
   };
 
@@ -1815,8 +1855,11 @@ const EnhancedTijuanaStore = ({ user }) => {
                   <button
                     type="button"
                     className="btn btn-success"
-                    onClick={processSale}
-                    disabled={checkoutLoading}
+                    onClick={() => {
+                      console.log('🔘 Botón de checkout clickeado');
+                      processSale();
+                    }}
+                    disabled={checkoutLoading || cart.length === 0}
                   >
                     {checkoutLoading ? (
                       <>
