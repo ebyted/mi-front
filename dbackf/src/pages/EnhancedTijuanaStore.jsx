@@ -1530,7 +1530,13 @@ const EnhancedTijuanaStore = ({ user }) => {
                 <div className="d-grid gap-2">
                   <button 
                     className="btn btn-success btn-lg"
-                    onClick={() => setShowCheckout(true)}
+                    onClick={() => {
+                      console.log('🛒 Botón "Proceder al checkout" clickeado');
+                      console.log('🛒 Carrito actual:', cart);
+                      console.log('🛒 Estado showCheckout antes:', showCheckout);
+                      setShowCheckout(true);
+                      console.log('🛒 setShowCheckout(true) ejecutado');
+                    }}
                     disabled={cart.length === 0}
                   >
                     <i className="bi bi-credit-card me-2"></i>
@@ -1672,6 +1678,7 @@ const EnhancedTijuanaStore = ({ user }) => {
               height: '100%'
             }}
           >
+            {console.log('🎯 Modal de checkout se está renderizando, showCheckout:', showCheckout)}
             <div className="modal-dialog modal-lg" style={{ marginTop: '2rem' }}>
               <div className="modal-content">
                 <div className="modal-header bg-success text-white">
