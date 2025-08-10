@@ -827,8 +827,8 @@ const InventoryMovements = () => {
                 brand_name: brandName,
                 warehouse_name: warehouse.name || `Almacén ${warehouseId}`,
                 total_stock: 0,
-                min_stock: parseFloat(variant.min_stock || product?.min_stock || 0),
-                max_stock: parseFloat(variant.max_stock || product?.max_stock || 0),
+                min_stock: parseFloat(stock.min_stock || variant.low_stock_threshold || product?.minimum_stock || 0),
+                max_stock: parseFloat(product?.maximum_stock || variant.low_stock_threshold * 5 || 100),
                 product_price: parseFloat(variant.price || product?.price || 0),
                 last_updated: stock.last_updated || new Date().toISOString()
               });
@@ -889,8 +889,8 @@ const InventoryMovements = () => {
               brand_name: brandName,
               warehouse_name: warehouse.name,
               total_stock: Math.floor(Math.random() * 100) + 10, // Stock aleatorio para demo
-              min_stock: parseFloat(variant.min_stock || 20),
-              max_stock: parseFloat(variant.max_stock || 100),
+              min_stock: parseFloat(variant.low_stock_threshold || product?.minimum_stock || 20),
+              max_stock: parseFloat(product?.maximum_stock || 100),
               product_price: parseFloat(variant.price || 50),
               last_updated: new Date().toISOString()
             });
