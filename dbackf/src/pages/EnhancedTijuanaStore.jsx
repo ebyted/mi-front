@@ -1325,6 +1325,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                     className="btn btn-success btn-lg"
                     onClick={() => {
                       console.log('Botón checkout clickeado, cart:', cart);
+                      alert('Modal de checkout debería aparecer ahora');
                       setShowCheckout(true);
                     }}
                     disabled={cart.length === 0}
@@ -1456,19 +1457,33 @@ const EnhancedTijuanaStore = ({ user }) => {
 
         {/* Modal de Checkout */}
         {showCheckout && (
-          <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div 
+            className="modal fade show d-block" 
+            style={{ 
+              backgroundColor: 'rgba(0,0,0,0.5)', 
+              zIndex: 9999,
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%'
+            }}
+          >
             {console.log('Renderizando modal de checkout, showCheckout:', showCheckout)}
-            <div className="modal-dialog modal-lg">
+            <div className="modal-dialog modal-lg" style={{ marginTop: '2rem' }}>
               <div className="modal-content">
                 <div className="modal-header bg-success text-white">
                   <h5 className="modal-title">
                     <i className="bi bi-credit-card me-2"></i>
-                    Finalizar Compra
+                    Finalizar Compra - MODAL VISIBLE
                   </h5>
                   <button
                     type="button"
                     className="btn-close btn-close-white"
-                    onClick={() => setShowCheckout(false)}
+                    onClick={() => {
+                      alert('Cerrando modal');
+                      setShowCheckout(false);
+                    }}
                   ></button>
                 </div>
                 
