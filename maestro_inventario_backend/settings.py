@@ -202,6 +202,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://sanchodistribuidora.com",
     "https://www.sanchodistribuidora.com",
+    "https://www.sanchodistribuidora.com/api",
+    "https://www.sanchodistribuidora.com/api/tokens",
+    
+    
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://(\w+\.)?sanchodistribuidora\.com$",
