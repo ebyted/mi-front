@@ -124,4 +124,4 @@ Write-Host "`nPrimera vez? Ejecuta las migraciones:" -ForegroundColor Yellow
 Write-Host "  docker-compose exec backend python manage.py migrate" -ForegroundColor White
 Write-Host "  docker-compose exec backend python manage.py createsuperuser" -ForegroundColor White
 
-Read-Host "`nPresiona Enter para finalizar"
+Read-Host "Presiona Enter para finalizar"

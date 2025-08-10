@@ -698,19 +698,54 @@ const InventoryMovements = () => {
     try {
       console.log('🔄 Cargando inventario actual...');
       
-      // Cargar datos necesarios en paralelo (sin categorías y marcas separadas)
-      const [stockResponse, productsResponse, variantsResponse, warehousesResponse] = await Promise.all([
-        api.get('product-warehouse-stocks/').catch(err => ({ data: [] })),
-        api.get('products/').catch(err => ({ data: [] })),
-        api.get('product-variants/').catch(err => ({ data: [] })),
-        api.get('warehouses/').catch(err => ({ data: [] }))
-      ]);
-      
-      // Procesar datos
+      // Usar directamente el endpoint product-warehouse-stocks que ahora incluye category_name y brand_name
+      const stockResponse = await api.get('product-warehouse-stocks/');
       const stocks = Array.isArray(stockResponse.data) ? stockResponse.data : (stockResponse.data?.results || []);
-      const products = Array.isArray(productsResponse.data) ? productsResponse.data : (productsResponse.data?.results || []);
-      const variants = Array.isArray(variantsResponse.data) ? variantsResponse.data : (variantsResponse.data?.results || []);
-      const warehousesData = Array.isArray(warehousesResponse.data) ? warehousesResponse.data : (warehousesResponse.data?.results || []);
+      
+      console.log('📊 Datos obtenidos:', { stocks: stocks.length });
+      
+      if (stocks.length > 0) {
+        console.log('🔍 Ejemplo de stock con nuevos campos:', JSON.stringify(stocks[0], null, 2));
+      }
+      
+      // Mapear datos directamente desde el backend (que ahora incluye los campos necesarios)
+      const inventoryData = stocks
+        .filter(stock => parseFloat(stock.quantity || 0) > 0) // Solo items con stock
+        .map(stock => ({
+          id: `${stock.product_variant?.id || 'unknown'}-${stock.warehouse?.id || 'unknown'}`,
+          product_variant_id: stock.product_variant?.id,
+          product_id: stock.product_variant?.product?.id,
+          warehouse_id: stock.warehouse?.id,
+          
+          // Datos del producto/variante
+          product_name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
+          product_code: stock.product_code || stock.product_variant?.sku || 'Sin SKU',
+          variant_name: stock.product_variant?.name || 'Sin variante',
+          
+          // Categoría y marca - usar los nuevos campos del backend
+          category_name: stock.category_name || 'SIN CATEGORÍA',
+          brand_name: stock.brand_name || 'SIN MARCA',
+          
+          // Datos del almacén
+          warehouse_name: stock.warehouse_name || stock.warehouse?.name || 'Sin almacén',
+          
+          // Stock y precios
+          total_stock: parseFloat(stock.quantity || 0),
+          min_stock: parseFloat(stock.min_stock || stock.min_stock_variant || stock.min_stock_product || 0),
+          max_stock: parseFloat(stock.max_stock_product || 100),
+          product_price: parseFloat(stock.product_price || stock.product_variant?.sale_price || 0),
+          
+          // Metadatos
+          last_updated: stock.updated_at || stock.last_updated || new Date().toISOString()
+        }))
+        .sort((a, b) => a.product_name.localeCompare(b.product_name));
+      
+      console.log(`✅ Inventario procesado: ${inventoryData.length} items`);
+      console.log('📋 Primeros 3 items procesados:', inventoryData.slice(0, 3));
+      console.log('📊 Categorías encontradas:', [...new Set(inventoryData.map(i => i.category_name))]);
+      console.log('📊 Marcas encontradas:', [...new Set(inventoryData.map(i => i.brand_name))]);
+      
+      setCurrentInventory(inventoryData);
       
       console.log('📊 Datos obtenidos:', { 
         stocks: stocks.length, 

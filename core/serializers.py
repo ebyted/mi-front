@@ -128,6 +128,24 @@ class WarehouseSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class ProductWarehouseStockSerializer(serializers.ModelSerializer):
+    product_variant = ProductVariantSerializer(read_only=True)
+    warehouse = WarehouseSerializer(read_only=True)
+    
+    # Campos adicionales para facilitar el frontend
+    warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
+    product_name = serializers.CharField(source='product_variant.name', read_only=True)
+    product_code = serializers.CharField(source='product_variant.sku', read_only=True)
+    product_price = serializers.DecimalField(source='product_variant.sale_price', max_digits=12, decimal_places=2, read_only=True)
+    
+    # Campos de categoría y marca desde Product
+    category_name = serializers.CharField(source='product_variant.product.category.name', read_only=True)
+    brand_name = serializers.CharField(source='product_variant.product.brand.name', read_only=True)
+    
+    # Campos de stock mínimo y máximo
+    min_stock_variant = serializers.IntegerField(source='product_variant.low_stock_threshold', read_only=True)
+    min_stock_product = serializers.FloatField(source='product_variant.product.minimum_stock', read_only=True)
+    max_stock_product = serializers.FloatField(source='product_variant.product.maximum_stock', read_only=True)
+    
     class Meta:
         model = ProductWarehouseStock
         fields = '__all__'
