@@ -65,13 +65,6 @@ const InventoryMovements = () => {
   const [currentInventory, setCurrentInventory] = useState([]);
   const [loadingCurrentInventory, setLoadingCurrentInventory] = useState(false);
   
-  // Debug: Imprimir estado del activeTab
-  console.log('🔍 InventoryMovements Debug:', { 
-    activeTab, 
-    movementsLength: movements.length, 
-    inventoryLength: currentInventory.length 
-  });
-  
   // Filtros específicos para inventario
   const [inventoryFiltersTab, setInventoryFiltersTab] = useState({
     warehouse: '',
