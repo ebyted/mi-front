@@ -45,6 +45,10 @@ const ModernShop = ({ user }) => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12); // Aumentado para mejor experiencia, ahora configurable
 
+  // Estados del carrusel
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [carouselProducts, setCarouselProducts] = useState([]);
+
   // Estados del carrito con persistencia
   const [cart, setCart] = useState(() => {
     try {
@@ -191,6 +195,17 @@ const ModernShop = ({ user }) => {
         setBrands(brandsRes.data || []);
         setCategories(categoriesRes.data || []);
         setCustomers(customersRes.data || []);
+        
+        // Preparar productos destacados para el carrusel (productos con mayor stock o precio)
+        const featuredProducts = productsWithTijuanaStock
+          .slice(0, 8) // Tomar los primeros 8 productos
+          .map(product => ({
+            ...product,
+            featured: true,
+            carouselBadge: Math.random() > 0.7 ? 'Destacado' : Math.random() > 0.5 ? 'Popular' : 'Nuevo'
+          }));
+        
+        setCarouselProducts(featuredProducts);
       } catch (error) {
         console.error('Error loading data:', error);
         setError('Error al cargar los datos. Por favor recarga la página.');
@@ -873,6 +888,48 @@ const ModernShop = ({ user }) => {
     setCustomerDiscount(customer.customer_type?.discount_percentage || 0);
   };
 
+  // ============ FUNCIONES DEL CARRUSEL ============
+  
+  // Navegación del carrusel
+  const nextSlide = useCallback(() => {
+    setCurrentSlide(prev => (prev + 1) % Math.max(1, carouselProducts.length - 2));
+  }, [carouselProducts.length]);
+  
+  const prevSlide = useCallback(() => {
+    setCurrentSlide(prev => prev === 0 ? Math.max(0, carouselProducts.length - 3) : prev - 1);
+  }, [carouselProducts.length]);
+  
+  const goToSlide = useCallback((index) => {
+    setCurrentSlide(index);
+  }, []);
+  
+  // Auto-play del carrusel
+  useEffect(() => {
+    if (carouselProducts.length <= 3) return;
+    
+    const interval = setInterval(() => {
+      nextSlide();
+    }, 4000); // Cambiar cada 4 segundos
+    
+    return () => clearInterval(interval);
+  }, [nextSlide, carouselProducts.length]);
+  
+  // Calcular slides visibles
+  const getVisibleSlides = useCallback(() => {
+    if (carouselProducts.length === 0) return [];
+    
+    const slides = [];
+    for (let i = 0; i < Math.min(3, carouselProducts.length); i++) {
+      const index = (currentSlide + i) % carouselProducts.length;
+      slides.push({
+        ...carouselProducts[index],
+        isActive: i === 1, // El slide del medio es el activo
+        slideIndex: i
+      });
+    }
+    return slides;
+  }, [carouselProducts, currentSlide]);
+
   // Crear orden (sin validación de stock)
   const handleCreateOrder = async () => {
     if (!selectedCustomer || cart.length === 0) return;
@@ -1090,6 +1147,223 @@ const ModernShop = ({ user }) => {
         input[type="number"]:focus {
           border-color: #007bff;
           box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+
+        /* Carousel Styles */
+        .product-carousel {
+          position: relative;
+          overflow: hidden;
+          border-radius: 15px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 30px 0;
+          margin-bottom: 30px;
+          box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .carousel-container {
+          display: flex;
+          transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          will-change: transform;
+        }
+        
+        .carousel-slide {
+          min-width: 320px;
+          margin: 0 15px;
+          opacity: 0.7;
+          transform: scale(0.85);
+          transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .carousel-slide.active {
+          opacity: 1;
+          transform: scale(1);
+        }
+        
+        .carousel-card {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          border-radius: 20px;
+          padding: 25px;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .carousel-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+          transition: left 0.6s;
+        }
+        
+        .carousel-card:hover::before {
+          left: 100%;
+        }
+        
+        .carousel-card:hover {
+          transform: translateY(-10px);
+          box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+        }
+        
+        .carousel-controls {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          background: rgba(255, 255, 255, 0.9);
+          border: none;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          z-index: 10;
+          box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .carousel-controls:hover {
+          background: white;
+          transform: translateY(-50%) scale(1.1);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .carousel-controls.prev {
+          left: 20px;
+        }
+        
+        .carousel-controls.next {
+          right: 20px;
+        }
+        
+        .carousel-dots {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          margin-top: 25px;
+        }
+        
+        .carousel-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.5);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          border: none;
+        }
+        
+        .carousel-dot.active {
+          background: white;
+          transform: scale(1.2);
+        }
+        
+        .carousel-product-image {
+          width: 100%;
+          height: 160px;
+          object-fit: cover;
+          border-radius: 12px;
+          margin-bottom: 15px;
+        }
+        
+        .carousel-badge {
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+          color: white;
+          padding: 5px 12px;
+          border-radius: 20px;
+          font-size: 0.8em;
+          font-weight: bold;
+          text-transform: uppercase;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        
+        @keyframes slideInFromRight {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        .carousel-slide-enter {
+          animation: slideInFromRight 0.6s ease-out;
+        }
+        
+        /* Partículas flotantes */
+        .carousel-particles {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          overflow: hidden;
+        }
+        
+        .particle {
+          position: absolute;
+          background: rgba(255, 255, 255, 0.6);
+          border-radius: 50%;
+          animation: float 6s infinite ease-in-out;
+        }
+        
+        .particle:nth-child(1) { width: 6px; height: 6px; left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { width: 8px; height: 8px; left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { width: 4px; height: 4px; left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { width: 10px; height: 10px; left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { width: 6px; height: 6px; left: 50%; animation-delay: 4s; }
+        .particle:nth-child(6) { width: 8px; height: 8px; left: 60%; animation-delay: 1.5s; }
+        .particle:nth-child(7) { width: 4px; height: 4px; left: 70%; animation-delay: 2.5s; }
+        .particle:nth-child(8) { width: 7px; height: 7px; left: 80%; animation-delay: 3.5s; }
+        .particle:nth-child(9) { width: 5px; height: 5px; left: 90%; animation-delay: 0.5s; }
+        
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(100vh) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          50% {
+            transform: translateY(-20px) rotate(180deg);
+            opacity: 0.8;
+          }
+        }
+        
+        /* Efecto de brillo en el carrusel */
+        .product-carousel::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+          animation: shine 8s infinite;
+          pointer-events: none;
+        }
+        
+        @keyframes shine {
+          0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+          50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+          100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
         }
       `}</style>
 
@@ -1527,6 +1801,126 @@ const ModernShop = ({ user }) => {
                 <strong>Filtro activo:</strong> Solo se muestran productos con stock disponible en el almacén <strong>TIJUANA</strong>.
               </div>
             </div>
+
+            {/* Carrusel de productos destacados */}
+            {carouselProducts.length > 0 && (
+              <div className="product-carousel">
+                {/* Partículas flotantes */}
+                <div className="carousel-particles">
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                  <div className="particle"></div>
+                </div>
+                
+                <div className="text-center mb-4">
+                  <h3 className="text-white fw-bold">
+                    <i className="bi bi-star-fill me-2"></i>
+                    Productos Destacados
+                  </h3>
+                  <p className="text-white opacity-75 mb-0">Los mejores productos de nuestro catálogo</p>
+                </div>
+                
+                <div style={{ position: 'relative', overflow: 'hidden', height: '300px' }}>
+                  <div 
+                    className="carousel-container"
+                    style={{
+                      transform: `translateX(-${currentSlide * (320 + 30)}px)`,
+                      width: `${carouselProducts.length * (320 + 30)}px`
+                    }}
+                  >
+                    {carouselProducts.map((product, index) => {
+                      const isActive = index >= currentSlide && index < currentSlide + 3;
+                      const positionInView = index - currentSlide;
+                      
+                      return (
+                        <div 
+                          key={product.id}
+                          className={`carousel-slide ${positionInView === 1 ? 'active' : ''}`}
+                          style={{
+                            opacity: isActive ? (positionInView === 1 ? 1 : 0.7) : 0.3,
+                            transform: `scale(${positionInView === 1 ? 1 : 0.85})`
+                          }}
+                        >
+                          <div className="carousel-card">
+                            {product.carouselBadge && (
+                              <div className="carousel-badge">
+                                {product.carouselBadge}
+                              </div>
+                            )}
+                            
+                            <img
+                              src={generateProductImage(product.name)}
+                              alt={product.name}
+                              className="carousel-product-image"
+                              onError={(e) => {
+                                e.target.src = generateProductImage(product.name);
+                              }}
+                            />
+                            
+                            <div className="text-center">
+                              <h5 className="fw-bold mb-2" style={{ color: '#333', fontSize: '1.1em' }}>
+                                {product.name}
+                              </h5>
+                              <p className="text-muted small mb-2">
+                                SKU: {product.sku}
+                              </p>
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span className="h5 text-primary fw-bold mb-0">
+                                  ${product.sale_price}
+                                </span>
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  onClick={() => addToCart(product)}
+                                >
+                                  <i className="bi bi-cart-plus me-1"></i>
+                                  Agregar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                
+                {/* Controles del carrusel */}
+                {carouselProducts.length > 3 && (
+                  <>
+                    <button 
+                      className="carousel-controls prev"
+                      onClick={prevSlide}
+                    >
+                      <i className="bi bi-chevron-left fs-5"></i>
+                    </button>
+                    
+                    <button 
+                      className="carousel-controls next"
+                      onClick={nextSlide}
+                    >
+                      <i className="bi bi-chevron-right fs-5"></i>
+                    </button>
+                    
+                    {/* Dots indicadores */}
+                    <div className="carousel-dots">
+                      {Array.from({ length: Math.max(1, carouselProducts.length - 2) }).map((_, index) => (
+                        <button
+                          key={index}
+                          className={`carousel-dot ${currentSlide === index ? 'active' : ''}`}
+                          onClick={() => goToSlide(index)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Barra de filtros mejorada */}
             <div className="card mb-4 shadow-sm">
