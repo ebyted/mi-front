@@ -212,6 +212,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 
 # CORS configurations adicionales para resolver problemas de conexión
+CORS_ALLOW_ALL_ORIGINS = True  # Temporal para debug
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
