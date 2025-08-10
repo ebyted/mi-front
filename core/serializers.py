@@ -80,12 +80,16 @@ class UnitSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     price = serializers.SerializerMethodField(read_only=True)
+    current_stock = serializers.SerializerMethodField(read_only=True)
+    image = serializers.CharField(source='image_url', read_only=True)  # Alias para compatibilidad con frontend
+    category = CategorySerializer(read_only=True)
+    brand = BrandSerializer(read_only=True)
     
     class Meta:
         model = Product
         fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
                  'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
-                 'is_active', 'group', 'created_at', 'updated_at', 'price']
+                 'image', 'is_active', 'group', 'created_at', 'updated_at', 'price', 'current_stock']
     
     def get_price(self, obj):
         """Obtener el precio del primer ProductVariant asociado"""
@@ -97,6 +101,25 @@ class ProductSerializer(serializers.ModelSerializer):
             return 0.0
         except Exception as e:
             return 0.0
+    
+    def get_current_stock(self, obj):
+        """Calcular el stock total disponible sumando todos los almacenes"""
+        try:
+            from django.db.models import Sum
+            # Obtener todas las variantes del producto
+            product_variants = ProductVariant.objects.filter(product=obj)
+            
+            total_stock = 0
+            for variant in product_variants:
+                # Sumar el stock de todos los almacenes para esta variante
+                stock_sum = ProductWarehouseStock.objects.filter(
+                    product_variant=variant
+                ).aggregate(total=Sum('quantity'))['total'] or 0
+                total_stock += stock_sum
+            
+            return max(0, total_stock)  # No devolver stock negativo
+        except Exception as e:
+            return 0
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
