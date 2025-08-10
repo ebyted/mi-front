@@ -49,6 +49,7 @@ const ModernShop = ({ user }) => {
           api.get('customers/?is_active=true')
         ]);
         
+        console.log('Productos cargados:', productsRes.data?.slice(0, 2)); // Debug: ver estructura de datos
         setProducts(productsRes.data || []);
         setBrands(brandsRes.data || []);
         setCategories(categoriesRes.data || []);
@@ -75,14 +76,19 @@ const ModernShop = ({ user }) => {
       .catch(() => setRecentOrders([]));
   }, [selectedCustomer]);
 
-  // Filtrar productos (mejorado)
+  // Filtrar productos (mejorado) - SOLO MOSTRAR PRODUCTOS CON STOCK
   const filteredProducts = products.filter(p => {
     const matchesSearch = !search || 
       p.name?.toLowerCase().includes(search.toLowerCase()) ||
       p.sku?.toLowerCase().includes(search.toLowerCase());
     const matchesBrand = !selectedBrand || p.brand?.id === selectedBrand;
     const matchesCategory = !selectedCategory || p.category?.id === selectedCategory;
-    return matchesSearch && matchesBrand && matchesCategory && p.is_active;
+    
+    // Usar el campo current_stock que viene del backend
+    const currentStock = p.current_stock || 0;
+    const hasStock = currentStock > 0;
+    
+    return matchesSearch && matchesBrand && matchesCategory && p.is_active && hasStock;
   });
 
   // Paginación
@@ -95,8 +101,14 @@ const ModernShop = ({ user }) => {
 
   // Funciones del carrito (mejoradas)
   const addToCart = (product) => {
-    // Simular stock disponible (en producción vendría del backend)
-    const availableStock = product.minimum_stock || 10; // Fallback
+    // Usar el campo current_stock que viene del backend
+    const availableStock = product.current_stock || 0;
+    
+    if (availableStock <= 0) {
+      setOrderError('Este producto no tiene stock disponible');
+      setTimeout(() => setOrderError(''), 3000);
+      return;
+    }
     
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
@@ -164,7 +176,10 @@ const ModernShop = ({ user }) => {
     }).format(amount || 0);
   };
 
-  const getStockBadge = (stock) => {
+  const getStockBadge = (product) => {
+    // Usar el campo current_stock que viene del backend
+    const stock = product.current_stock || 0;
+    
     if (!stock || stock === 0) return { color: 'danger', text: 'Sin stock', icon: '❌' };
     if (stock <= 5) return { color: 'warning', text: `Quedan ${stock}`, icon: '⚠️' };
     if (stock <= 10) return { color: 'info', text: `Stock: ${stock}`, icon: '📦' };
@@ -462,7 +477,8 @@ const ModernShop = ({ user }) => {
               <>
                 <div className={viewMode === 'grid' ? 'row g-3' : ''}>
                   {paginatedProducts.map(product => {
-                    const stockInfo = getStockBadge(product.minimum_stock);
+                    const stockInfo = getStockBadge(product);
+                    const currentStock = product.current_stock || 0;
                     let imgSrc = '/img/producto-fallback.svg';
                     
                     if (typeof product.image === 'string' && product.image.length > 0) {
@@ -501,15 +517,15 @@ const ModernShop = ({ user }) => {
                               <div className="mt-auto">
                                 <div className="d-flex justify-content-between align-items-center mb-2">
                                   <span className="h5 text-success mb-0">{formatCurrency(product.price)}</span>
-                                  <small className="text-muted">Stock: {product.minimum_stock || 0}</small>
+                                  <small className="text-muted">Stock: {currentStock}</small>
                                 </div>
                                 <button
                                   className="btn btn-primary w-100"
                                   onClick={() => addToCart(product)}
-                                  disabled={!product.minimum_stock || product.minimum_stock === 0}
+                                  disabled={currentStock <= 0}
                                 >
                                   <i className="bi bi-cart-plus me-1"></i>
-                                  {!product.minimum_stock || product.minimum_stock === 0 ? 'Sin stock' : 'Agregar'}
+                                  {currentStock <= 0 ? 'Sin stock' : 'Agregar'}
                                 </button>
                               </div>
                             </div>
@@ -548,15 +564,15 @@ const ModernShop = ({ user }) => {
                                   <div>
                                     <span className="h4 text-success">{formatCurrency(product.price)}</span>
                                     <br />
-                                    <small className="text-muted">Stock disponible: {product.minimum_stock || 0}</small>
+                                    <small className="text-muted">Stock disponible: {currentStock}</small>
                                   </div>
                                   <button
                                     className="btn btn-primary"
                                     onClick={() => addToCart(product)}
-                                    disabled={!product.minimum_stock || product.minimum_stock === 0}
+                                    disabled={currentStock <= 0}
                                   >
                                     <i className="bi bi-cart-plus me-1"></i>
-                                    {!product.minimum_stock || product.minimum_stock === 0 ? 'Sin stock' : 'Agregar al carrito'}
+                                    {currentStock <= 0 ? 'Sin stock' : 'Agregar al carrito'}
                                   </button>
                                 </div>
                               </div>
