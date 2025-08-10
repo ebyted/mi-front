@@ -203,7 +203,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://sanchodistribuidora.com",
     "https://www.sanchodistribuidora.com",
     "https://www.sanchodistribuidora.com/api",
-    "https://www.sanchodistribuidora.com/api/tokens",
+    "https://www.sanchodistribuidora.com/api/token",
     
     
 ]
