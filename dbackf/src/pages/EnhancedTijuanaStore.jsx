@@ -59,6 +59,9 @@ const EnhancedTijuanaStore = ({ user }) => {
   });
   const [orderNotes, setOrderNotes] = useState('');
 
+  // Debug
+  console.log('Estado showCheckout:', showCheckout);
+
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
@@ -1320,7 +1323,10 @@ const EnhancedTijuanaStore = ({ user }) => {
                 <div className="d-grid gap-2">
                   <button 
                     className="btn btn-success btn-lg"
-                    onClick={() => setShowCheckout(true)}
+                    onClick={() => {
+                      console.log('Botón checkout clickeado, cart:', cart);
+                      setShowCheckout(true);
+                    }}
                     disabled={cart.length === 0}
                   >
                     <i className="bi bi-credit-card me-2"></i>
@@ -1451,6 +1457,7 @@ const EnhancedTijuanaStore = ({ user }) => {
         {/* Modal de Checkout */}
         {showCheckout && (
           <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            {console.log('Renderizando modal de checkout, showCheckout:', showCheckout)}
             <div className="modal-dialog modal-lg">
               <div className="modal-content">
                 <div className="modal-header bg-success text-white">
