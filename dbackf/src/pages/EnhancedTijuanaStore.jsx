@@ -1533,14 +1533,24 @@ const EnhancedTijuanaStore = ({ user }) => {
                     onClick={() => {
                       console.log('🛒 Botón "Proceder al checkout" clickeado');
                       console.log('🛒 Carrito actual:', cart);
-                      console.log('🛒 Estado showCheckout antes:', showCheckout);
-                      setShowCheckout(true);
-                      console.log('🛒 setShowCheckout(true) ejecutado');
+                      console.log('🛒 Total:', getCartTotal());
+                      
+                      // Ejecutar la venta directamente
+                      processSale();
                     }}
-                    disabled={cart.length === 0}
+                    disabled={cart.length === 0 || checkoutLoading}
                   >
-                    <i className="bi bi-credit-card me-2"></i>
-                    Proceder al checkout
+                    {checkoutLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Procesando venta...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-credit-card me-2"></i>
+                        Proceder al checkout ({formatCurrency(getCartTotal())})
+                      </>
+                    )}
                   </button>
                   <button
                     className="btn btn-outline-secondary"
@@ -1907,68 +1917,6 @@ const EnhancedTijuanaStore = ({ user }) => {
           </div>
         )}
       </div>
-
-      {/* Modal de Checkout Simplificado - Fuera del contenedor principal */}
-      {showCheckout && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(255, 0, 0, 0.9)', // Fondo rojo para que sea muy visible
-            zIndex: 999999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '24px',
-            textAlign: 'center',
-            flexDirection: 'column'
-          }}
-        >
-          <h1>🎯 MODAL DE CHECKOUT VISIBLE</h1>
-          <p>Si puedes ver esto, el modal está funcionando</p>
-          <button
-            style={{
-              padding: '20px 40px',
-              fontSize: '20px',
-              backgroundColor: 'white',
-              color: 'black',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              marginTop: '20px'
-            }}
-            onClick={() => {
-              console.log('🚫 Cerrando modal de prueba');
-              setShowCheckout(false);
-            }}
-          >
-            ❌ CERRAR MODAL
-          </button>
-          
-          <button
-            style={{
-              padding: '20px 40px',
-              fontSize: '20px',
-              backgroundColor: 'green',
-              color: 'white',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              marginTop: '20px'
-            }}
-            onClick={() => {
-              console.log('🔘 Ejecutando venta de prueba');
-              processSale();
-            }}
-          >
-            💰 PROCESAR VENTA
-          </button>
-        </div>
-      )}
     </div>
   );
 };
