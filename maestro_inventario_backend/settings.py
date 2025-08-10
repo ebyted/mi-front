@@ -200,10 +200,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://www.sanchodistribuidora.com",
-    "https://www.sanchodistribuidora.com",
     "https://sanchodistribuidora.com",
-    "https://sanchodistribuidora.com/api",
-    
-    
+    "https://www.sanchodistribuidora.com",
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://(\w+\.)?sanchodistribuidora\.com$",
 ]
