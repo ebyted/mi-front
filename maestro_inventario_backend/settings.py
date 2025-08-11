@@ -201,30 +201,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://sanchodistribuidora.com",
-    "https://www.sanchodistribuidora.com",
-    "https://www.sanchodistribuidora.com/api",
-    "https://www.sanchodistribuidora.com/api/token/",
-    
-    
-]
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://(\w+\.)?sanchodistribuidora\.com$",
+    "https://www.sanchodistribuidora.com"
 ]
 
-# CORS configurations adicionales para resolver problemas de conexión
-CORS_ALLOW_ALL_ORIGINS = True  # Temporal para debug
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
