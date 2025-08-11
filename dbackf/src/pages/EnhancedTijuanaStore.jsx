@@ -464,17 +464,6 @@ const EnhancedTijuanaStore = ({ user }) => {
   // Filtrar productos
   const getFilteredProducts = () => {
     const filtered = products.filter(product => {
-      // Debug: Log de los primeros 3 productos para verificar estructura
-      if (products.indexOf(product) < 3) {
-        console.log('Debug product:', {
-          name: product.name,
-          brand: product.brand,
-          category: product.category,
-          selectedBrand,
-          selectedCategory
-        });
-      }
-
       // Filtro de búsqueda
       if (search) {
         const searchLower = search.toLowerCase();
@@ -516,10 +505,6 @@ const EnhancedTijuanaStore = ({ user }) => {
           return a.name.localeCompare(b.name);
       }
     });
-    
-    // Debug: Log de resultados filtrados
-    console.log(`Productos filtrados: ${filtered.length} de ${products.length} total`);
-    console.log('Filtros activos:', { selectedBrand, selectedCategory, search });
     
     return filtered;
   };
@@ -617,16 +602,23 @@ const EnhancedTijuanaStore = ({ user }) => {
       return;
     }
 
+    // Verificar que haya un cliente seleccionado
+    if (!selectedCustomer) {
+      console.log('❌ No hay cliente seleccionado');
+      showNotification('Debe seleccionar un cliente para procesar la venta', 'error');
+      return;
+    }
+
     console.log('🛒 Iniciando proceso de venta con carrito:', cart);
     console.log('💰 Total del carrito:', getCartTotal());
+    console.log('👤 Cliente seleccionado:', selectedCustomer);
     
     setCheckoutLoading(true);
     
     try {
-      console.log('👤 Obteniendo/creando cliente por defecto...');
-      // Crear o obtener cliente por defecto
-      const customer = await createOrGetDefaultCustomer();
-      console.log('✅ Cliente obtenido:', customer);
+      // Usar el cliente seleccionado
+      const customer = selectedCustomer;
+      console.log('✅ Cliente para la venta:', customer);
       
       // Preparar los items para la venta
       const items = cart.map(item => {
@@ -647,7 +639,7 @@ const EnhancedTijuanaStore = ({ user }) => {
         customer: customer.id,
         total_amount: getCartTotal(),
         status: 'completed',
-        notes: orderNotes || `Venta desde Tienda TIJUANA - Cliente: ${customerData.name || selectedCustomer?.name || 'Cliente Web'}`,
+        notes: orderNotes || `Venta desde Tienda TIJUANA - Cliente: ${customer.name}`,
         items: items
       };
 
@@ -664,7 +656,7 @@ const EnhancedTijuanaStore = ({ user }) => {
       setShowCheckout(false);
       setShowCart(false);
       
-      showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id || response.data.order_number || 'N/A'}`, 'success');
+      showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id || response.data.order_number || 'N/A'} para ${customer.name}`, 'success');
       
       // Limpiar datos del formulario
       setCustomerData({ name: '', email: '', phone: '', address: '' });
@@ -1695,10 +1687,6 @@ const EnhancedTijuanaStore = ({ user }) => {
                   <button 
                     className="btn btn-success btn-lg"
                     onClick={() => {
-                      console.log('🛒 Botón "Proceder al checkout" clickeado');
-                      console.log('🛒 Carrito actual:', cart);
-                      console.log('🛒 Total:', getCartTotal());
-                      
                       // Abrir modal de checkout para búsqueda de cliente
                       setShowCheckout(true);
                     }}
@@ -1855,7 +1843,6 @@ const EnhancedTijuanaStore = ({ user }) => {
               justifyContent: 'center'
             }}
           >
-            {console.log('🎯 Modal de checkout se está renderizando, showCheckout:', showCheckout)}
             <div className="modal-dialog modal-lg" style={{ margin: 'auto', maxWidth: '800px', width: '90%' }}>
               <div className="modal-content" style={{ border: '3px solid #28a745', boxShadow: '0 0 30px rgba(0,0,0,0.5)' }}>
                 <div className="modal-header bg-success text-white">
@@ -1867,7 +1854,6 @@ const EnhancedTijuanaStore = ({ user }) => {
                     type="button"
                     className="btn-close btn-close-white"
                     onClick={() => {
-                      console.log('🚫 Cerrando modal de checkout');
                       setShowCheckout(false);
                     }}
                   ></button>
@@ -2065,6 +2051,24 @@ const EnhancedTijuanaStore = ({ user }) => {
                           </div>
                         )}
                         
+                        {/* Alerta cuando no hay cliente seleccionado */}
+                        {!selectedCustomer && !showNewCustomerForm && (!customerSearchTerm || customerSearchTerm.length < 2) && (
+                          <div className="alert alert-warning mt-3 border-start border-4 border-warning">
+                            <div className="d-flex align-items-center">
+                              <i className="bi bi-exclamation-triangle me-3 fs-4 text-warning"></i>
+                              <div className="flex-grow-1">
+                                <h6 className="mb-1 text-warning">
+                                  <i className="bi bi-person-x me-2"></i>
+                                  Cliente requerido para completar la venta
+                                </h6>
+                                <p className="mb-0 small">
+                                  Debe seleccionar un cliente existente o crear uno nuevo para proceder con el checkout.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
                         {/* Opción para crear cliente nuevo */}
                         {!selectedCustomer && customerSearchTerm && customerSearchTerm.length >= 2 && filteredCustomers.length === 0 && (
                           <div className="alert alert-info mt-3">
@@ -2253,7 +2257,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                       console.log('🔘 Botón de checkout clickeado');
                       processSale();
                     }}
-                    disabled={checkoutLoading || cart.length === 0}
+                    disabled={checkoutLoading || cart.length === 0 || !selectedCustomer}
                   >
                     {checkoutLoading ? (
                       <>
@@ -2263,7 +2267,10 @@ const EnhancedTijuanaStore = ({ user }) => {
                     ) : (
                       <>
                         <i className="bi bi-check-circle me-2"></i>
-                        Confirmar Venta ({formatCurrency(getCartTotal())})
+                        {selectedCustomer 
+                          ? `Finalizar Compra (${formatCurrency(getCartTotal())})` 
+                          : 'Seleccione un Cliente'
+                        }
                       </>
                     )}
                   </button>
