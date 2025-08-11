@@ -165,7 +165,10 @@ function Products() {
       // Buscar en código de barras
       const barcodeMatch = normalizeText(p.barcode).includes(searchNormalized);
       
-      matchesSearch = nameMatch || skuMatch || brandMatch || categoryMatch || barcodeMatch;
+      // Buscar en precio
+      const priceMatch = p.price && normalizeText(String(p.price)).includes(searchNormalized);
+      
+      matchesSearch = nameMatch || skuMatch || brandMatch || categoryMatch || barcodeMatch || priceMatch;
     }
     
     // Filtros específicos
@@ -590,7 +593,7 @@ function Products() {
             <input
               type="text"
               className="form-control"
-              placeholder="Buscar por nombre, SKU, marca o categoría..."
+              placeholder="Buscar por nombre, SKU, marca, categoría o precio..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
