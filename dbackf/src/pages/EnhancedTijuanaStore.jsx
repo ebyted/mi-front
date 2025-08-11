@@ -109,10 +109,14 @@ const EnhancedTijuanaStore = ({ user }) => {
       console.log('🎬 Modal de checkout debería estar visible ahora');
       // Verificar si hay conflictos de estilos
       setTimeout(() => {
-        const modalElement = document.querySelector('.modal.fade.show.d-block');
+        const modalElement = document.querySelector('[style*="rgba(255,0,0"]');
         if (modalElement) {
           console.log('✅ Modal encontrado en DOM:', modalElement);
           console.log('📏 Modal styles:', window.getComputedStyle(modalElement));
+          console.log('🔢 Modal z-index computed:', window.getComputedStyle(modalElement).zIndex);
+          console.log('👁️ Modal visibility:', window.getComputedStyle(modalElement).visibility);
+          console.log('🎭 Modal opacity:', window.getComputedStyle(modalElement).opacity);
+          console.log('📦 Modal display:', window.getComputedStyle(modalElement).display);
         } else {
           console.log('❌ Modal NO encontrado en DOM');
         }
@@ -1874,7 +1878,6 @@ const EnhancedTijuanaStore = ({ user }) => {
         {/* Modal de Checkout */}
         {showCheckout && (
           <div 
-            className="modal fade show d-block" 
             style={{ 
               backgroundColor: 'rgba(255,0,0,0.98)', 
               zIndex: 9999999,
@@ -1885,7 +1888,9 @@ const EnhancedTijuanaStore = ({ user }) => {
               height: '100vh',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              visibility: 'visible',
+              opacity: 1
             }}
             onClick={(e) => {
               console.log('🎯 Modal backdrop clickeado');
