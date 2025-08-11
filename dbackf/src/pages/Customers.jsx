@@ -15,7 +15,8 @@ function Customers() {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    level: 1
   });
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -80,7 +81,8 @@ function Customers() {
       name: '',
       email: '',
       phone: '',
-      address: ''
+      address: '',
+      level: 1
     });
     setFormErrors({});
     setShowModal(true);
@@ -92,7 +94,8 @@ function Customers() {
       name: customer.name || '',
       email: customer.email || '',
       phone: customer.phone || '',
-      address: customer.address || ''
+      address: customer.address || '',
+      level: customer.level || 1
     });
     setFormErrors({});
     setShowModal(true);
@@ -105,7 +108,8 @@ function Customers() {
       name: '',
       email: '',
       phone: '',
-      address: ''
+      address: '',
+      level: 1
     });
     setFormErrors({});
   };
@@ -190,6 +194,22 @@ function Customers() {
     }
   };
 
+  // Función para obtener la clase CSS del badge según el nivel
+  const getLevelBadgeClass = (level) => {
+    switch (level) {
+      case 1:
+        return 'bg-secondary';
+      case 2:
+        return 'bg-primary';
+      case 3:
+        return 'bg-warning text-dark';
+      case 4:
+        return 'bg-success';
+      default:
+        return 'bg-secondary';
+    }
+  };
+
   return (
     <div className="container py-5">
       {console.log('🔍 Renderizando Customers:', { 
@@ -258,13 +278,14 @@ function Customers() {
                 <th>Email</th>
                 <th>Teléfono</th>
                 <th>Dirección</th>
+                <th>Nivel</th>
                 <th width="150">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {!Array.isArray(filteredCustomers) || filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-4 text-muted">
+                  <td colSpan="6" className="text-center py-4 text-muted">
                     {search ? 'No se encontraron clientes' : 'No hay clientes registrados'}
                   </td>
                 </tr>
@@ -275,6 +296,11 @@ function Customers() {
                     <td>{customer.email || 'Sin email'}</td>
                     <td>{customer.phone || 'Sin teléfono'}</td>
                     <td>{customer.address || 'Sin dirección'}</td>
+                    <td>
+                      <span className={`badge ${getLevelBadgeClass(customer.level)}`}>
+                        Nivel {customer.level || 1}
+                      </span>
+                    </td>
                     <td>
                       <div className="btn-group" role="group">
                         <button
@@ -388,6 +414,30 @@ function Customers() {
                       onChange={handleInputChange}
                       placeholder="Dirección completa (opcional)"
                     ></textarea>
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="level" className="form-label">
+                      Nivel de Cliente *
+                    </label>
+                    <select
+                      className="form-select"
+                      id="level"
+                      name="level"
+                      value={formData.level}
+                      onChange={handleInputChange}
+                    >
+                      <option value={1}>Nivel 1 - Básico</option>
+                      <option value={2}>Nivel 2 - Estándar</option>
+                      <option value={3}>Nivel 3 - Premium</option>
+                      <option value={4}>Nivel 4 - VIP</option>
+                    </select>
+                    <div className="form-text">
+                      <small className="text-muted">
+                        <i className="fas fa-info-circle me-1"></i>
+                        El nivel determina los descuentos y beneficios del cliente
+                      </small>
+                    </div>
                   </div>
                 </div>
                 

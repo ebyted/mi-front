@@ -43,6 +43,22 @@ function CustomersSimple() {
     }
   };
 
+  // Función para obtener la clase CSS del badge según el nivel
+  const getLevelBadgeClass = (level) => {
+    switch (level) {
+      case 1:
+        return 'bg-secondary';
+      case 2:
+        return 'bg-primary';
+      case 3:
+        return 'bg-warning text-dark';
+      case 4:
+        return 'bg-success';
+      default:
+        return 'bg-secondary';
+    }
+  };
+
   console.log('🔍 Renderizando CustomersSimple:', { 
     customers: Array.isArray(customers) ? customers.length : 'NO ES ARRAY', 
     customersType: typeof customers,
@@ -90,6 +106,8 @@ function CustomersSimple() {
               <th>ID</th>
               <th>Nombre</th>
               <th>Email</th>
+              <th>Teléfono</th>
+              <th>Nivel</th>
             </tr>
           </thead>
           <tbody>
@@ -98,12 +116,18 @@ function CustomersSimple() {
                 <tr key={customer.id || Math.random()}>
                   <td>{customer.id}</td>
                   <td>{customer.name}</td>
-                  <td>{customer.email}</td>
+                  <td>{customer.email || 'Sin email'}</td>
+                  <td>{customer.phone || 'Sin teléfono'}</td>
+                  <td>
+                    <span className={`badge ${getLevelBadgeClass(customer.level)}`}>
+                      Nivel {customer.level || 1}
+                    </span>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="3" className="text-center">
+                <td colSpan="5" className="text-center">
                   No hay clientes
                 </td>
               </tr>

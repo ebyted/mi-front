@@ -55,7 +55,8 @@ const EnhancedTijuanaStore = ({ user }) => {
     name: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    level: 1
   });
   const [orderNotes, setOrderNotes] = useState('');
   
@@ -345,7 +346,8 @@ const EnhancedTijuanaStore = ({ user }) => {
       name: customer.name || '',
       email: customer.email || '',
       phone: customer.phone || '',
-      address: customer.address || ''
+      address: customer.address || '',
+      level: customer.level || 1
     });
     setCustomerSearchTerm(customer.name || '');
     setShowCustomerDropdown(false);
@@ -357,7 +359,8 @@ const EnhancedTijuanaStore = ({ user }) => {
       name: '',
       email: '',
       phone: '',
-      address: ''
+      address: '',
+      level: 1
     });
     setCustomerSearchTerm('');
     setShowCustomerDropdown(false);
@@ -439,7 +442,8 @@ const EnhancedTijuanaStore = ({ user }) => {
         name: selectedCustomer.name || '',
         email: selectedCustomer.email || '',
         phone: selectedCustomer.phone || '',
-        address: selectedCustomer.address || ''
+        address: selectedCustomer.address || '',
+        level: selectedCustomer.level || 1
       });
       setIsEditingCustomer(false);
     } else {
@@ -448,7 +452,8 @@ const EnhancedTijuanaStore = ({ user }) => {
         name: '',
         email: '',
         phone: '',
-        address: ''
+        address: '',
+        level: 1
       });
       setShowNewCustomerForm(false);
     }
@@ -659,7 +664,7 @@ const EnhancedTijuanaStore = ({ user }) => {
       showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id || response.data.order_number || 'N/A'} para ${customer.name}`, 'success');
       
       // Limpiar datos del formulario
-      setCustomerData({ name: '', email: '', phone: '', address: '' });
+      setCustomerData({ name: '', email: '', phone: '', address: '', level: 1 });
       setOrderNotes('');
       clearCustomerSelection();
       
