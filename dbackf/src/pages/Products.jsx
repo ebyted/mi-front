@@ -256,6 +256,7 @@ function Products() {
   const handleEdit = product => {
     setFormError('');
     setEditId(product.id);
+    console.log('Editando producto con precio:', product.price, 'tipo:', typeof product.price);
     const editFormData = {
       name: product.name || '',
       sku: product.sku || '',
@@ -264,10 +265,11 @@ function Products() {
       barcode: product.barcode || '',
       minimum_stock: product.minimum_stock || '',
       maximum_stock: product.maximum_stock || '',
-      price: product.price || '',
+      price: product.price !== null && product.price !== undefined ? product.price : '',
       is_active: product.is_active ?? true,
       group: product.group || ''
     };
+    console.log('FormData precio después de asignar:', editFormData.price);
     setFormData(editFormData);
     setShowForm(true);
     setTimeout(() => {
@@ -473,7 +475,7 @@ function Products() {
       ...formData,
       minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
       maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
-      price: formData.price ? Number(formData.price) : null,
+      price: formData.price !== '' ? Number(formData.price) : null,
       group: formData.group ? Number(formData.group) : null,
       brand: Number(formData.brand),
       category: Number(formData.category),
@@ -482,7 +484,10 @@ function Products() {
     
     try {
       
+      console.log('FormData antes del envío:', formData);
+      console.log('Precio en formData:', formData.price, 'tipo:', typeof formData.price);
       console.log('Enviando datos del producto:', dataToSend);
+      console.log('Precio en dataToSend:', dataToSend.price, 'tipo:', typeof dataToSend.price);
       
       let response;
       if (editId) {
@@ -733,7 +738,7 @@ function Products() {
         <form ref={formRef} className="bg-white p-4 rounded shadow mb-4" onSubmit={handleSubmit} style={{maxWidth: 600}}>
           <h2 className="mb-3 text-primary">
             🛠️ {editId ? 'Editar producto' : 'Nuevo producto'} 
-            <small className="text-muted"> - Versión con PRECIO</small>
+            <small className="text-muted"> {editId ? 'Modificar los datos del producto' : 'Agregar un nuevo producto'}</small>
           </h2>
           <div className="mb-3">
             <input
