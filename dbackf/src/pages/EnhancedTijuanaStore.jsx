@@ -1876,8 +1876,8 @@ const EnhancedTijuanaStore = ({ user }) => {
           <div 
             className="modal fade show d-block" 
             style={{ 
-              backgroundColor: 'rgba(255,0,0,0.9)', 
-              zIndex: 999999,
+              backgroundColor: 'rgba(255,0,0,0.98)', 
+              zIndex: 9999999,
               position: 'fixed',
               top: 0,
               left: 0,
