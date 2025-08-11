@@ -713,7 +713,10 @@ function Products() {
       )}
       {showForm && (
         <form ref={formRef} className="bg-white p-4 rounded shadow mb-4" onSubmit={handleSubmit} style={{maxWidth: 600}}>
-          <h2 className="mb-3">{editId ? 'Editar producto' : 'Nuevo producto'}</h2>
+          <h2 className="mb-3 text-primary">
+            🛠️ {editId ? 'Editar producto' : 'Nuevo producto'} 
+            <small className="text-muted"> - Versión con PRECIO</small>
+          </h2>
           <div className="mb-3">
             <input
               type="text"
@@ -808,16 +811,19 @@ function Products() {
               onChange={handleChange}
             />
           </div>
-          <div className="mb-3">
+          <div className="mb-3" style={{backgroundColor: '#f8f9fa', padding: '10px', border: '2px solid #007bff', borderRadius: '5px'}}>
+            <label className="form-label fw-bold text-primary">💰 Precio *NUEVO CAMPO*</label>
+            {/* Campo de precio - debe aparecer aquí */}
             <input
               type="number"
               name="price"
               className="form-control"
-              placeholder="Precio"
+              placeholder="Ingrese el precio del producto (ej: 29.99)"
               step="0.01"
               min="0"
               value={formData.price}
               onChange={handleChange}
+              style={{border: '2px solid #007bff'}}
             />
           </div>
           <div className="mb-3">
