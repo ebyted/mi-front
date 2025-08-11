@@ -789,6 +789,152 @@ const EnhancedTijuanaStore = ({ user }) => {
     );
   }
 
+  // Si está en modo checkout, mostrar página de checkout completa
+  if (showCheckout) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: '#f8f9fa',
+        zIndex: 99999,
+        overflow: 'auto'
+      }}>
+        {/* Header del Checkout */}
+        <div style={{
+          backgroundColor: '#28a745',
+          color: 'white',
+          padding: '1rem 2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h2>🛒 Finalizar Compra</h2>
+          <button
+            onClick={() => setShowCheckout(false)}
+            style={{
+              backgroundColor: 'transparent',
+              border: '2px solid white',
+              color: 'white',
+              padding: '0.5rem 1rem',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            ← Volver a la Tienda
+          </button>
+        </div>
+
+        {/* Contenido del Checkout */}
+        <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
+            
+            {/* Resumen del Carrito */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '2rem',
+              borderRadius: '10px',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+            }}>
+              <h3>📦 Resumen del Pedido</h3>
+              <div style={{ marginBottom: '1rem' }}>
+                {cart.map((item, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem 0',
+                    borderBottom: '1px solid #eee'
+                  }}>
+                    <span>{item.name} x {item.quantity}</span>
+                    <span style={{ fontWeight: 'bold' }}>
+                      {formatCurrency(item.price * item.quantity)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                marginTop: '1rem',
+                paddingTop: '1rem',
+                borderTop: '2px solid #28a745'
+              }}>
+                <span>Total:</span>
+                <span>{formatCurrency(getCartTotal())}</span>
+              </div>
+            </div>
+
+            {/* Información del Cliente */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '2rem',
+              borderRadius: '10px',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+            }}>
+              <h3>👤 Información del Cliente</h3>
+              <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+                Busque un cliente existente o cree uno nuevo
+              </p>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar cliente por nombre o email..."
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '5px',
+                    fontSize: '1rem'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <button style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '1rem'
+                }}>
+                  + Crear Nuevo Cliente
+                </button>
+              </div>
+
+              <div style={{ marginTop: '2rem' }}>
+                <button 
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold'
+                  }}
+                  disabled={cart.length === 0}
+                >
+                  ✅ Confirmar Venta ({formatCurrency(getCartTotal())})
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="enhanced-tijuana-store">
       <style jsx>{`
