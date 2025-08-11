@@ -17,7 +17,7 @@ import InventoryMovements from './pages/InventoryMovements';
 import Categories from './pages/Categories';
 import Brands from './pages/Brands';
 import ExchangeRates from './pages/ExchangeRates';
-// import Customers from './pages/Customers';
+import Customers from './pages/Customers';
 import ModernShop from './pages/ModernShop.jsx';
 import TijuanaStore from './pages/TijuanaStore.jsx';
 import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
