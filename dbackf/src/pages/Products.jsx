@@ -257,6 +257,7 @@ function Products() {
     setFormError('');
     setEditId(product.id);
     console.log('Editando producto con precio:', product.price, 'tipo:', typeof product.price);
+    console.log('Editando producto con grupo:', product.group, 'tipo:', typeof product.group);
     const editFormData = {
       name: product.name || '',
       sku: product.sku || '',
@@ -267,9 +268,10 @@ function Products() {
       maximum_stock: product.maximum_stock || '',
       price: product.price !== null && product.price !== undefined ? product.price : '',
       is_active: product.is_active ?? true,
-      group: product.group || ''
+      group: product.group !== null && product.group !== undefined ? product.group : ''
     };
     console.log('FormData precio después de asignar:', editFormData.price);
+    console.log('FormData grupo después de asignar:', editFormData.group);
     setFormData(editFormData);
     setShowForm(true);
     setTimeout(() => {
@@ -418,7 +420,26 @@ function Products() {
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+    console.log(`Cambio en campo ${name}:`, value, 'tipo:', typeof value);
+    
+    let newValue;
+    if (type === 'checkbox') {
+      newValue = checked;
+    } else if (name === 'price') {
+      // Asegurar que el precio sea tratado como número o string vacía
+      newValue = value === '' ? '' : parseFloat(value) || 0;
+      console.log(`Precio convertido:`, newValue, 'tipo:', typeof newValue);
+    } else if (name === 'group') {
+      // Asegurar que el grupo sea tratado como número o string vacía
+      newValue = value === '' ? '' : parseInt(value) || 0;
+      console.log(`Grupo convertido:`, newValue, 'tipo:', typeof newValue);
+    } else if (name === 'minimum_stock' || name === 'maximum_stock') {
+      newValue = value === '' ? '' : parseInt(value) || 0;
+    } else {
+      newValue = value;
+    }
+    
+    setFormData({ ...formData, [name]: newValue });
   };
 
   const validateForm = () => {
@@ -486,8 +507,10 @@ function Products() {
       
       console.log('FormData antes del envío:', formData);
       console.log('Precio en formData:', formData.price, 'tipo:', typeof formData.price);
+      console.log('Grupo en formData:', formData.group, 'tipo:', typeof formData.group);
       console.log('Enviando datos del producto:', dataToSend);
       console.log('Precio en dataToSend:', dataToSend.price, 'tipo:', typeof dataToSend.price);
+      console.log('Grupo en dataToSend:', dataToSend.group, 'tipo:', typeof dataToSend.group);
       
       let response;
       if (editId) {
@@ -497,6 +520,8 @@ function Products() {
       }
       
       console.log('Producto guardado exitosamente:', response.data);
+      console.log('Precio en respuesta:', response.data.price);
+      console.log('Grupo en respuesta:', response.data.group);
       setShowForm(false);
       setEditId(null);
       setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
@@ -506,6 +531,18 @@ function Products() {
       console.error('Response data:', err.response?.data);
       console.error('Response status:', err.response?.status);
       console.error('Response headers:', err.response?.headers);
+      console.error('Datos que se intentaron enviar:', dataToSend);
+      
+      // Verificar si es problema específico de price o group
+      if (err.response?.data) {
+        console.error('Errores del servidor:', err.response.data);
+        if (err.response.data.price) {
+          console.error('Error específico en price:', err.response.data.price);
+        }
+        if (err.response.data.group) {
+          console.error('Error específico en group:', err.response.data.group);
+        }
+      }
       
       let errorMessage = 'Error al guardar producto.';
       if (err.response) {
