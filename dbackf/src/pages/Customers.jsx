@@ -295,17 +295,18 @@ function Customers() {
             <thead className="table-primary">
               <tr>
                 <th>Nombre</th>
+                <th>Código</th>
                 <th>Email</th>
                 <th>Teléfono</th>
                 <th>Dirección</th>
-                <th>Nivel</th>
+                <th>Tipo</th>
                 <th width="150">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {!Array.isArray(filteredCustomers) || filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-muted">
+                  <td colSpan="7" className="text-center py-4 text-muted">
                     {search ? 'No se encontraron clientes' : 'No hay clientes registrados'}
                   </td>
                 </tr>
@@ -313,12 +314,13 @@ function Customers() {
                 filteredCustomers.map(customer => (
                   <tr key={customer.id}>
                     <td><strong>{customer.name}</strong></td>
+                    <td><code>{customer.code}</code></td>
                     <td>{customer.email || 'Sin email'}</td>
                     <td>{customer.phone || 'Sin teléfono'}</td>
                     <td>{customer.address || 'Sin dirección'}</td>
                     <td>
-                      <span className={`badge ${getLevelBadgeClass(customer.level)}`}>
-                        Nivel {customer.level || 1}
+                      <span className={`badge ${getLevelBadgeClass(customer.customer_type)}`}>
+                        Nivel {customer.customer_type || 1}
                       </span>
                     </td>
                     <td>
