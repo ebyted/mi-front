@@ -839,6 +839,7 @@ function Products() {
               placeholder="Ingrese el precio del producto (ej: 29.99)"
               step="0.01"
               min="0"
+              max="99999999"
               value={formData.price}
               onChange={handleChange}
               style={{border: '2px solid #007bff'}}
