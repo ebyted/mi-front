@@ -16,7 +16,9 @@ function Customers() {
     email: '',
     phone: '',
     address: '',
-    level: 1
+    code: '',
+    customer_type: 1,
+    business: 1 // Asumiendo business ID 1 por defecto
   });
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -82,7 +84,9 @@ function Customers() {
       email: '',
       phone: '',
       address: '',
-      level: 1
+      code: '',
+      customer_type: 1,
+      business: 1
     });
     setFormErrors({});
     setShowModal(true);
@@ -95,7 +99,9 @@ function Customers() {
       email: customer.email || '',
       phone: customer.phone || '',
       address: customer.address || '',
-      level: customer.level || 1
+      code: customer.code || '',
+      customer_type: customer.customer_type || 1,
+      business: customer.business || 1
     });
     setFormErrors({});
     setShowModal(true);
@@ -109,7 +115,9 @@ function Customers() {
       email: '',
       phone: '',
       address: '',
-      level: 1
+      code: '',
+      customer_type: 1,
+      business: 1
     });
     setFormErrors({});
   };
@@ -135,6 +143,10 @@ function Customers() {
     
     if (!formData.name.trim()) {
       errors.name = 'El nombre es requerido';
+    }
+    
+    if (!formData.code.trim()) {
+      errors.code = 'El código es requerido';
     }
     
     if (!formData.email.trim()) {
@@ -365,6 +377,26 @@ function Customers() {
                     {formErrors.name && (
                       <div className="invalid-feedback">
                         {formErrors.name}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="code" className="form-label">
+                      Código *
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-control ${formErrors.code ? 'is-invalid' : ''}`}
+                      id="code"
+                      name="code"
+                      value={formData.code}
+                      onChange={handleInputChange}
+                      placeholder="Código único del cliente"
+                    />
+                    {formErrors.code && (
+                      <div className="invalid-feedback">
+                        {formErrors.code}
                       </div>
                     )}
                   </div>
