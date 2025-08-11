@@ -102,6 +102,11 @@ const EnhancedTijuanaStore = ({ user }) => {
     localStorage.setItem('tijuana_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
+  // Monitor showCheckout state changes
+  useEffect(() => {
+    console.log('🔍 showCheckout cambió a:', showCheckout);
+  }, [showCheckout]);
+
   const loadFromLocalStorage = () => {
     const savedCart = localStorage.getItem('tijuana_cart');
     const savedWishlist = localStorage.getItem('tijuana_wishlist');
@@ -1708,8 +1713,12 @@ const EnhancedTijuanaStore = ({ user }) => {
                   <button 
                     className="btn btn-success btn-lg"
                     onClick={() => {
+                      console.log('🚀 Botón verde clickeado - Abriendo checkout');
+                      console.log('🛒 Cart items:', cart.length);
+                      console.log('⏳ Checkout loading:', checkoutLoading);
                       // Abrir modal de checkout para búsqueda de cliente
                       setShowCheckout(true);
+                      console.log('✅ showCheckout establecido a true');
                     }}
                     disabled={cart.length === 0 || checkoutLoading}
                   >
@@ -1862,6 +1871,12 @@ const EnhancedTijuanaStore = ({ user }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
+            }}
+            onClick={(e) => {
+              console.log('🎯 Modal backdrop clickeado');
+              if (e.target === e.currentTarget) {
+                setShowCheckout(false);
+              }
             }}
           >
             <div className="modal-dialog modal-lg" style={{ margin: 'auto', maxWidth: '800px', width: '90%' }}>
