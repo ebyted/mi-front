@@ -75,16 +75,21 @@ function Products() {
           setCurrentBusiness(res.data.business.id || res.data.business);
         }
       })
-      .catch(() => {
-        // Si falla, intentar obtener el primer business disponible
+      .catch(err => {
+        // Si falla (404 u otro error), intentar obtener el primer business disponible
+        console.warn('Endpoint user/profile/ no disponible:', err.response?.status);
         api.get('businesses/')
           .then(res => {
             if (res.data && res.data.length > 0) {
               setCurrentBusiness(res.data[0].id);
+            } else {
+              // Usar business por defecto si no hay ninguno disponible
+              setCurrentBusiness(1);
             }
           })
           .catch(() => {
             console.warn('No se pudo obtener business, usando valor por defecto (1)');
+            setCurrentBusiness(1);
           });
       });
   };
@@ -438,6 +443,10 @@ function Products() {
     if (formData.price && (isNaN(formData.price) || parseFloat(formData.price) < 0)) {
       errors.push('El precio debe ser un número positivo');
     }
+    // Validar límite máximo razonable para el precio
+    if (formData.price && parseFloat(formData.price) > 99999999) {
+      errors.push('El precio no puede ser mayor a 99,999,999');
+    }
     // Validar que stock máximo sea mayor que mínimo
     if (formData.minimum_stock && formData.maximum_stock) {
       const minStock = parseFloat(formData.minimum_stock);
@@ -458,18 +467,20 @@ function Products() {
     setFormError('');
     if (!validateForm()) return;
     setIsSubmitting(true);
+    
+    // Preparar datos para envío (incluir business dinámico)
+    const dataToSend = {
+      ...formData,
+      minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
+      maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
+      price: formData.price ? Number(formData.price) : null,
+      group: formData.group ? Number(formData.group) : null,
+      brand: Number(formData.brand),
+      category: Number(formData.category),
+      business: currentBusiness
+    };
+    
     try {
-      // Preparar datos para envío (incluir business dinámico)
-      const dataToSend = {
-        ...formData,
-        minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
-        maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
-        price: formData.price ? Number(formData.price) : null,
-        group: formData.group ? Number(formData.group) : null,
-        brand: Number(formData.brand),
-        category: Number(formData.category),
-        business: currentBusiness
-      };
       
       console.log('Enviando datos del producto:', dataToSend);
       
@@ -479,11 +490,18 @@ function Products() {
       } else {
         response = await api.post('products/', dataToSend);
       }
+      
+      console.log('Producto guardado exitosamente:', response.data);
       setShowForm(false);
       setEditId(null);
       setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
       fetchProducts();
     } catch (err) {
+      console.error('Error completo al guardar producto:', err);
+      console.error('Response data:', err.response?.data);
+      console.error('Response status:', err.response?.status);
+      console.error('Response headers:', err.response?.headers);
+      
       let errorMessage = 'Error al guardar producto.';
       if (err.response) {
         if (err.response.status === 400) {
