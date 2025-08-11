@@ -107,6 +107,18 @@ const EnhancedTijuanaStore = ({ user }) => {
     console.log('🔍 showCheckout cambió a:', showCheckout);
     if (showCheckout) {
       console.log('🎬 Modal de checkout debería estar visible ahora');
+      // Verificar si hay conflictos de estilos
+      setTimeout(() => {
+        const modalElement = document.querySelector('.modal.fade.show.d-block');
+        if (modalElement) {
+          console.log('✅ Modal encontrado en DOM:', modalElement);
+          console.log('📏 Modal styles:', window.getComputedStyle(modalElement));
+        } else {
+          console.log('❌ Modal NO encontrado en DOM');
+        }
+      }, 100);
+    } else {
+      console.log('❌ Modal de checkout se cerró');
     }
   }, [showCheckout]);
 
