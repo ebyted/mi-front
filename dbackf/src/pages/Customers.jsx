@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import apiService from '../services/api';
+import api from '../services/api';
 
 function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -28,13 +28,18 @@ function Customers() {
 
   useEffect(() => {
     // Filtrar clientes cuando cambie la búsqueda
+    if (!Array.isArray(customers)) {
+      setFilteredCustomers([]);
+      return;
+    }
+    
     if (search.trim() === '') {
       setFilteredCustomers(customers);
     } else {
       const filtered = customers.filter(customer =>
-        customer.name.toLowerCase().includes(search.toLowerCase()) ||
-        customer.email.toLowerCase().includes(search.toLowerCase()) ||
-        customer.phone.includes(search)
+        customer.name?.toLowerCase().includes(search.toLowerCase()) ||
+        customer.email?.toLowerCase().includes(search.toLowerCase()) ||
+        customer.phone?.includes(search)
       );
       setFilteredCustomers(filtered);
     }
@@ -43,12 +48,19 @@ function Customers() {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const data = await apiService.get('/customers/');
-      setCustomers(data);
+      const response = await api.get('/customers/');
+      
+      // Asegurar que data es un array
+      const customersArray = Array.isArray(response.data) ? response.data : [];
+      setCustomers(customersArray);
       setError('');
+      
+      console.log('Customers loaded:', customersArray);
     } catch (err) {
       console.error('Error loading customers:', err);
       setError('Error al cargar clientes');
+      // En caso de error, asegurar que customers sea un array vacío
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
@@ -140,10 +152,10 @@ function Customers() {
       
       if (editingCustomer) {
         // Actualizar cliente existente
-        await apiService.put(`/customers/${editingCustomer.id}/`, formData);
+        await api.put(`/customers/${editingCustomer.id}/`, formData);
       } else {
         // Crear nuevo cliente
-        await apiService.post('/customers/', formData);
+        await api.post('/customers/', formData);
       }
       
       closeModal();
@@ -163,7 +175,7 @@ function Customers() {
     }
 
     try {
-      await apiService.delete(`/customers/${customerId}/`);
+      await api.delete(`/customers/${customerId}/`);
       await loadCustomers(); // Recargar la lista
     } catch (err) {
       console.error('Error deleting customer:', err);
@@ -236,7 +248,7 @@ function Customers() {
               </tr>
             </thead>
             <tbody>
-              {filteredCustomers.length === 0 ? (
+              {!Array.isArray(filteredCustomers) || filteredCustomers.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="text-center py-4 text-muted">
                     {search ? 'No se encontraron clientes' : 'No hay clientes registrados'}
