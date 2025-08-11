@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
 function Customers() {
+  console.log('🔍 Customers component iniciando...');
+  
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -21,6 +23,11 @@ function Customers() {
   // Estados para búsqueda y filtros
   const [search, setSearch] = useState('');
   const [filteredCustomers, setFilteredCustomers] = useState([]);
+
+  console.log('🔍 Estados inicializados:', { 
+    customers: Array.isArray(customers), 
+    filteredCustomers: Array.isArray(filteredCustomers) 
+  });
 
   useEffect(() => {
     loadCustomers();
@@ -185,13 +192,20 @@ function Customers() {
 
   return (
     <div className="container py-5">
+      {console.log('🔍 Renderizando Customers:', { 
+        customers: Array.isArray(customers) ? customers.length : 'NO ES ARRAY', 
+        filteredCustomers: Array.isArray(filteredCustomers) ? filteredCustomers.length : 'NO ES ARRAY',
+        customersType: typeof customers,
+        filteredCustomersType: typeof filteredCustomers
+      })}
+      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="display-5 mb-0 text-primary">
           👥 Clientes
         </h1>
         <div className="d-flex align-items-center gap-3">
           <div className="text-center">
-            <div className="h4 mb-0 text-primary">{customers.length}</div>
+            <div className="h4 mb-0 text-primary">{Array.isArray(customers) ? customers.length : 0}</div>
             <small className="text-muted">Total</small>
           </div>
           <button 

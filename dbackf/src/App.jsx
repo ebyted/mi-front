@@ -18,8 +18,8 @@ import Categories from './pages/Categories';
 import Brands from './pages/Brands';
 import ExchangeRates from './pages/ExchangeRates';
 import Customers from './pages/Customers';
-import ModernShop from './pages/ModernShop.jsx';
-import TijuanaStore from './pages/TijuanaStore.jsx';
+import TestCustomers from './pages/TestCustomers';
+import CustomersSimple from './pages/CustomersSimple';
 import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
 import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
@@ -86,8 +86,7 @@ function AppContent() {
         <Route path="/brands" element={renderWithSidebar(Brands)} />
         <Route path="/exchange-rates" element={renderWithSidebar(ExchangeRates)} />
         <Route path="/customers" element={renderWithSidebar(Customers)} />
-        <Route path="/store" element={renderWithSidebar(() => <ModernShop user={null} />)} />
-        <Route path="/tijuana-store" element={renderWithSidebar(() => <TijuanaStore user={null} />)} />
+        <Route path="/test-customers" element={renderWithSidebar(TestCustomers)} />
         <Route path="/enhanced-store" element={renderWithSidebar(() => <EnhancedTijuanaStore user={null} />)} />
         
         {/* Cualquier otra ruta redirige según autenticación */}
