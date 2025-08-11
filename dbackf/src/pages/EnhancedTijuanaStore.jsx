@@ -280,6 +280,22 @@ const EnhancedTijuanaStore = ({ user }) => {
     }
   };
 
+  // Función para obtener la clase CSS del badge según el nivel del cliente
+  const getLevelBadgeClass = (level) => {
+    switch (level) {
+      case 1:
+        return 'bg-secondary';
+      case 2:
+        return 'bg-primary';
+      case 3:
+        return 'bg-warning text-dark';
+      case 4:
+        return 'bg-success';
+      default:
+        return 'bg-secondary';
+    }
+  };
+
   // Funciones de búsqueda de clientes mejoradas
   const searchCustomers = (searchTerm) => {
     if (!searchTerm || searchTerm.length < 2) {
@@ -1977,11 +1993,18 @@ const EnhancedTijuanaStore = ({ user }) => {
                                           </div>
                                         )}
                                         {customer.address && (
-                                          <div>
+                                          <div className="mb-1">
                                             <i className="bi bi-geo-alt me-1 text-warning"></i>
                                             {customer.address}
                                           </div>
                                         )}
+                                        {/* Mostrar nivel del cliente */}
+                                        <div>
+                                          <span className={`badge ${getLevelBadgeClass(customer.level || 1)} badge-sm`}>
+                                            <i className="bi bi-star-fill me-1"></i>
+                                            Nivel {customer.level || 1}
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                     <div>
@@ -2017,7 +2040,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                                   Cliente seleccionado exitosamente
                                 </h6>
                                 <div className="fw-bold text-dark">{selectedCustomer.name}</div>
-                                <div className="text-muted small">
+                                <div className="text-muted small mb-2">
                                   {selectedCustomer.email && (
                                     <span className="me-3">
                                       <i className="bi bi-envelope me-1"></i>
@@ -2030,6 +2053,17 @@ const EnhancedTijuanaStore = ({ user }) => {
                                       {selectedCustomer.phone}
                                     </span>
                                   )}
+                                </div>
+                                {/* Mostrar nivel del cliente */}
+                                <div className="mb-1">
+                                  <span className={`badge ${getLevelBadgeClass(selectedCustomer.level || 1)}`}>
+                                    <i className="bi bi-star-fill me-1"></i>
+                                    Nivel {selectedCustomer.level || 1}
+                                    {selectedCustomer.level === 1 && ' - Básico'}
+                                    {selectedCustomer.level === 2 && ' - Estándar'}
+                                    {selectedCustomer.level === 3 && ' - Premium'}
+                                    {selectedCustomer.level === 4 && ' - VIP'}
+                                  </span>
                                 </div>
                               </div>
                               <div className="d-flex gap-2">
@@ -2199,6 +2233,33 @@ const EnhancedTijuanaStore = ({ user }) => {
                                 placeholder="Dirección completa"
                                 disabled={selectedCustomer && !isEditingCustomer}
                               />
+                            </div>
+                          </div>
+
+                          {/* Fila adicional para el nivel */}
+                          <div className="row g-3 mt-2">
+                            <div className="col-md-6">
+                              <label className="form-label fw-bold">
+                                <i className="bi bi-star-fill me-2 text-warning"></i>
+                                Nivel de Cliente
+                              </label>
+                              <select
+                                className="form-select"
+                                value={customerData.level}
+                                onChange={(e) => handleCustomerDataChange('level', parseInt(e.target.value))}
+                                disabled={selectedCustomer && !isEditingCustomer}
+                              >
+                                <option value={1}>🥉 Nivel 1 - Básico</option>
+                                <option value={2}>🥈 Nivel 2 - Estándar</option>
+                                <option value={3}>🥇 Nivel 3 - Premium</option>
+                                <option value={4}>💎 Nivel 4 - VIP</option>
+                              </select>
+                              <div className="form-text">
+                                <small className="text-muted">
+                                  <i className="bi bi-info-circle me-1"></i>
+                                  El nivel determina descuentos y beneficios especiales
+                                </small>
+                              </div>
                             </div>
                           </div>
                         </div>
