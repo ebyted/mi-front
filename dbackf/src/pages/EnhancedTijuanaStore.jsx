@@ -105,6 +105,9 @@ const EnhancedTijuanaStore = ({ user }) => {
   // Monitor showCheckout state changes
   useEffect(() => {
     console.log('🔍 showCheckout cambió a:', showCheckout);
+    if (showCheckout) {
+      console.log('🎬 Modal de checkout debería estar visible ahora');
+    }
   }, [showCheckout]);
 
   const loadFromLocalStorage = () => {
@@ -1861,8 +1864,8 @@ const EnhancedTijuanaStore = ({ user }) => {
           <div 
             className="modal fade show d-block" 
             style={{ 
-              backgroundColor: 'rgba(0,0,0,0.8)', 
-              zIndex: 99999,
+              backgroundColor: 'rgba(255,0,0,0.9)', 
+              zIndex: 999999,
               position: 'fixed',
               top: 0,
               left: 0,
