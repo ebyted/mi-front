@@ -25,28 +25,15 @@ function SalesOrderDetails() {
         api.get('products/')
       ]);
 
-      console.log('=== API RESPONSES DEBUG ===');
-      console.log('Details response:', detailsRes.data);
-      console.log('Orders response:', ordersRes.data);
-      console.log('Products response:', productsRes.data);
-
       // Procesar datos
       const detailsData = Array.isArray(detailsRes.data) ? detailsRes.data : (detailsRes.data.results || []);
       const ordersData = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data.results || []);
       const productsData = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.results || []);
 
-      console.log('=== PROCESSED DATA ===');
-      console.log('Details data:', detailsData);
-      console.log('Orders data:', ordersData);
-      console.log('Products data:', productsData);
-
       // Enriquecer detalles con información de pedidos y productos
       const enrichedDetails = detailsData.map(detail => {
         const order = ordersData.find(o => o.id === detail.sales_order);
         const product = productsData.find(p => p.id === detail.product_variant);
-        
-        console.log(`Detail ${detail.id}: Looking for order ${detail.sales_order}, found:`, order);
-        console.log(`Detail ${detail.id}: Looking for product ${detail.product_variant}, found:`, product);
         
         return {
           ...detail,
@@ -54,9 +41,6 @@ function SalesOrderDetails() {
           product_info: product || { id: detail.product_variant, name: 'Producto desconocido' }
         };
       });
-
-      console.log('=== ENRICHED DETAILS ===');
-      console.log('Enriched details:', enrichedDetails);
 
       setOrderDetails(enrichedDetails);
       setSalesOrders(ordersData);
