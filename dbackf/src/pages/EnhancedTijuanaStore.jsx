@@ -273,7 +273,7 @@ const EnhancedTijuanaStore = ({ user }) => {
     }
   };
 
-  // Funciones de búsqueda de clientes
+  // Funciones de búsqueda de clientes mejoradas
   const searchCustomers = (searchTerm) => {
     if (!searchTerm || searchTerm.length < 2) {
       setFilteredCustomers([]);
@@ -281,15 +281,51 @@ const EnhancedTijuanaStore = ({ user }) => {
       return;
     }
 
-    const filtered = allCustomers.filter(customer => 
-      customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone?.includes(searchTerm) ||
-      customer.address?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    // Función para normalizar texto y quitar acentos
+    const normalizeText = (text) => {
+      if (!text) return '';
+      return text.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s@.-]/g, '');
+    };
 
-    setFilteredCustomers(filtered.slice(0, 10)); // Limitar a 10 resultados
-    setShowCustomerDropdown(filtered.length > 0);
+    const filtered = allCustomers.filter(customer => {
+      // Buscar en nombre
+      const nameMatch = normalizeText(customer.name || '').includes(normalizeText(searchTerm));
+      
+      // Buscar en email
+      const emailMatch = normalizeText(customer.email || '').includes(normalizeText(searchTerm));
+      
+      // Buscar en teléfono (buscar números exactos)
+      const phoneMatch = (customer.phone || '').replace(/\s+/g, '').includes(searchTerm.replace(/\s+/g, ''));
+      
+      // Buscar en dirección
+      const addressMatch = normalizeText(customer.address || '').includes(normalizeText(searchTerm));
+      
+      // Buscar por ID si es número
+      const idMatch = !isNaN(searchTerm) && customer.id.toString().includes(searchTerm);
+      
+      return nameMatch || emailMatch || phoneMatch || addressMatch || idMatch;
+    });
+
+    // Ordenar resultados por relevancia
+    const sortedFiltered = filtered.sort((a, b) => {
+      // Priorizar coincidencias exactas en nombre
+      const aNameExact = normalizeText(a.name || '').startsWith(normalizeText(searchTerm));
+      const bNameExact = normalizeText(b.name || '').startsWith(normalizeText(searchTerm));
+      
+      if (aNameExact && !bNameExact) return -1;
+      if (!aNameExact && bNameExact) return 1;
+      
+      // Luego por nombre alfabético
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    setFilteredCustomers(sortedFiltered.slice(0, 10)); // Limitar a 10 resultados
+    setShowCustomerDropdown(sortedFiltered.length > 0);
   };
 
   const handleCustomerSearch = (value) => {
@@ -883,6 +919,30 @@ const EnhancedTijuanaStore = ({ user }) => {
         .customer-search-item .text-muted i {
           width: 12px;
           text-align: center;
+        }
+        
+        .customer-item:hover {
+          background-color: #f8f9fa !important;
+          transform: translateX(2px);
+        }
+        
+        .form-control:focus {
+          border-color: #007bff;
+          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        
+        .input-group:focus-within {
+          box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+          border-radius: 6px;
+        }
+        
+        .alert-success {
+          background-color: rgba(25, 135, 84, 0.1);
+          border-color: rgba(25, 135, 84, 0.2);
+        }
+        
+        .border-start {
+          border-left-width: 4px !important;
         }
       `}</style>
 
@@ -1535,8 +1595,8 @@ const EnhancedTijuanaStore = ({ user }) => {
                       console.log('🛒 Carrito actual:', cart);
                       console.log('🛒 Total:', getCartTotal());
                       
-                      // Ejecutar la venta directamente
-                      processSale();
+                      // Abrir modal de checkout para búsqueda de cliente
+                      setShowCheckout(true);
                     }}
                     disabled={cart.length === 0 || checkoutLoading}
                   >
@@ -1547,8 +1607,8 @@ const EnhancedTijuanaStore = ({ user }) => {
                       </>
                     ) : (
                       <>
-                        <i className="bi bi-credit-card me-2"></i>
-                        Proceder al checkout ({formatCurrency(getCartTotal())})
+                        <i className="bi bi-person-plus me-2"></i>
+                        Seleccionar Cliente y Finalizar ({formatCurrency(getCartTotal())})
                       </>
                     )}
                   </button>
@@ -1709,88 +1769,193 @@ const EnhancedTijuanaStore = ({ user }) => {
                   ></button>
                 </div>
                 
-                {/* Botón de prueba visible */}
-                <div className="alert alert-info m-3">
-                  <h4>🎯 MODAL DE CHECKOUT ABIERTO</h4>
-                  <p>Si puedes ver este mensaje, el modal está funcionando correctamente.</p>
-                  <button 
-                    className="btn btn-danger btn-lg"
-                    onClick={() => {
-                      console.log('🚫 Cerrando modal con botón de prueba');
-                      setShowCheckout(false);
-                    }}
-                  >
-                    ❌ CERRAR MODAL (PRUEBA)
-                  </button>
-                </div>
-                
                 <div className="modal-body">
                   {/* Resumen del pedido */}
                   <div className="row">
                     <div className="col-md-8">
-                      <h6 className="border-bottom pb-2 mb-3">Información del Cliente</h6>
+                      <h6 className="border-bottom pb-2 mb-3">
+                        <i className="bi bi-person-circle me-2"></i>
+                        Información del Cliente
+                      </h6>
                       
-                      {/* Búsqueda de clientes */}
-                      <div className="mb-3">
-                        <label className="form-label">
-                          <i className="bi bi-search me-2"></i>
+                      {/* Búsqueda de clientes mejorada */}
+                      <div className="mb-4">
+                        <label className="form-label fw-bold">
+                          <i className="bi bi-search me-2 text-primary"></i>
                           Buscar Cliente Existente
                         </label>
                         <div className="position-relative">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={customerSearchTerm}
-                            onChange={(e) => handleCustomerSearch(e.target.value)}
-                            placeholder="Buscar por nombre, email, teléfono o dirección..."
-                            onFocus={() => customerSearchTerm.length >= 2 && setShowCustomerDropdown(true)}
-                          />
-                          {customerSearchTerm && (
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 h-100"
-                              onClick={clearCustomerSelection}
-                              style={{ borderRadius: '0 6px 6px 0' }}
-                            >
-                              <i className="bi bi-x"></i>
-                            </button>
+                          <div className="input-group">
+                            <span className="input-group-text bg-light">
+                              <i className="bi bi-person-search"></i>
+                            </span>
+                            <input
+                              type="text"
+                              className="form-control form-control-lg"
+                              value={customerSearchTerm}
+                              onChange={(e) => handleCustomerSearch(e.target.value)}
+                              placeholder="Escribe nombre, email, teléfono o dirección del cliente..."
+                              onFocus={() => customerSearchTerm.length >= 2 && setShowCustomerDropdown(true)}
+                              style={{ fontSize: '16px' }}
+                            />
+                            {customerSearchTerm && (
+                              <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={clearCustomerSelection}
+                                title="Limpiar búsqueda"
+                              >
+                                <i className="bi bi-x-lg"></i>
+                              </button>
+                            )}
+                          </div>
+                          
+                          {/* Indicador de búsqueda */}
+                          {customerSearchTerm && customerSearchTerm.length >= 2 && (
+                            <div className="mt-2">
+                              <small className="text-muted">
+                                <i className="bi bi-info-circle me-1"></i>
+                                {filteredCustomers.length > 0 
+                                  ? `${filteredCustomers.length} cliente(s) encontrado(s)` 
+                                  : 'No se encontraron clientes con ese criterio'
+                                }
+                              </small>
+                            </div>
                           )}
                           
-                          {/* Dropdown de resultados */}
+                          {/* Dropdown de resultados mejorado */}
                           {showCustomerDropdown && filteredCustomers.length > 0 && (
-                            <div className="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style={{ zIndex: 1000, maxHeight: '300px', overflowY: 'auto' }}>
-                              {filteredCustomers.map(customer => (
+                            <div className="position-absolute w-100 bg-white border rounded-3 shadow-lg mt-1" style={{ zIndex: 1000, maxHeight: '400px', overflowY: 'auto' }}>
+                              <div className="p-2 bg-light border-bottom">
+                                <small className="text-muted fw-bold">
+                                  <i className="bi bi-people me-1"></i>
+                                  Selecciona un cliente:
+                                </small>
+                              </div>
+                              {filteredCustomers.map((customer, index) => (
                                 <div
                                   key={customer.id}
-                                  className="p-3 border-bottom cursor-pointer hover-bg-light"
+                                  className="p-3 border-bottom cursor-pointer hover-bg-light customer-item"
                                   onClick={() => selectCustomer(customer)}
-                                  style={{ cursor: 'pointer' }}
-                                  onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                  onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                                  style={{ 
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    borderLeft: '4px solid transparent'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f8f9fa';
+                                    e.currentTarget.style.borderLeftColor = '#007bff';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'white';
+                                    e.currentTarget.style.borderLeftColor = 'transparent';
+                                  }}
                                 >
-                                  <div className="fw-bold">{customer.name}</div>
-                                  <div className="text-muted small">
-                                    {customer.email && <div><i className="bi bi-envelope me-1"></i>{customer.email}</div>}
-                                    {customer.phone && <div><i className="bi bi-telephone me-1"></i>{customer.phone}</div>}
-                                    {customer.address && <div><i className="bi bi-geo-alt me-1"></i>{customer.address}</div>}
+                                  <div className="d-flex align-items-center">
+                                    <div className="me-3">
+                                      <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                        <i className="bi bi-person-fill"></i>
+                                      </div>
+                                    </div>
+                                    <div className="flex-grow-1">
+                                      <div className="fw-bold text-dark">{customer.name}</div>
+                                      <div className="text-muted small">
+                                        {customer.email && (
+                                          <div className="mb-1">
+                                            <i className="bi bi-envelope me-1 text-primary"></i>
+                                            {customer.email}
+                                          </div>
+                                        )}
+                                        {customer.phone && (
+                                          <div className="mb-1">
+                                            <i className="bi bi-telephone me-1 text-success"></i>
+                                            {customer.phone}
+                                          </div>
+                                        )}
+                                        {customer.address && (
+                                          <div>
+                                            <i className="bi bi-geo-alt me-1 text-warning"></i>
+                                            {customer.address}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <i className="bi bi-chevron-right text-muted"></i>
+                                    </div>
                                   </div>
                                 </div>
                               ))}
+                              {filteredCustomers.length === 10 && (
+                                <div className="p-2 text-center bg-light">
+                                  <small className="text-muted">
+                                    <i className="bi bi-info-circle me-1"></i>
+                                    Mostrando los primeros 10 resultados. Refina tu búsqueda para ver más.
+                                  </small>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
                         
+                        {/* Cliente seleccionado */}
                         {selectedCustomer && (
-                          <div className="alert alert-success mt-2 d-flex align-items-center">
-                            <i className="bi bi-check-circle me-2"></i>
-                            Cliente seleccionado: <strong className="ms-1">{selectedCustomer.name}</strong>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-success ms-auto"
-                              onClick={clearCustomerSelection}
-                            >
-                              Cambiar
-                            </button>
+                          <div className="alert alert-success mt-3 border-start border-4 border-success" style={{ borderLeft: '4px solid #198754 !important' }}>
+                            <div className="d-flex align-items-center">
+                              <div className="me-3">
+                                <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '50px', height: '50px' }}>
+                                  <i className="bi bi-person-check-fill fs-5"></i>
+                                </div>
+                              </div>
+                              <div className="flex-grow-1">
+                                <h6 className="mb-1 text-success">
+                                  <i className="bi bi-check-circle me-2"></i>
+                                  Cliente seleccionado exitosamente
+                                </h6>
+                                <div className="fw-bold text-dark">{selectedCustomer.name}</div>
+                                <div className="text-muted small">
+                                  {selectedCustomer.email && (
+                                    <span className="me-3">
+                                      <i className="bi bi-envelope me-1"></i>
+                                      {selectedCustomer.email}
+                                    </span>
+                                  )}
+                                  {selectedCustomer.phone && (
+                                    <span>
+                                      <i className="bi bi-telephone me-1"></i>
+                                      {selectedCustomer.phone}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div>
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-success btn-sm"
+                                  onClick={clearCustomerSelection}
+                                  title="Cambiar cliente"
+                                >
+                                  <i className="bi bi-arrow-repeat me-1"></i>
+                                  Cambiar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Opción para crear cliente nuevo */}
+                        {!selectedCustomer && customerSearchTerm && customerSearchTerm.length >= 2 && filteredCustomers.length === 0 && (
+                          <div className="alert alert-info mt-3">
+                            <div className="d-flex align-items-center">
+                              <i className="bi bi-info-circle me-3 fs-4 text-info"></i>
+                              <div className="flex-grow-1">
+                                <h6 className="mb-1">No se encontró el cliente</h6>
+                                <p className="mb-2 small">No hay clientes registrados con el criterio "<strong>{customerSearchTerm}</strong>"</p>
+                                <small className="text-muted">
+                                  Puedes completar los campos a continuación para crear un cliente nuevo o continuar como venta sin cliente registrado.
+                                </small>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
