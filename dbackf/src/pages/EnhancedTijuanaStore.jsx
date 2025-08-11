@@ -65,6 +65,12 @@ const EnhancedTijuanaStore = ({ user }) => {
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  
+  // Estados para edición de clientes
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [customerFormErrors, setCustomerFormErrors] = useState({});
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -355,6 +361,104 @@ const EnhancedTijuanaStore = ({ user }) => {
     });
     setCustomerSearchTerm('');
     setShowCustomerDropdown(false);
+    setIsEditingCustomer(false);
+    setCustomerFormErrors({});
+    setShowNewCustomerForm(false);
+  };
+
+  // Funciones para manejo de clientes
+  const validateCustomerData = () => {
+    const errors = {};
+    
+    if (!customerData.name?.trim()) {
+      errors.name = 'El nombre es requerido';
+    }
+    
+    if (customerData.email && !customerData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      errors.email = 'Email no válido';
+    }
+    
+    if (customerData.phone && customerData.phone.length < 10) {
+      errors.phone = 'Teléfono debe tener al menos 10 dígitos';
+    }
+    
+    setCustomerFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const saveCustomer = async () => {
+    if (!validateCustomerData()) {
+      showNotification('Por favor, corrige los errores en el formulario', 'warning');
+      return false;
+    }
+
+    setSavingCustomer(true);
+    
+    try {
+      let response;
+      if (selectedCustomer && isEditingCustomer) {
+        // Actualizar cliente existente
+        response = await api.put(`customers/${selectedCustomer.id}/`, customerData);
+        showNotification('Cliente actualizado exitosamente', 'success');
+      } else {
+        // Crear nuevo cliente
+        response = await api.post('customers/', customerData);
+        showNotification('Cliente creado exitosamente', 'success');
+        
+        // Agregar a la lista de clientes
+        setAllCustomers(prev => [response.data, ...prev]);
+      }
+      
+      // Actualizar cliente seleccionado
+      setSelectedCustomer(response.data);
+      setCustomerSearchTerm(response.data.name);
+      setIsEditingCustomer(false);
+      setShowNewCustomerForm(false);
+      setShowCustomerDropdown(false);
+      
+      return true;
+    } catch (error) {
+      console.error('Error al guardar cliente:', error);
+      const errorMessage = error.response?.data?.message || 'Error al guardar cliente';
+      showNotification(errorMessage, 'error');
+      return false;
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
+
+  const enableCustomerEditing = () => {
+    setIsEditingCustomer(true);
+    setShowNewCustomerForm(true);
+  };
+
+  const cancelCustomerEditing = () => {
+    if (selectedCustomer) {
+      // Restaurar datos originales
+      setCustomerData({
+        name: selectedCustomer.name || '',
+        email: selectedCustomer.email || '',
+        phone: selectedCustomer.phone || '',
+        address: selectedCustomer.address || ''
+      });
+      setIsEditingCustomer(false);
+    } else {
+      // Limpiar formulario nuevo
+      setCustomerData({
+        name: '',
+        email: '',
+        phone: '',
+        address: ''
+      });
+      setShowNewCustomerForm(false);
+    }
+    setCustomerFormErrors({});
+  };
+
+  const startNewCustomer = () => {
+    clearCustomerSelection();
+    setShowNewCustomerForm(true);
+    setIsEditingCustomer(false);
   };
 
   // Filtrar productos
@@ -1797,8 +1901,9 @@ const EnhancedTijuanaStore = ({ user }) => {
                               placeholder="Escribe nombre, email, teléfono o dirección del cliente..."
                               onFocus={() => customerSearchTerm.length >= 2 && setShowCustomerDropdown(true)}
                               style={{ fontSize: '16px' }}
+                              disabled={showNewCustomerForm}
                             />
-                            {customerSearchTerm && (
+                            {customerSearchTerm && !showNewCustomerForm && (
                               <button
                                 type="button"
                                 className="btn btn-outline-secondary"
@@ -1808,6 +1913,14 @@ const EnhancedTijuanaStore = ({ user }) => {
                                 <i className="bi bi-x-lg"></i>
                               </button>
                             )}
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={startNewCustomer}
+                              title="Crear cliente nuevo"
+                            >
+                              <i className="bi bi-person-plus"></i>
+                            </button>
                           </div>
                           
                           {/* Indicador de búsqueda */}
@@ -1928,7 +2041,16 @@ const EnhancedTijuanaStore = ({ user }) => {
                                   )}
                                 </div>
                               </div>
-                              <div>
+                              <div className="d-flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-warning btn-sm"
+                                  onClick={enableCustomerEditing}
+                                  title="Editar cliente"
+                                >
+                                  <i className="bi bi-pencil me-1"></i>
+                                  Editar
+                                </button>
                                 <button
                                   type="button"
                                   className="btn btn-outline-success btn-sm"
@@ -1960,53 +2082,122 @@ const EnhancedTijuanaStore = ({ user }) => {
                         )}
                       </div>
 
+                      {/* Formulario de cliente */}
+                      {(showNewCustomerForm || isEditingCustomer || !selectedCustomer) && (
+                        <div className="border rounded-3 p-3 mb-4" style={{ backgroundColor: '#f8f9fa' }}>
+                          <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h6 className="mb-0">
+                              <i className={`bi ${isEditingCustomer ? 'bi-pencil' : 'bi-person-plus'} me-2 text-primary`}></i>
+                              {isEditingCustomer ? 'Editar Cliente' : 'Datos del Cliente'}
+                            </h6>
+                            {(showNewCustomerForm || isEditingCustomer) && (
+                              <div className="d-flex gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-success btn-sm"
+                                  onClick={saveCustomer}
+                                  disabled={savingCustomer}
+                                >
+                                  {savingCustomer ? (
+                                    <>
+                                      <span className="spinner-border spinner-border-sm me-1"></span>
+                                      Guardando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <i className="bi bi-check me-1"></i>
+                                      Guardar
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-secondary btn-sm"
+                                  onClick={cancelCustomerEditing}
+                                >
+                                  <i className="bi bi-x me-1"></i>
+                                  Cancelar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="row g-3">
+                            <div className="col-md-6">
+                              <label className="form-label fw-bold">
+                                Nombre *
+                                {customerFormErrors.name && (
+                                  <span className="text-danger ms-2 small">
+                                    <i className="bi bi-exclamation-triangle"></i>
+                                    {customerFormErrors.name}
+                                  </span>
+                                )}
+                              </label>
+                              <input
+                                type="text"
+                                className={`form-control ${customerFormErrors.name ? 'is-invalid' : ''}`}
+                                value={customerData.name}
+                                onChange={(e) => handleCustomerDataChange('name', e.target.value)}
+                                placeholder="Nombre completo del cliente"
+                                disabled={selectedCustomer && !isEditingCustomer}
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label fw-bold">
+                                Email
+                                {customerFormErrors.email && (
+                                  <span className="text-danger ms-2 small">
+                                    <i className="bi bi-exclamation-triangle"></i>
+                                    {customerFormErrors.email}
+                                  </span>
+                                )}
+                              </label>
+                              <input
+                                type="email"
+                                className={`form-control ${customerFormErrors.email ? 'is-invalid' : ''}`}
+                                value={customerData.email}
+                                onChange={(e) => handleCustomerDataChange('email', e.target.value)}
+                                placeholder="cliente@email.com"
+                                disabled={selectedCustomer && !isEditingCustomer}
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label fw-bold">
+                                Teléfono
+                                {customerFormErrors.phone && (
+                                  <span className="text-danger ms-2 small">
+                                    <i className="bi bi-exclamation-triangle"></i>
+                                    {customerFormErrors.phone}
+                                  </span>
+                                )}
+                              </label>
+                              <input
+                                type="tel"
+                                className={`form-control ${customerFormErrors.phone ? 'is-invalid' : ''}`}
+                                value={customerData.phone}
+                                onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
+                                placeholder="664-123-4567"
+                                disabled={selectedCustomer && !isEditingCustomer}
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label fw-bold">Dirección</label>
+                              <input
+                                type="text"
+                                className="form-control"
+                                value={customerData.address}
+                                onChange={(e) => handleCustomerDataChange('address', e.target.value)}
+                                placeholder="Dirección completa"
+                                disabled={selectedCustomer && !isEditingCustomer}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="row g-3">
-                        <div className="col-md-6">
-                          <label className="form-label">Nombre</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={customerData.name}
-                            onChange={(e) => handleCustomerDataChange('name', e.target.value)}
-                            placeholder="Nombre del cliente"
-                            disabled={selectedCustomer}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label">Email</label>
-                          <input
-                            type="email"
-                            className="form-control"
-                            value={customerData.email}
-                            onChange={(e) => handleCustomerDataChange('email', e.target.value)}
-                            placeholder="cliente@email.com"
-                            disabled={selectedCustomer}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label">Teléfono</label>
-                          <input
-                            type="tel"
-                            className="form-control"
-                            value={customerData.phone}
-                            onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
-                            placeholder="Teléfono"
-                            disabled={selectedCustomer}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label className="form-label">Dirección</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={customerData.address}
-                            onChange={(e) => handleCustomerDataChange('address', e.target.value)}
-                            placeholder="Dirección"
-                            disabled={selectedCustomer}
-                          />
-                        </div>
                         <div className="col-12">
-                          <label className="form-label">Notas del pedido</label>
+                          <label className="form-label fw-bold">Notas del pedido</label>
                           <textarea
                             className="form-control"
                             rows="3"
@@ -2016,11 +2207,11 @@ const EnhancedTijuanaStore = ({ user }) => {
                           ></textarea>
                         </div>
                         
-                        {!selectedCustomer && (
+                        {!selectedCustomer && !showNewCustomerForm && (
                           <div className="col-12">
                             <div className="alert alert-info">
                               <i className="bi bi-info-circle me-2"></i>
-                              <strong>Tip:</strong> Puedes buscar un cliente existente arriba o crear uno nuevo completando los campos manualmente.
+                              <strong>Tip:</strong> Puedes buscar un cliente existente arriba, crear uno nuevo con el botón <strong>+</strong>, o proceder sin cliente específico.
                             </div>
                           </div>
                         )}
