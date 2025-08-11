@@ -1620,7 +1620,7 @@ const EnhancedTijuanaStore = ({ user }) => {
           <div className="row align-items-center">
             <div className="col-lg-8">
               <h1 className="display-4 fw-bold mb-4">
-                🏪 Tienda TIJUANA Premium
+                🏪 Bienvenido a Tienda Virtual de Sancho Distribuciones 
               </h1>
               <p className="lead mb-4">
                 Explora nuestra selección exclusiva de productos con la mejor calidad y precios. 
