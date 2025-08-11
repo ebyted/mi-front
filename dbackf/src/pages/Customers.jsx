@@ -457,14 +457,14 @@ function Customers() {
                   </div>
 
                   <div className="mb-3">
-                    <label htmlFor="level" className="form-label">
-                      Nivel de Cliente *
+                    <label htmlFor="customer_type" className="form-label">
+                      Tipo de Cliente *
                     </label>
                     <select
                       className="form-select"
-                      id="level"
-                      name="level"
-                      value={formData.level}
+                      id="customer_type"
+                      name="customer_type"
+                      value={formData.customer_type}
                       onChange={handleInputChange}
                     >
                       <option value={1}>Nivel 1 - Básico</option>
@@ -475,7 +475,7 @@ function Customers() {
                     <div className="form-text">
                       <small className="text-muted">
                         <i className="fas fa-info-circle me-1"></i>
-                        El nivel determina los descuentos y beneficios del cliente
+                        El tipo determina los descuentos y beneficios del cliente
                       </small>
                     </div>
                   </div>
