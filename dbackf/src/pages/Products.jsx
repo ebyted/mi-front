@@ -23,7 +23,7 @@ function Products() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
+  const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
   const [formError, setFormError] = useState('');
   const [editId, setEditId] = useState(null);
   
@@ -256,6 +256,7 @@ function Products() {
       barcode: product.barcode || '',
       minimum_stock: product.minimum_stock || '',
       maximum_stock: product.maximum_stock || '',
+      price: product.price || '',
       is_active: product.is_active ?? true,
       group: product.group || ''
     };
@@ -279,6 +280,7 @@ function Products() {
       barcode: '', 
       minimum_stock: '', 
       maximum_stock: '', 
+      price: '',
       is_active: true, 
       group: ''
     });
@@ -430,6 +432,9 @@ function Products() {
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) {
       errors.push('Stock máximo debe ser un número positivo');
     }
+    if (formData.price && (isNaN(formData.price) || parseFloat(formData.price) < 0)) {
+      errors.push('El precio debe ser un número positivo');
+    }
     // Validar que stock máximo sea mayor que mínimo
     if (formData.minimum_stock && formData.maximum_stock) {
       const minStock = parseFloat(formData.minimum_stock);
@@ -456,6 +461,7 @@ function Products() {
         ...formData,
         minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
         maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
+        price: formData.price ? Number(formData.price) : null,
         group: formData.group ? Number(formData.group) : null,
         brand: Number(formData.brand),
         category: Number(formData.category),
@@ -472,7 +478,7 @@ function Products() {
       }
       setShowForm(false);
       setEditId(null);
-      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
+      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
       fetchProducts();
     } catch (err) {
       let errorMessage = 'Error al guardar producto.';
@@ -800,6 +806,18 @@ function Products() {
             />
           </div>
           <div className="mb-3">
+            <input
+              type="number"
+              name="price"
+              className="form-control"
+              placeholder="Precio"
+              step="0.01"
+              min="0"
+              value={formData.price}
+              onChange={handleChange}
+            />
+          </div>
+          <div className="mb-3">
             <label className="form-check-label me-2">Activo</label>
             <input
               type="checkbox"
@@ -836,7 +854,7 @@ function Products() {
             setShowForm(false);
             setEditId(null);
             setFormError('');
-            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
+            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
           }}>
             ✖ Cancelar
           </button>
@@ -883,6 +901,7 @@ function Products() {
                 <th>Categoría</th>
                 {/* <th>Negocio</th> */}
                 <th>Código de barras</th>
+                <th>Precio</th>
                 <th>Stock mínimo</th>
                 <th>Stock máximo</th>
                 <th>Stock por Almacén</th>
@@ -894,7 +913,7 @@ function Products() {
             <tbody>
               {paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="12" className="text-center py-4">
+                  <td colSpan="13" className="text-center py-4">
                     📪 <p className="text-muted mb-0">No hay productos en esta página</p>
                     <small className="text-muted">Intenta navegar a una página anterior</small>
                   </td>
@@ -937,6 +956,15 @@ function Products() {
                     <td>
                       {p.barcode ? (
                         <code className="bg-light px-2 py-1 rounded">{p.barcode}</code>
+                      ) : (
+                        <span className="text-muted">-</span>
+                      )}
+                    </td>
+                    <td>
+                      {p.price ? (
+                        <span className="text-success fw-bold">
+                          ${parseFloat(p.price).toFixed(2)}
+                        </span>
                       ) : (
                         <span className="text-muted">-</span>
                       )}
