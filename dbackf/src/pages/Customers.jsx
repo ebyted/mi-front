@@ -161,19 +161,27 @@ function Customers() {
     try {
       setSaving(true);
       
+      console.log('📤 Enviando datos del cliente:', formData);
+      
       if (editingCustomer) {
         // Actualizar cliente existente
+        console.log('📝 Actualizando cliente ID:', editingCustomer.id);
         await api.put(`/customers/${editingCustomer.id}/`, formData);
       } else {
         // Crear nuevo cliente
-        await api.post('/customers/', formData);
+        console.log('🆕 Creando nuevo cliente');
+        const response = await api.post('/customers/', formData);
+        console.log('✅ Cliente creado exitosamente:', response.data);
       }
       
       closeModal();
       await loadCustomers(); // Recargar la lista
       
     } catch (err) {
-      console.error('Error saving customer:', err);
+      console.error('❌ Error saving customer:', err);
+      console.error('📋 Response data:', err.response?.data);
+      console.error('📋 Response status:', err.response?.status);
+      console.error('📋 Response headers:', err.response?.headers);
       setError(editingCustomer ? 'Error al actualizar cliente' : 'Error al crear cliente');
     } finally {
       setSaving(false);
