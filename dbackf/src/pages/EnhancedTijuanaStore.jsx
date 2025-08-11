@@ -157,7 +157,7 @@ const EnhancedTijuanaStore = ({ user }) => {
           id: stock.product_variant?.id || stock.product_id,
           name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
           sku: stock.product_code || stock.product_variant?.sku || 'N/A',
-          price: parseFloat(stock.product_price || stock.product_variant?.sale_price || 0),
+          price: parseFloat(stock.sale_price || stock.product_variant?.sale_price || 0),
           stock: parseFloat(stock.quantity || 0),
           brand: {
             id: stock.brand_id,
