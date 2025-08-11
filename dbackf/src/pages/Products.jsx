@@ -23,7 +23,7 @@ function Products() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
+  const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
   const [formError, setFormError] = useState('');
   const [editId, setEditId] = useState(null);
   
@@ -75,21 +75,16 @@ function Products() {
           setCurrentBusiness(res.data.business.id || res.data.business);
         }
       })
-      .catch(err => {
-        // Si falla (404 u otro error), intentar obtener el primer business disponible
-        console.warn('Endpoint user/profile/ no disponible:', err.response?.status);
+      .catch(() => {
+        // Si falla, intentar obtener el primer business disponible
         api.get('businesses/')
           .then(res => {
             if (res.data && res.data.length > 0) {
               setCurrentBusiness(res.data[0].id);
-            } else {
-              // Usar business por defecto si no hay ninguno disponible
-              setCurrentBusiness(1);
             }
           })
           .catch(() => {
             console.warn('No se pudo obtener business, usando valor por defecto (1)');
-            setCurrentBusiness(1);
           });
       });
   };
@@ -170,10 +165,7 @@ function Products() {
       // Buscar en código de barras
       const barcodeMatch = normalizeText(p.barcode).includes(searchNormalized);
       
-      // Buscar en precio
-      const priceMatch = p.price && normalizeText(String(p.price)).includes(searchNormalized);
-      
-      matchesSearch = nameMatch || skuMatch || brandMatch || categoryMatch || barcodeMatch || priceMatch;
+      matchesSearch = nameMatch || skuMatch || brandMatch || categoryMatch || barcodeMatch;
     }
     
     // Filtros específicos
@@ -256,8 +248,6 @@ function Products() {
   const handleEdit = product => {
     setFormError('');
     setEditId(product.id);
-    console.log('Editando producto con precio:', product.price, 'tipo:', typeof product.price);
-    console.log('Editando producto con grupo:', product.group, 'tipo:', typeof product.group);
     const editFormData = {
       name: product.name || '',
       sku: product.sku || '',
@@ -266,12 +256,9 @@ function Products() {
       barcode: product.barcode || '',
       minimum_stock: product.minimum_stock || '',
       maximum_stock: product.maximum_stock || '',
-      price: product.price !== null && product.price !== undefined ? product.price : '',
       is_active: product.is_active ?? true,
-      group: product.group !== null && product.group !== undefined ? product.group : ''
+      group: product.group || ''
     };
-    console.log('FormData precio después de asignar:', editFormData.price);
-    console.log('FormData grupo después de asignar:', editFormData.group);
     setFormData(editFormData);
     setShowForm(true);
     setTimeout(() => {
@@ -292,7 +279,6 @@ function Products() {
       barcode: '', 
       minimum_stock: '', 
       maximum_stock: '', 
-      price: '',
       is_active: true, 
       group: ''
     });
@@ -420,26 +406,7 @@ function Products() {
 
   const handleChange = e => {
     const { name, value, type, checked } = e.target;
-    console.log(`Cambio en campo ${name}:`, value, 'tipo:', typeof value);
-    
-    let newValue;
-    if (type === 'checkbox') {
-      newValue = checked;
-    } else if (name === 'price') {
-      // Asegurar que el precio sea tratado como número o string vacía
-      newValue = value === '' ? '' : parseFloat(value) || 0;
-      console.log(`Precio convertido:`, newValue, 'tipo:', typeof newValue);
-    } else if (name === 'group') {
-      // Asegurar que el grupo sea tratado como número o string vacía
-      newValue = value === '' ? '' : parseInt(value) || 0;
-      console.log(`Grupo convertido:`, newValue, 'tipo:', typeof newValue);
-    } else if (name === 'minimum_stock' || name === 'maximum_stock') {
-      newValue = value === '' ? '' : parseInt(value) || 0;
-    } else {
-      newValue = value;
-    }
-    
-    setFormData({ ...formData, [name]: newValue });
+    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
   };
 
   const validateForm = () => {
@@ -463,13 +430,6 @@ function Products() {
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) {
       errors.push('Stock máximo debe ser un número positivo');
     }
-    if (formData.price && (isNaN(formData.price) || parseFloat(formData.price) < 0)) {
-      errors.push('El precio debe ser un número positivo');
-    }
-    // Validar límite máximo razonable para el precio
-    if (formData.price && parseFloat(formData.price) > 99999999) {
-      errors.push('El precio no puede ser mayor a 99,999,999');
-    }
     // Validar que stock máximo sea mayor que mínimo
     if (formData.minimum_stock && formData.maximum_stock) {
       const minStock = parseFloat(formData.minimum_stock);
@@ -490,27 +450,19 @@ function Products() {
     setFormError('');
     if (!validateForm()) return;
     setIsSubmitting(true);
-    
-    // Preparar datos para envío (incluir business dinámico)
-    const dataToSend = {
-      ...formData,
-      minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
-      maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
-      price: formData.price !== '' ? Number(formData.price) : null,
-      group: formData.group ? Number(formData.group) : null,
-      brand: Number(formData.brand),
-      category: Number(formData.category),
-      business: currentBusiness
-    };
-    
     try {
+      // Preparar datos para envío (incluir business dinámico)
+      const dataToSend = {
+        ...formData,
+        minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
+        maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
+        group: formData.group ? Number(formData.group) : null,
+        brand: Number(formData.brand),
+        category: Number(formData.category),
+        business: currentBusiness
+      };
       
-      console.log('FormData antes del envío:', formData);
-      console.log('Precio en formData:', formData.price, 'tipo:', typeof formData.price);
-      console.log('Grupo en formData:', formData.group, 'tipo:', typeof formData.group);
       console.log('Enviando datos del producto:', dataToSend);
-      console.log('Precio en dataToSend:', dataToSend.price, 'tipo:', typeof dataToSend.price);
-      console.log('Grupo en dataToSend:', dataToSend.group, 'tipo:', typeof dataToSend.group);
       
       let response;
       if (editId) {
@@ -518,32 +470,11 @@ function Products() {
       } else {
         response = await api.post('products/', dataToSend);
       }
-      
-      console.log('Producto guardado exitosamente:', response.data);
-      console.log('Precio en respuesta:', response.data.price);
-      console.log('Grupo en respuesta:', response.data.group);
       setShowForm(false);
       setEditId(null);
-      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
+      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
       fetchProducts();
     } catch (err) {
-      console.error('Error completo al guardar producto:', err);
-      console.error('Response data:', err.response?.data);
-      console.error('Response status:', err.response?.status);
-      console.error('Response headers:', err.response?.headers);
-      console.error('Datos que se intentaron enviar:', dataToSend);
-      
-      // Verificar si es problema específico de price o group
-      if (err.response?.data) {
-        console.error('Errores del servidor:', err.response.data);
-        if (err.response.data.price) {
-          console.error('Error específico en price:', err.response.data.price);
-        }
-        if (err.response.data.group) {
-          console.error('Error específico en group:', err.response.data.group);
-        }
-      }
-      
       let errorMessage = 'Error al guardar producto.';
       if (err.response) {
         if (err.response.status === 400) {
@@ -653,7 +584,7 @@ function Products() {
             <input
               type="text"
               className="form-control"
-              placeholder="Buscar por nombre, SKU, marca, categoría o precio..."
+              placeholder="Buscar por nombre, SKU, marca o categoría..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -773,10 +704,7 @@ function Products() {
       )}
       {showForm && (
         <form ref={formRef} className="bg-white p-4 rounded shadow mb-4" onSubmit={handleSubmit} style={{maxWidth: 600}}>
-          <h2 className="mb-3 text-primary">
-            🛠️ {editId ? 'Editar producto' : 'Nuevo producto'} 
-            <small className="text-muted"> {editId ? 'Modificar los datos del producto' : 'Agregar un nuevo producto'}</small>
-          </h2>
+          <h2 className="mb-3">{editId ? 'Editar producto' : 'Nuevo producto'}</h2>
           <div className="mb-3">
             <input
               type="text"
@@ -871,22 +799,6 @@ function Products() {
               onChange={handleChange}
             />
           </div>
-          <div className="mb-3" style={{backgroundColor: '#f8f9fa', padding: '10px', border: '2px solid #007bff', borderRadius: '5px'}}>
-            <label className="form-label fw-bold text-primary">💰 Precio *NUEVO CAMPO*</label>
-            {/* Campo de precio - debe aparecer aquí */}
-            <input
-              type="number"
-              name="price"
-              className="form-control"
-              placeholder="Ingrese el precio del producto (ej: 29.99)"
-              step="0.01"
-              min="0"
-              max="99999999"
-              value={formData.price}
-              onChange={handleChange}
-              style={{border: '2px solid #007bff'}}
-            />
-          </div>
           <div className="mb-3">
             <label className="form-check-label me-2">Activo</label>
             <input
@@ -924,7 +836,7 @@ function Products() {
             setShowForm(false);
             setEditId(null);
             setFormError('');
-            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', price: '', is_active: true, group: '' });
+            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
           }}>
             ✖ Cancelar
           </button>
@@ -971,7 +883,6 @@ function Products() {
                 <th>Categoría</th>
                 {/* <th>Negocio</th> */}
                 <th>Código de barras</th>
-                <th>Precio</th>
                 <th>Stock mínimo</th>
                 <th>Stock máximo</th>
                 <th>Stock por Almacén</th>
@@ -983,7 +894,7 @@ function Products() {
             <tbody>
               {paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="13" className="text-center py-4">
+                  <td colSpan="12" className="text-center py-4">
                     📪 <p className="text-muted mb-0">No hay productos en esta página</p>
                     <small className="text-muted">Intenta navegar a una página anterior</small>
                   </td>
@@ -1026,15 +937,6 @@ function Products() {
                     <td>
                       {p.barcode ? (
                         <code className="bg-light px-2 py-1 rounded">{p.barcode}</code>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td>
-                      {p.price ? (
-                        <span className="text-success fw-bold">
-                          ${parseFloat(p.price).toFixed(2)}
-                        </span>
                       ) : (
                         <span className="text-muted">-</span>
                       )}

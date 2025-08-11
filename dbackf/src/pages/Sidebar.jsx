@@ -4,7 +4,6 @@ import { AuthContext } from "../context/AuthContext.jsx";
 const menuItems = [
   { name: "Dashboard", path: "/dashboard" },
   { name: "Usuarios", path: "/users" },
-  { name: "Clientes", path: "/customers" },
   { name: "Productos", path: "/products" },
   { name: "Almacenes", path: "/warehouses" },
   { name: "Órdenes de Compra", path: "/purchase-orders" },
@@ -15,7 +14,7 @@ const menuItems = [
   { name: "Categorías", path: "/categories" },
   { name: "Marcas", path: "/brands" },
   { name: "Tasas de Cambio", path: "/exchange-rates" },
-  { name: "Tienda", path: "/enhanced-store" },
+  { name: "Tienda", path: "/store" },
 ];
 
 
