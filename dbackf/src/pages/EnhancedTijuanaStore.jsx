@@ -56,13 +56,16 @@ const EnhancedTijuanaStore = ({ user }) => {
     email: '',
     phone: '',
     address: '',
-    level: 1
+    code: '',
+    customer_type: 1
   });
   const [orderNotes, setOrderNotes] = useState('');
   
   // Estados para búsqueda de clientes
   const [allCustomers, setAllCustomers] = useState([]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showCreateCustomer, setShowCreateCustomer] = useState(false);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -101,6 +104,28 @@ const EnhancedTijuanaStore = ({ user }) => {
   useEffect(() => {
     localStorage.setItem('tijuana_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
+
+  // Cargar clientes cuando se abra el checkout
+  useEffect(() => {
+    if (showCheckout) {
+      loadCustomers();
+    }
+  }, [showCheckout]);
+
+  // Filtrar clientes cuando cambie la búsqueda
+  useEffect(() => {
+    if (customerSearch.length >= 2) {
+      const searchLower = customerSearch.toLowerCase();
+      const filtered = allCustomers.filter(customer =>
+        customer.name?.toLowerCase().includes(searchLower) ||
+        customer.email?.toLowerCase().includes(searchLower) ||
+        customer.phone?.includes(customerSearch)
+      );
+      setFilteredCustomers(filtered);
+    } else {
+      setFilteredCustomers([]);
+    }
+  }, [customerSearch, allCustomers]);
 
   // Monitor showCheckout state changes
   useEffect(() => {
@@ -569,6 +594,19 @@ const EnhancedTijuanaStore = ({ user }) => {
     }, 0);
   };
 
+  // Función para cargar todos los clientes
+  const loadCustomers = async () => {
+    try {
+      console.log('📋 Cargando clientes...');
+      const response = await api.get('/customers/');
+      setAllCustomers(response.data || []);
+      console.log('✅ Clientes cargados:', response.data?.length || 0);
+    } catch (error) {
+      console.error('❌ Error cargando clientes:', error);
+      setAllCustomers([]);
+    }
+  };
+
   // Funciones de checkout y venta
   const createOrGetDefaultCustomer = async () => {
     try {
@@ -876,57 +914,394 @@ const EnhancedTijuanaStore = ({ user }) => {
               boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
             }}>
               <h3>👤 Información del Cliente</h3>
-              <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-                Busque un cliente existente o cree uno nuevo
-              </p>
               
-              <div style={{ marginBottom: '1rem' }}>
-                <input
-                  type="text"
-                  placeholder="Buscar cliente por nombre o email..."
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '5px',
-                    fontSize: '1rem'
-                  }}
-                />
-              </div>
+              {!showCreateCustomer ? (
+                <>
+                  <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+                    {selectedCustomer ? 'Cliente seleccionado:' : 'Busque un cliente existente o cree uno nuevo'}
+                  </p>
+                  
+                  {selectedCustomer && (
+                    <div style={{
+                      backgroundColor: '#e7f5e7',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      marginBottom: '1rem',
+                      border: '2px solid #28a745'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h4 style={{ margin: 0, color: '#28a745' }}>{selectedCustomer.name}</h4>
+                          <p style={{ margin: '0.25rem 0', color: '#666' }}>{selectedCustomer.email}</p>
+                          <p style={{ margin: '0.25rem 0', color: '#666' }}>{selectedCustomer.phone}</p>
+                        </div>
+                        <button
+                          onClick={() => setSelectedCustomer(null)}
+                          style={{
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '30px',
+                            height: '30px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-              <div style={{ marginBottom: '1.5rem' }}>
-                <button style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '1rem'
-                }}>
-                  + Crear Nuevo Cliente
-                </button>
-              </div>
+                  {!selectedCustomer && (
+                    <>
+                      <div style={{ marginBottom: '1rem', position: 'relative' }}>
+                        <input
+                          type="text"
+                          placeholder="Buscar cliente por nombre, email o teléfono..."
+                          value={customerSearch}
+                          onChange={(e) => setCustomerSearch(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            border: '1px solid #ddd',
+                            borderRadius: '5px',
+                            fontSize: '1rem'
+                          }}
+                        />
+                        
+                        {/* Dropdown de resultados */}
+                        {filteredCustomers.length > 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: 0,
+                            right: 0,
+                            backgroundColor: 'white',
+                            border: '1px solid #ddd',
+                            borderTop: 'none',
+                            borderRadius: '0 0 5px 5px',
+                            maxHeight: '200px',
+                            overflowY: 'auto',
+                            zIndex: 1000,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+                          }}>
+                            {filteredCustomers.map(customer => (
+                              <div
+                                key={customer.id}
+                                onClick={() => {
+                                  setSelectedCustomer(customer);
+                                  setCustomerSearch('');
+                                  setFilteredCustomers([]);
+                                }}
+                                style={{
+                                  padding: '0.75rem',
+                                  borderBottom: '1px solid #eee',
+                                  cursor: 'pointer',
+                                  transition: 'background-color 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                              >
+                                <div style={{ fontWeight: 'bold' }}>{customer.name}</div>
+                                <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                                  {customer.email} • {customer.phone}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-              <div style={{ marginTop: '2rem' }}>
-                <button 
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    backgroundColor: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold'
-                  }}
-                  disabled={cart.length === 0}
-                >
-                  ✅ Confirmar Venta ({formatCurrency(getCartTotal())})
-                </button>
-              </div>
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <button 
+                          onClick={() => setShowCreateCustomer(true)}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '1rem'
+                          }}
+                        >
+                          + Crear Nuevo Cliente
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                /* Formulario para crear nuevo cliente */
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4>📝 Nuevo Cliente</h4>
+                    <button
+                      onClick={() => {
+                        setShowCreateCustomer(false);
+                        setCustomerData({
+                          name: '',
+                          email: '',
+                          phone: '',
+                          address: '',
+                          code: '',
+                          customer_type: 1
+                        });
+                        setCustomerFormErrors({});
+                      }}
+                      style={{
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '0.5rem 1rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Nombre completo *"
+                      value={customerData.name}
+                      onChange={(e) => setCustomerData({...customerData, name: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: customerFormErrors.name ? '1px solid #dc3545' : '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '1rem'
+                      }}
+                    />
+                    {customerFormErrors.name && (
+                      <small style={{ color: '#dc3545' }}>{customerFormErrors.name}</small>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Código único *"
+                      value={customerData.code}
+                      onChange={(e) => setCustomerData({...customerData, code: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: customerFormErrors.code ? '1px solid #dc3545' : '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '1rem'
+                      }}
+                    />
+                    {customerFormErrors.code && (
+                      <small style={{ color: '#dc3545' }}>{customerFormErrors.code}</small>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <input
+                      type="email"
+                      placeholder="Email *"
+                      value={customerData.email}
+                      onChange={(e) => setCustomerData({...customerData, email: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: customerFormErrors.email ? '1px solid #dc3545' : '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '1rem'
+                      }}
+                    />
+                    {customerFormErrors.email && (
+                      <small style={{ color: '#dc3545' }}>{customerFormErrors.email}</small>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <input
+                      type="tel"
+                      placeholder="Teléfono *"
+                      value={customerData.phone}
+                      onChange={(e) => setCustomerData({...customerData, phone: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: customerFormErrors.phone ? '1px solid #dc3545' : '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '1rem'
+                      }}
+                    />
+                    {customerFormErrors.phone && (
+                      <small style={{ color: '#dc3545' }}>{customerFormErrors.phone}</small>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <textarea
+                      placeholder="Dirección (opcional)"
+                      value={customerData.address}
+                      onChange={(e) => setCustomerData({...customerData, address: e.target.value})}
+                      rows={3}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '1rem',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <select
+                      value={customerData.customer_type}
+                      onChange={(e) => setCustomerData({...customerData, customer_type: parseInt(e.target.value)})}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #ddd',
+                        borderRadius: '5px',
+                        fontSize: '1rem'
+                      }}
+                    >
+                      <option value={1}>🥉 Nivel 1 - Básico</option>
+                      <option value={2}>🥈 Nivel 2 - Estándar</option>
+                      <option value={3}>🥇 Nivel 3 - Premium</option>
+                      <option value={4}>💎 Nivel 4 - VIP</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      // Validar formulario
+                      const errors = {};
+                      if (!customerData.name?.trim()) errors.name = 'Nombre requerido';
+                      if (!customerData.code?.trim()) errors.code = 'Código requerido';
+                      if (!customerData.email?.trim()) errors.email = 'Email requerido';
+                      if (!customerData.phone?.trim()) errors.phone = 'Teléfono requerido';
+                      
+                      setCustomerFormErrors(errors);
+                      
+                      if (Object.keys(errors).length === 0) {
+                        try {
+                          const response = await api.post('/customers/', {
+                            ...customerData,
+                            business: 1 // ID del business por defecto
+                          });
+                          
+                          setSelectedCustomer(response.data);
+                          setShowCreateCustomer(false);
+                          setCustomerData({
+                            name: '',
+                            email: '',
+                            phone: '',
+                            address: '',
+                            code: '',
+                            customer_type: 1
+                          });
+                          showNotification('Cliente creado exitosamente', 'success');
+                          loadCustomers(); // Recargar lista de clientes
+                        } catch (error) {
+                          console.error('Error creando cliente:', error);
+                          showNotification('Error al crear cliente: ' + (error.response?.data?.detail || error.message), 'error');
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    💾 Guardar Cliente
+                  </button>
+                </>
+              )}
+
+              {selectedCustomer && (
+                <div style={{ marginTop: '2rem' }}>
+                  <button 
+                    onClick={async () => {
+                      if (!selectedCustomer) {
+                        showNotification('Debe seleccionar un cliente', 'warning');
+                        return;
+                      }
+
+                      setCheckoutLoading(true);
+                      
+                      try {
+                        // Procesar la venta
+                        const salesOrderData = {
+                          customer: selectedCustomer.id,
+                          warehouse: tijuanaWarehouse?.id || 1,
+                          order_date: new Date().toISOString().split('T')[0],
+                          notes: orderNotes || `Venta realizada desde tienda en línea - Cliente: ${selectedCustomer.name}`,
+                          total_amount: getCartTotal(),
+                          status: 'completed',
+                          items: cart.map(item => ({
+                            product_variant: item.variant_id || item.id,
+                            quantity: item.quantity,
+                            unit_price: item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price,
+                            subtotal: (item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price) * item.quantity
+                          }))
+                        };
+
+                        console.log('📤 Enviando orden de venta:', salesOrderData);
+                        
+                        const response = await api.post('/sales-orders/', salesOrderData);
+                        console.log('✅ Venta procesada:', response.data);
+                        
+                        // Limpiar carrito y cerrar checkout
+                        setCart([]);
+                        localStorage.removeItem('tijuana_cart');
+                        setShowCheckout(false);
+                        setSelectedCustomer(null);
+                        setCustomerSearch('');
+                        
+                        showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id} para ${selectedCustomer.name}`, 'success');
+                        
+                      } catch (error) {
+                        console.error('❌ Error procesando venta:', error);
+                        showNotification('Error al procesar la venta: ' + (error.response?.data?.detail || error.message), 'error');
+                      } finally {
+                        setCheckoutLoading(false);
+                      }
+                    }}
+                    disabled={checkoutLoading || cart.length === 0 || !selectedCustomer}
+                    style={{
+                      width: '100%',
+                      padding: '1rem',
+                      backgroundColor: selectedCustomer ? '#28a745' : '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: selectedCustomer ? 'pointer' : 'not-allowed',
+                      fontSize: '1.1rem',
+                      fontWeight: 'bold',
+                      opacity: checkoutLoading ? 0.7 : 1
+                    }}
+                  >
+                    {checkoutLoading ? (
+                      '⏳ Procesando...'
+                    ) : selectedCustomer ? (
+                      `✅ Confirmar Venta (${formatCurrency(getCartTotal())})`
+                    ) : (
+                      '❌ Seleccione un Cliente'
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
