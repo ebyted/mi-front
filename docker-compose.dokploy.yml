@@ -17,6 +17,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - code_default
 
   backend:
     build:
@@ -37,6 +39,8 @@ services:
       - PYTHONUNBUFFERED=1
     depends_on:
       - sancho_db_v2
+    networks:
+      - code_default
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
@@ -52,6 +56,8 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      - code_default
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
@@ -61,3 +67,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  code_default:
+    external: true
