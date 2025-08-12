@@ -195,7 +195,7 @@ function Users() {
         new_password: newPassword
       });
       
-      alert(`Contraseña restablecida exitosamente para ${selectedUserForPassword.email || selectedUserForPassword.username}`);
+      alert(`Contraseña restablecida exitosamente para ${selectedUserForPassword.email}`);
       resetPasswordModal();
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Error al restablecer contraseña.';
@@ -318,9 +318,6 @@ function Users() {
                         </div>
                         <div>
                           <strong>{u.email}</strong>
-                          {u.username && u.username !== u.email && (
-                            <div className="text-muted small">@{u.username}</div>
-                          )}
                         </div>
                       </div>
                     </td>
@@ -545,7 +542,7 @@ function Users() {
               <div className="modal-body" style={{ background: '#fff', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: '20px', overflow: 'auto', flexGrow: 1 }}>
                 <div className="alert alert-info mb-3">
                   <i className="bi bi-info-circle me-2"></i>
-                  Vas a restablecer la contraseña para: <strong>{selectedUserForPassword?.email || selectedUserForPassword?.username}</strong>
+                  Vas a restablecer la contraseña para: <strong>{selectedUserForPassword?.email}</strong>
                 </div>
                 
                 <form onSubmit={handlePasswordSubmit}>
