@@ -65,6 +65,7 @@ class MenuOption(models.Model):
 
 # User
 class User(AbstractBaseUser, PermissionsMixin):
+    USERNAME_FIELD = 'email'
     email = models.EmailField(unique=True, max_length=255)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
