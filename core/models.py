@@ -77,7 +77,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     groups = models.ManyToManyField(Group, blank=True)
     user_permissions = models.ManyToManyField(Permission, blank=True)
 
-    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
     objects = UserManager()
 
