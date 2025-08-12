@@ -2,8 +2,21 @@ services:
   # Traefik ya está corriendo como contenedor independiente
   # No necesita ser recreado por docker-compose
   
-  # Base de datos ya está corriendo como contenedor independiente
-  # No necesita ser recreada por docker-compose
+  db:
+    image: postgres:15
+    container_name: sancho_db_v2
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: maestro_inventario
+      POSTGRES_USER: maestro
+      POSTGRES_PASSWORD: maestro
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maestro -d maestro_inventario"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   backend:
     build:
@@ -19,80 +32,32 @@ services:
       - DATABASE_PASSWORD=maestro
       - DATABASE_PORT=5432
       - ALLOWED_HOSTS=www.sanchodistribuidora.com,localhost,127.0.0.1
-      - SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
+      - SECRET_KEY=your-secret-key-change-in-production
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
     depends_on:
       - sancho_db_v2
-    networks:
-      - code_default
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=8030"
+
   frontend:
     build:
       context: ./dbackf
       dockerfile: Dockerfile
     container_name: sancho_frontend_v2
     restart: unless-stopped
-    networks:
-      - code_default
-    # depends_on: backend  # Backend es contenedor externo
+    depends_on:
+      - backend
     labels:
-      # Configuración básica de Traefik
       - "traefik.enable=true"
-      - "traefik.docker.network=code_default"
-      
-      # Router para HTTPS (websecure)
       - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      
-      # Router para HTTP (redirección a HTTPS)
-      - "traefik.http.routers.frontend-http.rule=Host(`www.sanchodistribuidora.com`)"
-      - "traefik.http.routers.frontend-http.entrypoints=web"
-      - "traefik.http.routers.frontend-http.middlewares=redirect-to-https@file"
-      
-      # Servicio y puerto
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
-      
-      # Headers de seguridad para nginx
-      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
-      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
-      - "traefik.http.routers.frontend.middlewares=security-headers"
 
-networks:
-  code_default:
-    external: true
-
-# Volúmenes externos manejados independientemente
-
-# ========================================
-# NOTAS DE CONFIGURACIÓN Y TROUBLESHOOTING
-# ========================================
-#
-# CONFIGURACIÓN CRÍTICA:
-# - traefik.docker.network=code_default: OBLIGATORIO para conectividad
-# - container_name: sancho_frontend_v2: Nombre fijo para scripts de deploy
-# - networks: code_default: Misma red que Traefik, Backend y DB
-#
-# DEPLOY COMMANDS:
-# - Deploy completo: ./auto-deploy.sh
-# - Solo frontend: ./deploy-frontend.sh  
-# - Pre-cleanup: ./pre-deploy.sh
-#
-# VERIFICACIÓN POST-DEPLOY:
-# - Estado: docker ps --filter name=sancho_frontend_v2
-# - Web: curl -I https://www.sanchodistribuidora.com
-# - Logs: docker logs sancho_frontend_v2
-#
-# TROUBLESHOOTING:
-# - Error 502/504: Verificar que todos los contenedores estén en code_default
-# - Container conflicts: Usar los scripts de deploy automatizados
-# - SSL issues: Verificar que letsencrypt certresolver esté configurado
-#
-# ÚLTIMA ACTUALIZACIÓN: 2025-08-09
-# ESTADO: PRODUCCIÓN - FUNCIONANDO ✅
+volumes:
+  postgres_data:
