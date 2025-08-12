@@ -42,7 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_active', 'is_staff']
+    fields = ['id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff']
 
 class UserMenuOptionsSerializer(serializers.ModelSerializer):
     """Serializer específico para obtener las opciones de menú del usuario"""

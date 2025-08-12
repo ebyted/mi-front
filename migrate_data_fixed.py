@@ -271,7 +271,7 @@ def migrate_data_from_sqlite():
                 user, created = User.objects.get_or_create(
                     email=email,
                     defaults={
-                        'username': safe_get(row, 'username') or email,
+                        # 'username': safe_get(row, 'username') or email,  # Eliminado, solo email
                         'first_name': safe_get(row, 'first_name'),
                         'last_name': safe_get(row, 'last_name'),
                         'is_active': bool(safe_get(row, 'is_active', True)),
