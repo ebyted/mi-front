@@ -45,7 +45,4 @@ def create_missing_variants_for_existing_products():
                 is_active=product.is_active
             )
 
-try:
-    create_missing_variants_for_existing_products()
-except Exception:
-    pass  # Evitar errores en migraciones o cuando la tabla aún no existe
+    # Ya no se ejecuta automáticamente al importar el módulo. Ejecutar manualmente si se requiere.
