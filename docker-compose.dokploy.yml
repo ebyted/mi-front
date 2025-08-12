@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     environment:
       - DEBUG=False
-      - DATABASE_HOST=sancho_db_v2
+      - DATABASE_HOST=db
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
@@ -38,7 +38,7 @@ services:
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
     depends_on:
-      - sancho_db_v2
+      - db
     networks:
       - code_default
     labels:
