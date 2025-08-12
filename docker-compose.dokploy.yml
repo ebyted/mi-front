@@ -25,7 +25,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: sancho_backend_v2
-    restart: unless-stopped
+    restart: always
     environment:
       - DEBUG=False
       - DATABASE_HOST=sancho_db_v2
