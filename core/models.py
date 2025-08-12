@@ -78,6 +78,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     user_permissions = models.ManyToManyField(Permission, blank=True)
 
     REQUIRED_FIELDS = ['first_name', 'last_name']
+    USERNAME_FIELD = 'email'
     objects = UserManager()
 
     def __str__(self):
