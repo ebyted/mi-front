@@ -66,6 +66,7 @@ class MenuOption(models.Model):
 # User
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, max_length=255)
+    username = models.CharField(max_length=255, unique=False, blank=True, null=True, db_index=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     role = models.ForeignKey(Role, on_delete=models.PROTECT, null=True)
