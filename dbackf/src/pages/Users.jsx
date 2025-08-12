@@ -61,7 +61,6 @@ function Users() {
 
   const filteredUsers = users.filter(u =>
     (u.email?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (u.username?.toLowerCase() || '').includes(search.toLowerCase()) ||
     (u.first_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
     (u.last_name?.toLowerCase() || '').includes(search.toLowerCase())
   );

@@ -39,7 +39,6 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     role = RoleSerializer(read_only=True)
-    username = serializers.CharField(source='email', read_only=True)  # Campo virtual para compatibilidad
 
     class Meta:
         model = User

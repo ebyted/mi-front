@@ -100,7 +100,6 @@ const InventoryMovements = () => {
         m.reference_document || '',
         m.notes || '',
         m.user?.email || '',
-        m.user?.username || '',
         m.user?.name || ''
       ].join(' ').toLowerCase();
       if (!searchFields.includes(searchLower)) return false;
