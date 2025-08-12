@@ -172,9 +172,6 @@ def sincronizar_con_vps():
     restore_cmd = f"""
     ssh {VPS_USER}@{VPS_HOST} "
     # Ajustar estos comandos según los contenedores encontrados:
-    docker exec -i CONTAINER_NAME psql -U USERNAME -c 'DROP DATABASE IF EXISTS DBNAME;'
-    docker exec -i CONTAINER_NAME psql -U USERNAME -c 'CREATE DATABASE DBNAME;'
-    docker exec -i CONTAINER_NAME psql -U USERNAME -d DBNAME < /tmp/{{backup_file}}
     rm /tmp/{{backup_file}}
     "
     """
