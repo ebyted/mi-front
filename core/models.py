@@ -28,8 +28,6 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError('Email is required')
         email = self.normalize_email(email)
-        if 'username' not in extra_fields or not extra_fields.get('username'):
-            extra_fields['username'] = email
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -68,7 +66,6 @@ class MenuOption(models.Model):
 # User
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, max_length=255)
-    username = models.CharField(max_length=255, unique=False, blank=True, null=True, db_index=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     role = models.ForeignKey(Role, on_delete=models.PROTECT, null=True)
@@ -83,9 +80,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
     objects = UserManager()
-    @property
-    def username(self):
-        return self.email
 
     def __str__(self):
         return self.email
