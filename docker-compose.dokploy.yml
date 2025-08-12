@@ -23,7 +23,7 @@ services:
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
     depends_on:
-      - db
+      - sancho_db_v2
     networks:
       - code_default
     labels:
