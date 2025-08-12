@@ -80,6 +80,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
     objects = UserManager()
+    @property
+    def username(self):
+        return self.email
+
     def __str__(self):
         return self.email
 
