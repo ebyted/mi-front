@@ -2,7 +2,7 @@ services:
   # Traefik ya está corriendo como contenedor independiente
   # No necesita ser recreado por docker-compose
   
-  db:
+  sancho_db_v2:
     image: postgres:15
     container_name: sancho_db_v2
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     environment:
       - DEBUG=False
-      - DATABASE_HOST=db
+      - DATABASE_HOST=sancho_db_v2
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
@@ -38,7 +38,7 @@ services:
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
     depends_on:
-      - db
+      - sancho_db_v2
     networks:
       - code_default
     labels:
