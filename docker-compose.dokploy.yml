@@ -41,6 +41,8 @@ services:
       - sancho_db_v2
     networks:
       - maestro_network
+    ports:
+      - "8030:8030"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sancho-backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
