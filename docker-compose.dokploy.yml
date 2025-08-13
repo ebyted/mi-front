@@ -76,3 +76,11 @@ volumes:
 networks:
   maestro_network:
     external: true
+
+certificatesResolvers:
+  le:
+    acme:
+      email: tu-email@dominio.com
+      storage: /acme.json
+      httpChallenge:
+        entryPoint: web
