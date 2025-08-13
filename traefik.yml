@@ -9,7 +9,7 @@ providers:
     exposedByDefault: false
 
 certificatesResolvers:
-  letsencrypt:
+  le:
     acme:
       email: tu-email@dominio.com
       storage: acme.json
