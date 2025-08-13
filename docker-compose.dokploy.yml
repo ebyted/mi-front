@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=postgresql://maestro:maestro@sancho-distribuidora-servicio-db-sancho-w95v0e:5432/maestro_inventario
+      - DATABASE_HOST=sancho-distribuidora-servicio-db-sancho-w95v0e
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
