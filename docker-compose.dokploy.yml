@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=sanchodb-sanchodb-tc6xn8
+      - DATABASE_HOST=sanchodb-sanchodb-tc6xn8.1.ibwdl76zsw52u8hvrbmvexuuc
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
