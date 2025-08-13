@@ -50,8 +50,9 @@ python manage.py collectstatic --noinput
 # Crear superusuario si no existe
 echo "👤 Verificando superusuario..."
 python manage.py shell -c "
-from core.models import User
-if not User.objects.filter(username='admin').exists():
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(email='admin').exists():
     User.objects.create_superuser('admin', 'admin@sanchodistribuidora.com', 'admin123')
     print('✅ Superusuario admin creado')
 else:
