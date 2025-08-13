@@ -25,7 +25,7 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=sancho_db_v2
+      - DATABASE_HOST=sanchodb-sanchodb-tc6xn8
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
@@ -34,8 +34,6 @@ services:
       - SECRET_KEY=your-secret-key-change-in-production
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
-    depends_on:
-      - sancho_db_v2
     networks:
       - maestro_network
     ports:
