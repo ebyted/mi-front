@@ -201,7 +201,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://sanchodistribuidora.com",
-    "https://www.sanchodistribuidora.com"
+    "https://www.sanchodistribuidora.com",
+    "http://sanchodistribuidora.com",
+    "http://www.sanchodistribuidora.com",
+    "http://168.231.67.221",
 ]
 
 CORS_ALLOW_METHODS = [
