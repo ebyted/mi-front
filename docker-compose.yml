@@ -1,4 +1,13 @@
 services:
+  sancho-distribuidora-maestroinventario-sisuvw:
+    image: postgres:15
+    container_name: sancho-distribuidora-maestroinventario-sisuvw
+    environment:
+      - POSTGRES_DB=maestro_inventario
+      - POSTGRES_USER=maestro
+      - POSTGRES_PASSWORD=maestro
+    networks:
+      - maestro_network
   backend:
     build:
       context: .
