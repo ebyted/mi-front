@@ -7,13 +7,13 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=sancho-distribuidora-servicio-db-sancho-w95v0e.1.1s04g1o6oc21jzlofdhetjjvt
+      - DATABASE_HOST=sancho-sancho-distribuidora-maestroinventario-sisuvw
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
       - DATABASE_PORT=5432
       - ALLOWED_HOSTS=www.sanchodistribuidora.com,localhost,127.0.0.1
-      - SECRET_KEY=your-secret-key-change-in-production
+      - SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
     networks:
