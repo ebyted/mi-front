@@ -1,88 +1,37 @@
 services:
-  # =======================
-  # Traefik Reverse Proxy
-  # =======================
-  traefik:
-    image: traefik:v3.0
-    container_name: sancho_traefik_v2
-    restart: unless-stopped
-    command:
-      - --api.dashboard=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-
-      # Entry points
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-
-      # Redirect HTTP to HTTPS
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-
-      # Let's Encrypt (HTTP challenge)
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.letsencrypt.acme.email=admin@sanchodistribuidora.com
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-
-      # Logs
-      - --log.level=INFO
-      - --accesslog=true
-
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"  # Dashboard Traefik
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_letsencrypt:/letsencrypt
-    networks:
-      - sancho_network
-    labels:
-      - traefik.enable=true
-      # Solo Dashboard local sin SSL (ya que no hay DNS para traefik.sanchodistribuidora.com)
-      - traefik.http.routers.dashboard.rule=Host(`localhost`) || Host(`127.0.0.1`) || HostRegexp(`{host:.+}`) && PathPrefix(`/dashboard`)
-      - traefik.http.routers.dashboard.service=api@internal
-      - traefik.http.routers.dashboard.entrypoints=web
-
-  # =======================
-  # Backend (Django API)
-  # =======================
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: sancho_backend_v2
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8030"
-    volumes:
-      - .:/app
-    expose:
-      - "8030"
-    env_file:
-      - .env
-    depends_on:
-      - db
+    restart: always
+    environment:
+      - DEBUG=False
+      - DATABASE_HOST=sancho-sancho-distribuidora-maestroinventario-sisuvw
+      - DATABASE_NAME=maestro_inventario
+      - DATABASE_USER=maestro
+      - DATABASE_PASSWORD=maestro
+      - DATABASE_PORT=5432
+      - ALLOWED_HOSTS=www.sanchodistribuidora.com,localhost,127.0.0.1
+      - SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
+      - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
+      - PYTHONUNBUFFERED=1
     networks:
-      - sancho_network
+      - maestro_network
+    ports:
+      - "8030:8030"
     labels:
-      # Solo www.sanchodistribuidora.com funciona con DNS
-      - traefik.enable=true
-      - traefik.http.routers.backend-alt.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api/`)
-      - traefik.http.routers.backend-alt.priority=20
-      - traefik.http.routers.backend-alt.service=backend
-      - traefik.http.routers.backend-alt.tls.certresolver=letsencrypt
-      - traefik.http.routers.backend-alt.middlewares=cors
-      - traefik.http.services.backend.loadbalancer.server.port=8030
+      - "traefik.enable=true"
+      - "traefik.http.routers.sancho-backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.sancho-backend.entrypoints=websecure"
+      - "traefik.http.routers.sancho-backend.tls.certresolver=le"
+      - "traefik.http.services.sancho-backend.loadbalancer.server.port=8030"
+      - "traefik.http.routers.sancho-backend-http.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.sancho-backend-http.entrypoints=web"
+      - "traefik.http.routers.sancho-backend-http.service=sancho-backend"
+    command: >
+      sh -c "python manage.py collectstatic --noinput && gunicorn maestro_inventario_backend.wsgi:application --bind 0.0.0.0:8030 --workers 3 --timeout 120"
 
-      # CORS
-      - traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,OPTIONS,PUT,POST,DELETE,PATCH
-      - traefik.http.middlewares.cors.headers.accesscontrolallowheaders=*
-      - traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://www.sanchodistribuidora.com,https://sanchodistribuidora.com
-      - traefik.http.middlewares.cors.headers.accesscontrolmaxage=86400
-
-  # =======================
-  # Frontend (Nginx estático)
-  # =======================
   frontend:
     build:
       context: ./dbackf
@@ -92,34 +41,17 @@ services:
     depends_on:
       - backend
     networks:
-      - sancho_network
+      - maestro_network
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)
-      - traefik.http.routers.frontend.priority=10
-      - traefik.http.routers.frontend.tls.certresolver=letsencrypt
-      - traefik.http.routers.frontend.service=frontend
-      - traefik.http.services.frontend.loadbalancer.server.port=80
-
-  # =======================
-  # Database (PostgreSQL)
-  # =======================
-  db:
-    image: postgres:15
-    container_name: sancho_db_v2
-    environment:
-      POSTGRES_DB: maestro_inventario
-      POSTGRES_USER: maestro
-      POSTGRES_PASSWORD: maestro
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    networks:
-      - sancho_network
+      - "traefik.enable=true"
+      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
+      - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
+      - "traefik.http.routers.sancho-frontend.tls.certresolver=le"
+      - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.sancho-frontend-http.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
+      - "traefik.http.routers.sancho-frontend-http.entrypoints=web"
+      - "traefik.http.routers.sancho-frontend-http.service=sancho-frontend"
 
 networks:
-  sancho_network:
+  maestro_network:
     external: true
-
-volumes:
-  postgres_data:
-  traefik_letsencrypt:
