@@ -56,7 +56,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
+      - "traefik.http.routers.sancho-frontend.rule=Host(`168.231.74.214`)"
       - "traefik.http.routers.sancho-frontend.entrypoints=web"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
 
