@@ -62,3 +62,7 @@ services:
     #  - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
       - "traefik.http.routers.sancho-frontend-http.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
+
+networks:
+  maestro_network:
+    driver: bridge
