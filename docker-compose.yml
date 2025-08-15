@@ -65,4 +65,4 @@ services:
 
 networks:
   maestro_network:
-    driver: bridge
+    external: true
