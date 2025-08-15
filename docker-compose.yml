@@ -45,21 +45,21 @@ services:
     command: >
       sh -c "python manage.py collectstatic --noinput && gunicorn maestro_inventario_backend.wsgi:application --bind 0.0.0.0:8030 --workers 3 --timeout 120"
 
-  frontend:
-    build:
-      context: ./dbackf
-      dockerfile: Dockerfile
-    container_name: sancho_frontend_v2
-    restart: unless-stopped
-    depends_on:
-      - backend
-    networks:
-      - maestro_network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
-      - "traefik.http.routers.sancho-frontend.entrypoints=web"
-      - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
+  # frontend:
+  #   build:
+  #     context: ./dbackf
+  #     dockerfile: Dockerfile
+  #   container_name: sancho_frontend_v2
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - maestro_network
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
+  #     - "traefik.http.routers.sancho-frontend.entrypoints=web"
+  #     - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
 
 networks:
   maestro_network:
