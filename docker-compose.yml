@@ -55,15 +55,11 @@ services:
       - backend
     networks:
       - maestro_network
-    ports:
-      - "80:80"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
-      # - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
-    #  - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.sancho-frontend.entrypoints=web"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
-      - "traefik.http.routers.sancho-frontend-http.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
 
 networks:
   maestro_network:
