@@ -7,7 +7,6 @@ RUN npm install
 COPY . .
 ENV VITE_API_URL=https://www.sanchodistribuidora.com/api/
 RUN npm run build
-RUN ls /app/dist
 
 # Production stage
 FROM nginx:alpine
