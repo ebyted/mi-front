@@ -56,8 +56,9 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`168.231.74.214`)"
-      - "traefik.http.routers.sancho-frontend.entrypoints=web"
+      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
+      - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
 
 networks:
