@@ -1,16 +1,16 @@
 services:
-  # db:
-  #   image: postgres:15
-  #   container_name: sancho-distribuidora-maestroinventario-sisuvw
-  #   restart: unless-stopped
-  #   environment:
-  #     - POSTGRES_DB=maestro_inventario
-  #     - POSTGRES_USER=maestro
-  #     - POSTGRES_PASSWORD=maestro
-  #   networks:
-  #     - maestro_network
-  #   ports:
-  #     - "5432:5432"
+  db:
+    image: postgres:15
+    container_name: sancho-distribuidora-maestroinventario-sisuvw
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=maestro_inventario
+      - POSTGRES_USER=maestro
+      - POSTGRES_PASSWORD=maestro
+    networks:
+      - maestro_network
+    ports:
+      - "5432:5432"
 
   backend:
     build:
@@ -20,7 +20,7 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=sancho-distribuidora-maestroinventario-sisuvw
+      - DATABASE_HOST=db
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
