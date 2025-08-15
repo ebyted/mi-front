@@ -55,6 +55,8 @@ services:
       - backend
     networks:
       - maestro_network
+    ports:
+      - "80:80"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/`)"
