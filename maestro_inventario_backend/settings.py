@@ -30,7 +30,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "168.231.67.221",
+    "168.231.74.214",
     "www.sanchodistribuidora.com",
     "sanchodistribuidora.com",
     ".sanchodistribuidora.com",  # Permite cualquier subdominio, incluyendo www
@@ -197,7 +197,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.sanchodistribuidora.com",
     "http://sanchodistribuidora.com",
     "http://www.sanchodistribuidora.com",
-    "http://168.231.67.221",
+    "http://168.231.74.214",
 ]
 
 CORS_ALLOW_METHODS = [
