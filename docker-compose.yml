@@ -20,7 +20,7 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=sancho-distribuidora-maestroinventario-sisuvw
+      - DATABASE_HOST=sancho-distribuidora-maestroinventario-sisuvw.1.zaky7wwh4shp8lo3m66d898l6
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
