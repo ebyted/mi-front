@@ -57,6 +57,7 @@ services:
       - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
       - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.sancho-frontend.middlewares=redirect-to-https@file"
 
 networks:
   maestro_network:
