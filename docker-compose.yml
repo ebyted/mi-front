@@ -53,11 +53,11 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`)"
-      - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
-      - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
-      - "traefik.http.routers.sancho-frontend.middlewares=redirect-to-https@file"
+      - "traefik.http.routers.sancho-frontend1.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.sancho-frontend1.entrypoints=websecure"
+      - "traefik.http.routers.sancho-frontend1.tls.certresolver=letsencrypt"
+      - "traefik.http.services.sancho-frontend1.loadbalancer.server.port=80"
+      - "traefik.http.routers.sancho-frontend1.middlewares=redirect-to-https@file"
 
 networks:
   maestro_network:
