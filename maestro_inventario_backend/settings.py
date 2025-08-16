@@ -198,6 +198,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://sanchodistribuidora.com",
     "http://www.sanchodistribuidora.com",
     "http://168.231.74.214",
+    
 ]
 
 CORS_ALLOW_METHODS = [
