@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=maestro
       - POSTGRES_PASSWORD=maestro
     networks:
-      - maestro_network
+      - dokploy-network
     ports:
       - "5432:5432"
 
@@ -30,7 +30,7 @@ services:
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
     networks:
-      - maestro_network
+      - dokploy-network
     ports:
       - "8030:8030"
     labels:
@@ -47,7 +47,7 @@ services:
     container_name: sancho_frontend_v2
     restart: unless-stopped
     networks:
-      - maestro_network
+      - dokploy-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && !PathPrefix(`/api`)"
@@ -71,8 +71,8 @@ services:
 #      - ./traefik.yml:/etc/dokploy/traefik/traefik.yml:ro
 #      - ./letsencrypt/acme.json:/etc/dokploy/traefik/dynamic/acme.json
 #    networks:
-#      - maestro_network
+#      - dokploy-network
 #
 networks:
-  maestro_network:
+  dokploy-network:
     external: true
