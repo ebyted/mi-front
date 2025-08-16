@@ -52,25 +52,12 @@ services:
       - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && !PathPrefix(`/api`)"
       - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
       - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
+      - "traefik.http.services.sancho-frontend.loadbalancer.server.port=5173"
+      # Router para redirección HTTP -> HTTPS
+      - "traefik.http.routers.sancho-frontend-http.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.sancho-frontend-http.entrypoints=web"
+      - "traefik.http.routers.sancho-frontend-http.middlewares=redirect-to-https@file"
 
-  traefik:
-    image: traefik:v3.0
-    container_name: maestro_traefik
-    restart: unless-stopped
-    command:
-      - --configFile=/etc/dokploy/traefik/traefik.yml
-    ports:
-      - "80:80"
-      - "443:443"
-      - "8080:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./letsencrypt:/letsencrypt
-      - ./traefik.yml:/etc/dokploy/traefik/traefik.yml:ro
-      - ./letsencrypt/acme.json:/etc/dokploy/traefik/dynamic/acme.json
-    networks:
-      - dokploy-network
 networks:
   dokploy-network:
     external: true
