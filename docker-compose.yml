@@ -53,10 +53,6 @@ services:
       - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
       - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=5173"
-      # Router para redirección HTTP -> HTTPS
-      - "traefik.http.routers.sancho-frontend-http.rule=Host(`www.sanchodistribuidora.com`)"
-      - "traefik.http.routers.sancho-frontend-http.entrypoints=web"
-      - "traefik.http.routers.sancho-frontend-http.middlewares=redirect-to-https@file"
 
 networks:
   dokploy-network:
