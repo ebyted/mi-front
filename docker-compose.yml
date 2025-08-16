@@ -1,4 +1,22 @@
 services:
+  traefik:
+    image: traefik:v3.0
+    container_name: maestro_traefik
+    restart: unless-stopped
+    command:
+      - --configFile=/etc/dokploy/traefik/traefik.yml
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+      - ./traefik.yml:/etc/dokploy/traefik/traefik.yml:ro
+      - ./letsencrypt/acme.json:/etc/dokploy/traefik/dynamic/acme.json
+    networks:
+      - maestro_network
+
   db:
     image: postgres:15
     container_name: sancho-distribuidora-maestroinventario-sisuvw
@@ -13,46 +31,29 @@ services:
       - "5432:5432"
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sancho_backend_v2
-    restart: always
-    environment:
-      - DEBUG=False
-      - DATABASE_HOST=db
-      - DATABASE_NAME=maestro_inventario
-      - DATABASE_USER=maestro
-      - DATABASE_PASSWORD=maestro
-      - DATABASE_PORT=5432
-      - ALLOWED_HOSTS=www.sanchodistribuidora.com,localhost,127.0.0.1
-      - SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
-      - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
-      - PYTHONUNBUFFERED=1
-    networks:
-      - maestro_network
-    ports:
-      - "8030:8030"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.sancho-backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.sancho-backend.entrypoints=web"
-      - "traefik.http.routers.sancho-backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.sancho-backend.loadbalancer.server.port=8030"
-    command: >
-      sh -c "python manage.py collectstatic --noinput && gunicorn maestro_inventario_backend.wsgi:application --bind 0.0.0.0:8030 --workers 3 --timeout 120"
-
-  frontend:
-    build: ./dbackf
-    container_name: sancho_frontend_v2
+    image: mi-front-backend:latest
+    container_name: maestro_backend
     restart: unless-stopped
-    networks:
-      - maestro_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && !PathPrefix(`/api`)"
-      - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
-      - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.backend.rule=Host(`api.sanchodistribuidora.com`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+    networks:
+      - maestro_network      
+  frontend:
+    image: mi-front-frontend:latest
+    container_name: maestro_frontend
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+    networks:
+      - maestro_network
 
-  
+
+networks:
+  maestro_network:
+    external: true
