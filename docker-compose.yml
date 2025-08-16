@@ -50,7 +50,7 @@ services:
       - maestro_network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`)"
+      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && !PathPrefix(`/api`)"
       - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
       - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
