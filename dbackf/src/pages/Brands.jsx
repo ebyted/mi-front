@@ -22,7 +22,9 @@ function Brands() {
     api.get('brands/')
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
-        setBrands(data);
+        // Ordenar marcas alfabéticamente por nombre
+        const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
+        setBrands(sortedData);
       })
       .catch(() => {
         setBrands([]);

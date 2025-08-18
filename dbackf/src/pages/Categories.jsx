@@ -23,7 +23,9 @@ function Categories() {
     api.get('categories/')
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
-        setCategories(data);
+        // Ordenar categorías alfabéticamente por nombre
+        const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
+        setCategories(sortedData);
       })
       .catch(() => {
         setCategories([]);
