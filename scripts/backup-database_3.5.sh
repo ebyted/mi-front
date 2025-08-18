@@ -13,7 +13,7 @@ DB_CONTAINER="sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep"
 DB_NAME="maestro_inventario"
 DB_USER="maestro"
 BACKUP_DIR="/tmp"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+TIMESTAMP=$(date +%Y%m%d_%H%M)
 VERSION="v3.5"
 
 # Función para log con timestamp
