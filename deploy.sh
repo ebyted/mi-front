@@ -63,9 +63,13 @@ fi
 print_message "Deteniendo contenedores existentes..."
 docker-compose down --remove-orphans
 
-# Eliminar contenedores con nombres conflictivos si existen
+# Eliminar contenedores con nombres conflictivos si existen (excepto DB)
 print_message "Limpiando contenedores con nombres conflictivos..."
 docker rm -f sancho_backend_v2 sancho_frontend_v2 2>/dev/null || true
+
+# Asegurar que la base de datos existente esté en la red correcta
+print_message "Verificando conexión de base de datos a la red..."
+docker network connect dokploy-network sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep 2>/dev/null || true
 
 # Limpiar imágenes antiguas (opcional)
 read -p "¿Deseas limpiar imágenes Docker antiguas? (y/N): " clean_images

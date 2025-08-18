@@ -1,20 +1,17 @@
 services:
   # IMPORTANTE: Base de datos existente
   # El contenedor sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep ya existe con los datos
-  # Para futuras actualizaciones, usar este servicio:
-  db:
-    image: postgres:15
-    container_name: sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=maestro_inventario
-      - POSTGRES_USER=maestro
-      - POSTGRES_PASSWORD=maestro
-    networks:
-      - dokploy-network
-    # Puerto 5432 no expuesto externamente por seguridad
-    # ports:
-    #   - "5432:5432"
+  # NO se incluye en docker-compose para evitar conflictos
+  # db:
+  #   image: postgres:15
+  #   container_name: sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_DB=maestro_inventario
+  #     - POSTGRES_USER=maestro
+  #     - POSTGRES_PASSWORD=maestro
+  #   networks:
+  #     - dokploy-network
 
   backend:
     build:

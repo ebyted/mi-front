@@ -12,10 +12,14 @@ log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
 }
 
-# 1. Detener todos los contenedores relacionados
+# 1. Detener todos los contenedores relacionados (excepto DB)
 log "📦 Deteniendo contenedores existentes..."
 docker stop sancho_backend_v2 sancho_frontend_v2 2>/dev/null || true
 docker rm sancho_backend_v2 sancho_frontend_v2 2>/dev/null || true
+
+# Asegurar que la base de datos existente esté en la red correcta
+log "🔌 Conectando base de datos a la red dokploy-network..."
+docker network connect dokploy-network sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep 2>/dev/null || true
 
 # 2. Limpiar contenedores huérfanos
 log "🧹 Limpiando contenedores huérfanos..."
