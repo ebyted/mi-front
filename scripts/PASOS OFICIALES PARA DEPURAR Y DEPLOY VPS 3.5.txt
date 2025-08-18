@@ -1,0 +1,55 @@
+Perfecto! Ahora veo el problema. También hay un conflicto con el contenedor de Traefik. Vamos a resolverlo paso a paso. Desde tu terminal del VPS, ejecuta estos comandos:
+
+## Paso 1: Detener y limpiar contenedores conflictivos
+
+```bash
+# Detener contenedores conflictivos
+docker stop traefik sancho_backend_v2 sancho_frontend_v2 2>/dev/null || true
+
+# Remover contenedores conflictivos
+docker rm traefik sancho_backend_v2 sancho_frontend_v2 2>/dev/null || true
+```
+
+## Paso 2: Limpiar contenedores huérfanos
+
+```bash
+# Limpiar contenedores huérfanos
+docker container prune -f
+```
+
+## Paso 3: Conectar la base de datos a la red
+
+```bash
+# Asegurar que la BD esté en la red correcta
+docker network connect dokploy-network sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep 2>/dev/null || true
+```
+
+## Paso 4: Deploy con force-recreate
+
+```bash
+# Ahora hacer el deploy completo
+docker compose -f traefik-docker-compose.yml up -d --force-recreate --remove-orphans
+```
+
+## Si aún tienes problemas, usa esta alternativa:
+
+```bash
+# Alternativa: Deploy paso a paso
+docker compose -f traefik-docker-compose.yml down --remove-orphans
+docker compose -f traefik-docker-compose.yml up -d --build --force-recreate
+```
+
+## Verificar que todo esté funcionando:
+
+```bash
+# Ver el estado de los contenedores
+docker ps | grep -E "(traefik|sancho)"
+
+# Ver los logs de Traefik
+docker logs traefik --tail 10
+
+# Probar conectividad
+curl -I https://www.sanchodistribuidora.com
+```
+
+Ejecuta estos comandos en orden y déjame saber qué resultado obtienes en cada paso.
