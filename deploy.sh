@@ -61,7 +61,11 @@ fi
 
 # Detener contenedores existentes
 print_message "Deteniendo contenedores existentes..."
-docker-compose down
+docker-compose down --remove-orphans
+
+# Eliminar contenedores con nombres conflictivos si existen
+print_message "Limpiando contenedores con nombres conflictivos..."
+docker rm -f sancho_backend_v2 sancho_frontend_v2 2>/dev/null || true
 
 # Limpiar imágenes antiguas (opcional)
 read -p "¿Deseas limpiar imágenes Docker antiguas? (y/N): " clean_images
@@ -72,7 +76,7 @@ fi
 
 # Construir y levantar servicios
 print_message "Construyendo y levantando servicios..."
-docker-compose up --build -d
+docker-compose up --build -d --force-recreate --remove-orphans
 
 # Esperar a que los servicios estén listos
 print_message "Esperando a que los servicios estén listos..."
