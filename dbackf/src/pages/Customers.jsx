@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
+import CreditStatusCard from '../components/CreditStatusCard';
+import CustomerPaymentForm from '../components/CustomerPaymentForm';
 
 const levelBadges = {
 	1: 'bg-secondary',
@@ -19,11 +21,36 @@ function Customers() {
 		address: '',
 		code: '',
 		level: 1,
+		business: 1, // ID del business por defecto
+		customer_type: 1, // ID del customer_type por defecto
+		has_credit: false,
+		credit_limit: 0,
+		credit_days: 30,
+		current_balance: 0,
 	});
 	const [editingId, setEditingId] = useState(null);
 	const [search, setSearch] = useState('');
 	const [page, setPage] = useState(1);
 	const pageSize = 10;
+	
+	// Estados para gestión de crédito
+	const [selectedCustomer, setSelectedCustomer] = useState(null);
+	const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+	// Funciones auxiliares
+	const formatCurrency = (amount) => {
+		return new Intl.NumberFormat('es-MX', {
+			style: 'currency',
+			currency: 'MXN'
+		}).format(amount || 0);
+	};
+
+	const handlePaymentSaved = async () => {
+		// Recargar la lista de clientes para actualizar los saldos
+		await loadCustomers();
+		setShowPaymentModal(false);
+		setSelectedCustomer(null);
+	};
 
 	useEffect(() => {
 		loadCustomers();
@@ -53,6 +80,12 @@ function Customers() {
 			address: customer.address || '',
 			code: customer.code || '',
 			level: customer.level || 1,
+			business: customer.business || 1,
+			customer_type: customer.customer_type || 1,
+			has_credit: customer.has_credit || false,
+			credit_limit: customer.credit_limit || 0,
+			credit_days: customer.credit_days || 30,
+			current_balance: customer.current_balance || 0,
 		});
 		setEditingId(customer.id);
 	};
@@ -66,16 +99,32 @@ function Customers() {
 	const handleSubmit = async e => {
 		e.preventDefault();
 		try {
-			if (editingId) {
-				await api.put(`/customers/${editingId}/`, form);
+		// Preparar datos para enviar al backend
+		const submitData = {
+			name: form.name,
+			email: form.email,
+			phone: form.phone,
+			address: form.address,
+			code: form.code,
+			business: form.business,
+			customer_type: form.customer_type,
+			is_active: true,
+			has_credit: form.has_credit,
+			credit_limit: parseFloat(form.credit_limit) || 0,
+			credit_days: parseInt(form.credit_days) || 30,
+			current_balance: parseFloat(form.current_balance) || 0,
+		};			if (editingId) {
+				await api.put(`/customers/${editingId}/`, submitData);
 			} else {
-				await api.post('/customers/', form);
+				await api.post('/customers/', submitData);
 			}
-			setForm({ name: '', email: '', phone: '', address: '', code: '', level: 1 });
+			setForm({ name: '', email: '', phone: '', address: '', code: '', level: 1, business: 1, customer_type: 1, has_credit: false, credit_limit: 0, credit_days: 30, current_balance: 0 });
 			setEditingId(null);
 			loadCustomers();
 		} catch (err) {
-			setError('Error al guardar el cliente');
+			console.error('Error completo:', err);
+			console.error('Respuesta del servidor:', err.response?.data);
+			setError(`Error al guardar el cliente: ${err.response?.data?.message || err.message}`);
 		}
 	};
 
@@ -116,12 +165,78 @@ function Customers() {
 							<option value={4}>💎 Nivel 4</option>
 						</select>
 					</div>
+					
+					{/* Campos de Crédito */}
+					<div className="col-md-12">
+						<div className="form-check">
+							<input 
+								className="form-check-input" 
+								type="checkbox" 
+								name="has_credit" 
+								checked={form.has_credit} 
+								onChange={(e) => setForm({...form, has_credit: e.target.checked})}
+								id="hasCredit"
+							/>
+							<label className="form-check-label fw-bold text-primary" htmlFor="hasCredit">
+								💳 Cliente con Crédito
+							</label>
+						</div>
+					</div>
+					
+					{form.has_credit && (
+						<>
+							<div className="col-md-3">
+								<label className="form-label small text-muted">Límite de Crédito</label>
+								<div className="input-group">
+									<span className="input-group-text">$</span>
+									<input 
+										name="credit_limit" 
+										type="number" 
+										className="form-control" 
+										placeholder="0.00" 
+										value={form.credit_limit} 
+										onChange={handleChange} 
+										min="0" 
+										step="0.01"
+									/>
+								</div>
+							</div>
+							<div className="col-md-2">
+								<label className="form-label small text-muted">Días de Crédito</label>
+								<input 
+									name="credit_days" 
+									type="number" 
+									className="form-control" 
+									placeholder="30" 
+									value={form.credit_days} 
+									onChange={handleChange} 
+									min="1"
+								/>
+							</div>
+							<div className="col-md-3">
+								<label className="form-label small text-muted">Saldo Actual</label>
+								<div className="input-group">
+									<span className="input-group-text">$</span>
+									<input 
+										name="current_balance" 
+										type="number" 
+										className="form-control" 
+										placeholder="0.00" 
+										value={form.current_balance} 
+										onChange={handleChange} 
+										min="0" 
+										step="0.01"
+									/>
+								</div>
+							</div>
+						</>
+					)}
 					<div className="col-md-2">
 						<button type="submit" className="btn btn-success w-100">{editingId ? 'Actualizar' : 'Crear'}</button>
 					</div>
 					{editingId && (
 						<div className="col-md-2">
-							<button type="button" className="btn btn-secondary w-100" onClick={() => { setEditingId(null); setForm({ name: '', email: '', phone: '', address: '', code: '', level: 1 }); }}>Cancelar</button>
+							<button type="button" className="btn btn-secondary w-100" onClick={() => { setEditingId(null); setForm({ name: '', email: '', phone: '', address: '', code: '', level: 1, business: 1, customer_type: 1, has_credit: false, credit_limit: 0, credit_days: 30, current_balance: 0 }); }}>Cancelar</button>
 						</div>
 					)}
 				</div>
@@ -150,24 +265,97 @@ function Customers() {
 									<th>Nombre</th>
 									<th>Email</th>
 									<th>Teléfono</th>
-									<th>Dirección</th>
 									<th>Código</th>
 									<th>Nivel</th>
+									<th>Crédito</th>
+									<th>Saldo</th>
 									<th>Acciones</th>
 								</tr>
 							</thead>
 							<tbody>
 								{paged.map(c => (
 									<tr key={c.id}>
-										<td>{c.name}</td>
-										<td>{c.email}</td>
-										<td>{c.phone}</td>
-										<td>{c.address}</td>
-										<td>{c.code}</td>
-										<td><span className={`badge ${levelBadges[c.level || 1]}`}>Nivel {c.level || 1}</span></td>
 										<td>
-											<button className="btn btn-sm btn-outline-primary me-2" onClick={() => handleEdit(c)}><i className="bi bi-pencil"></i></button>
-											<button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(c.id)}><i className="bi bi-trash"></i></button>
+											<div className="fw-bold">{c.name}</div>
+											{c.address && <small className="text-muted">{c.address}</small>}
+										</td>
+										<td>
+											<small>{c.email}</small>
+										</td>
+										<td>
+											<small>{c.phone}</small>
+										</td>
+										<td>
+											<code className="small">{c.code}</code>
+										</td>
+										<td>
+											<span className={`badge ${levelBadges[c.level || 1]}`}>
+												Nivel {c.level || 1}
+											</span>
+										</td>
+										<td>
+											{c.has_credit ? (
+												<div>
+													<div className="small text-success fw-bold">
+														💳 ${new Intl.NumberFormat('es-MX').format(c.credit_limit || 0)}
+													</div>
+													<small className="text-muted">{c.credit_days || 0} días</small>
+												</div>
+											) : (
+												<span className="badge bg-secondary">
+													<i className="bi bi-cash me-1"></i>Contado
+												</span>
+											)}
+										</td>
+										<td>
+											{c.has_credit ? (
+												<div className={`small fw-bold ${
+													(c.current_balance || 0) > 0 ? 'text-danger' : 'text-success'
+												}`}>
+													${new Intl.NumberFormat('es-MX', { minimumFractionDigits: 2 }).format(c.current_balance || 0)}
+												</div>
+											) : (
+												<span className="text-muted">-</span>
+											)}
+										</td>
+										<td>
+											<div className="btn-group" role="group">
+												<button 
+													className="btn btn-sm btn-outline-primary" 
+													onClick={() => handleEdit(c)}
+													title="Editar cliente"
+												>
+													<i className="bi bi-pencil"></i>
+												</button>
+												{c.has_credit && (c.current_balance || 0) > 0 && (
+													<button 
+														className="btn btn-sm btn-outline-success" 
+														onClick={() => {
+															setSelectedCustomer(c);
+															setShowPaymentModal(true);
+														}}
+														title="Registrar pago"
+													>
+														<i className="bi bi-cash-coin"></i>
+													</button>
+												)}
+												<button 
+													className="btn btn-sm btn-outline-info"
+													onClick={() => {
+														setSelectedCustomer(c);
+													}}
+													title="Ver detalles de crédito"
+												>
+													<i className="bi bi-eye"></i>
+												</button>
+												<button 
+													className="btn btn-sm btn-outline-danger" 
+													onClick={() => handleDelete(c.id)}
+													title="Eliminar cliente"
+												>
+													<i className="bi bi-trash"></i>
+												</button>
+											</div>
 										</td>
 									</tr>
 								))}
@@ -179,6 +367,110 @@ function Customers() {
 						<button className="btn btn-outline-secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Anterior</button>
 						<span>Página {page} de {totalPages}</span>
 						<button className="btn btn-outline-secondary" disabled={page === totalPages} onClick={() => setPage(page + 1)}>Siguiente</button>
+					</div>
+				</div>
+			)}
+
+			{/* Modal de Estado de Crédito */}
+			{selectedCustomer && !showPaymentModal && (
+				<div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+					<div className="modal-dialog modal-lg">
+						<div className="modal-content">
+							<div className="modal-header">
+								<h5 className="modal-title">
+									💳 Estado de Crédito - {selectedCustomer.name}
+								</h5>
+								<button 
+									type="button" 
+									className="btn-close"
+									onClick={() => setSelectedCustomer(null)}
+								></button>
+							</div>
+							<div className="modal-body">
+								<CreditStatusCard
+									entityName={selectedCustomer.name}
+									hasCredit={selectedCustomer.has_credit}
+									creditLimit={selectedCustomer.credit_limit || 0}
+									currentBalance={selectedCustomer.current_balance || 0}
+									creditDays={selectedCustomer.credit_days || 0}
+									type="customer"
+								/>
+								
+								{selectedCustomer.has_credit && (
+									<div className="mt-4">
+										<h6 className="text-primary mb-3">
+											<i className="bi bi-info-circle me-2"></i>
+											Información del Cliente
+										</h6>
+										<div className="row g-3">
+											<div className="col-md-6">
+												<strong>Email:</strong> {selectedCustomer.email || 'No especificado'}
+											</div>
+											<div className="col-md-6">
+												<strong>Teléfono:</strong> {selectedCustomer.phone || 'No especificado'}
+											</div>
+											<div className="col-md-12">
+												<strong>Dirección:</strong> {selectedCustomer.address || 'No especificada'}
+											</div>
+											<div className="col-md-6">
+												<strong>Código:</strong> <code>{selectedCustomer.code}</code>
+											</div>
+											<div className="col-md-6">
+												<strong>Nivel:</strong> 
+												<span className={`badge ms-2 ${levelBadges[selectedCustomer.level || 1]}`}>
+													Nivel {selectedCustomer.level || 1}
+												</span>
+											</div>
+										</div>
+									</div>
+								)}
+							</div>
+							<div className="modal-footer">
+								{selectedCustomer.has_credit && (selectedCustomer.current_balance || 0) > 0 && (
+									<button 
+										className="btn btn-success"
+										onClick={() => setShowPaymentModal(true)}
+									>
+										<i className="bi bi-cash-coin me-2"></i>
+										Registrar Pago
+									</button>
+								)}
+								<button 
+									className="btn btn-secondary"
+									onClick={() => setSelectedCustomer(null)}
+								>
+									Cerrar
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Modal de Pago - Versión simplificada para clientes */}
+			{showPaymentModal && selectedCustomer && (
+				<div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+					<div className="modal-dialog modal-lg">
+						<div className="modal-content">
+							<div className="modal-header bg-success text-white">
+								<h5 className="modal-title">
+									<i className="bi bi-cash-coin me-2"></i>
+									Registrar Pago - Cliente: {selectedCustomer.name}
+								</h5>
+								<button 
+									type="button" 
+									className="btn-close btn-close-white"
+									onClick={() => setShowPaymentModal(false)}
+								></button>
+							</div>
+							<div className="modal-body">
+								<CustomerPaymentForm 
+									customer={selectedCustomer}
+									onPaymentSaved={handlePaymentSaved}
+									onCancel={() => setShowPaymentModal(false)}
+								/>
+							</div>
+						</div>
 					</div>
 				</div>
 			)}

@@ -10,11 +10,11 @@ const menuItems = [
   { name: "Cotizaciones", path: "/quotations" },
   { name: "Ventas", path: "/sales-orders" },
   { name: "Detalles de Ventas", path: "/sales-order-details" },
+  { name: "Clientes", path: "/customers" },
   { name: "Movimientos", path: "/inventory-movements" },
   { name: "Categorías", path: "/categories" },
   { name: "Marcas", path: "/brands" },
   { name: "Tasas de Cambio", path: "/exchange-rates" },
-  { name: "Tienda", path: "/store" },
   { name: "Tienda Tijuana", path: "/enhanced-store" },
 ];
 

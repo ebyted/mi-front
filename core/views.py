@@ -133,7 +133,7 @@ from .models import (
     Business, Category, Brand, Unit, Product, ProductVariant, Warehouse, ProductWarehouseStock,
     Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem,
     ExchangeRate, CustomerType, Customer, SalesOrder, SalesOrderItem, Quotation, QuotationItem,
-    Role, MenuOption, InventoryMovement, InventoryMovementDetail
+    Role, MenuOption, InventoryMovement, InventoryMovementDetail, CustomerPayment
 )
 
 from .serializers import (
@@ -183,9 +183,32 @@ class UnitViewSet(viewsets.ModelViewSet):
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
 
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q
+
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
+    queryset = Product.objects.select_related('category', 'brand').all()
     serializer_class = ProductSerializer
+    pagination_class = CustomPageNumberPagination
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        search = self.request.query_params.get('search', None)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(sku__icontains=search) |
+                Q(code__icontains=search) |
+                Q(brand__name__icontains=search)
+            ).distinct()
+        
+        return queryset.order_by('name')
 
 class ProductVariantViewSet(viewsets.ModelViewSet):
     queryset = ProductVariant.objects.all()
@@ -561,3 +584,26 @@ class InventoryMovementDetailViewSet(viewsets.ModelViewSet):
     queryset = InventoryMovementDetail.objects.select_related('movement', 'product_variant').all()
     serializer_class = InventoryMovementDetailSerializer
     permission_classes = [IsAuthenticated]
+
+# === VIEWSET PARA PAGOS DE CLIENTES ===
+from .customer_payment_serializer import CustomerPaymentSerializer
+
+class CustomerPaymentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para pagos de clientes (abonos a cuenta)
+    """
+    queryset = CustomerPayment.objects.select_related('customer', 'created_by').order_by('-payment_date')
+    serializer_class = CustomerPaymentSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        """Asignar el usuario actual al crear un pago"""
+        serializer.save(created_by=self.request.user)
+    
+    def get_queryset(self):
+        """Filtrar pagos por cliente si se especifica"""
+        queryset = super().get_queryset()
+        customer_id = self.request.query_params.get('customer_id', None)
+        if customer_id:
+            queryset = queryset.filter(customer_id=customer_id)
+        return queryset

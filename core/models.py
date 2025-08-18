@@ -722,3 +722,58 @@ class SalePayment(models.Model):
         
     def __str__(self):
         return f"Pago {self.sale.sale_number} - ${self.amount}"
+
+
+# CustomerPayment - Pagos directos de clientes (abonos a cuenta)
+class CustomerPayment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('EFECTIVO', 'Efectivo'),
+        ('TRANSFERENCIA', 'Transferencia Bancaria'),
+        ('CHEQUE', 'Cheque'),
+        ('TARJETA', 'Tarjeta'),
+        ('DEPOSITO', 'Depósito Bancario'),
+    ]
+    
+    customer = models.ForeignKey(
+        'Customer', 
+        on_delete=models.CASCADE, 
+        related_name='payments'
+    )
+    payment_date = models.DateTimeField(auto_now_add=True)
+    amount = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)]
+    )
+    payment_method = models.CharField(
+        max_length=20, 
+        choices=PAYMENT_METHOD_CHOICES,
+        default='TRANSFERENCIA'
+    )
+    reference_number = models.CharField(
+        max_length=100, 
+        blank=True,
+        help_text="Número de referencia, folio, etc."
+    )
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True
+    )
+    
+    class Meta:
+        verbose_name = "Pago de Cliente"
+        verbose_name_plural = "Pagos de Clientes"
+        ordering = ['-payment_date']
+        
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Actualizar el saldo del cliente automáticamente
+        self.customer.current_balance -= self.amount
+        if self.customer.current_balance < 0:
+            self.customer.current_balance = 0
+        self.customer.save()
+        
+    def __str__(self):
+        return f"Pago {self.customer.name} - ${self.amount}"

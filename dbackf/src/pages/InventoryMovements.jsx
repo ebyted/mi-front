@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import ProductSelect from '../components/ProductSelect';
 
 const InventoryMovements = () => {
   // Hook para cambiar el título de la pestaña
@@ -11,7 +12,6 @@ const InventoryMovements = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingMovement, setEditingMovement] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
-  const [products, setProducts] = useState([]);
   const [saving, setSaving] = useState(false);
   
   // Estados para modales de autorización y cancelación
@@ -44,7 +44,6 @@ const InventoryMovements = () => {
   useEffect(() => {
     fetchMovements();
     fetchWarehouses();
-    fetchProducts();
   }, []);
 
   const fetchMovements = async () => {
@@ -67,14 +66,7 @@ const InventoryMovements = () => {
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      const response = await api.get('/products/');
-      setProducts(response.data.results || response.data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    }
-  };
+
 
   const fetchMovementDetails = async (movementId) => {
     setLoadingDetails(true);
@@ -586,18 +578,13 @@ const InventoryMovements = () => {
                 <div className="row">
                   <div className="col-md-4 mb-3">
                     <label className="form-label">Producto *</label>
-                    <select
+                    <ProductSelect
                       value={currentDetail.product_id}
-                      onChange={(e) => setCurrentDetail(prev => ({...prev, product_id: e.target.value}))}
-                      className="form-select"
-                    >
-                      <option value="">Seleccionar producto</option>
-                      {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} {product.sku ? `(${product.sku})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(value) => setCurrentDetail(prev => ({...prev, product_id: value}))}
+                      placeholder="Buscar producto por nombre o SKU..."
+                      required
+                      className="w-100"
+                    />
                   </div>
 
                   <div className="col-md-3 mb-3">
