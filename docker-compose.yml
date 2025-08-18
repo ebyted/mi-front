@@ -1,4 +1,7 @@
 services:
+  # IMPORTANTE: Base de datos existente
+  # El contenedor sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep ya existe con los datos
+  # Para futuras actualizaciones, usar este servicio:
   db:
     image: postgres:15
     container_name: sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep
@@ -21,7 +24,7 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=db
+      - DATABASE_HOST=sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
