@@ -9,8 +9,9 @@ services:
       - POSTGRES_PASSWORD=maestro
     networks:
       - dokploy-network
-    ports:
-      - "5432:5432"
+    # Puerto 5432 no expuesto externamente por seguridad
+    # ports:
+    #   - "5432:5432"
 
   backend:
     build:
@@ -25,17 +26,18 @@ services:
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
       - DATABASE_PORT=5432
-      - ALLOWED_HOSTS=www.sanchodistribuidora.com,localhost,127.0.0.1
+      - ALLOWED_HOSTS=www.sanchodistribuidora.com,sanchodistribuidora.com,localhost,127.0.0.1
       - SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
       - PYTHONUNBUFFERED=1
     networks:
       - dokploy-network
-    ports:
-      - "8030:8030"
+    # Puerto 8030 no expuesto directamente, solo a través de Traefik
+    # ports:
+    #   - "8030:8030"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.sancho-backend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.sancho-backend.entrypoints=websecure"
       - "traefik.http.routers.sancho-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.sancho-backend.loadbalancer.server.port=8030"
@@ -47,12 +49,13 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
-    ports:
-      - "80:80"
-      - "443:443"
+    # Puertos no expuestos directamente, solo a través de Traefik
+    # ports:
+    #   - "80:80"
+    #   - "443:443"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && !PathPrefix(`/api`)"
       - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
       - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
