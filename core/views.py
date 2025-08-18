@@ -133,7 +133,7 @@ from .models import (
     Business, Category, Brand, Unit, Product, ProductVariant, Warehouse, ProductWarehouseStock,
     Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem,
     ExchangeRate, CustomerType, Customer, SalesOrder, SalesOrderItem, Quotation, QuotationItem,
-    Role, MenuOption, InventoryMovement, InventoryMovementDetail, CustomerPayment
+    Role, MenuOption, InventoryMovement, InventoryMovementDetail, CustomerPayment, SupplierPayment
 )
 
 from .serializers import (
@@ -606,4 +606,28 @@ class CustomerPaymentViewSet(viewsets.ModelViewSet):
         customer_id = self.request.query_params.get('customer_id', None)
         if customer_id:
             queryset = queryset.filter(customer_id=customer_id)
+        return queryset
+
+
+# === VIEWSET PARA PAGOS DE PROVEEDORES ===
+from .supplier_payment_serializer import SupplierPaymentSerializer
+
+class SupplierPaymentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para pagos a proveedores (abonos a cuenta)
+    """
+    queryset = SupplierPayment.objects.select_related('supplier', 'created_by').order_by('-payment_date')
+    serializer_class = SupplierPaymentSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        """Asignar el usuario actual al crear un pago"""
+        serializer.save(created_by=self.request.user)
+    
+    def get_queryset(self):
+        """Filtrar pagos por proveedor si se especifica"""
+        queryset = super().get_queryset()
+        supplier_id = self.request.query_params.get('supplier_id', None)
+        if supplier_id:
+            queryset = queryset.filter(supplier_id=supplier_id)
         return queryset

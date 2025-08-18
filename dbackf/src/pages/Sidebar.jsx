@@ -11,6 +11,7 @@ const menuItems = [
   { name: "Ventas", path: "/sales-orders" },
   { name: "Detalles de Ventas", path: "/sales-order-details" },
   { name: "Clientes", path: "/customers" },
+  { name: "🏭 Proveedores", path: "/suppliers" },
   { name: "Movimientos", path: "/inventory-movements" },
   { name: "Categorías", path: "/categories" },
   { name: "Marcas", path: "/brands" },
