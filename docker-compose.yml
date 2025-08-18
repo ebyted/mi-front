@@ -37,9 +37,18 @@ services:
     #   - "8030:8030"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-backend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && PathPrefix(`/api`)"
+      # Router para HTTPS
+      - "traefik.http.routers.sancho-backend.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.sancho-backend.entrypoints=websecure"
       - "traefik.http.routers.sancho-backend.tls.certresolver=letsencrypt"
+      # Router para HTTP con redirección automática
+      - "traefik.http.routers.sancho-backend-http.rule=Host(`www.sanchodistribuidora.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.sancho-backend-http.entrypoints=web"
+      - "traefik.http.routers.sancho-backend-http.middlewares=redirect-to-https"
+      # Middleware de redirección
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      # Servicio
       - "traefik.http.services.sancho-backend.loadbalancer.server.port=8030"
     command: sh -c "python manage.py collectstatic --noinput && gunicorn maestro_inventario_backend.wsgi:application --bind 0.0.0.0:8030 --workers 3 --timeout 120"
 
@@ -55,9 +64,15 @@ services:
     #   - "443:443"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`,`sanchodistribuidora.com`) && !PathPrefix(`/api`)"
+      # Router HTTPS para frontend (todas las rutas excepto /api)
+      - "traefik.http.routers.sancho-frontend.rule=Host(`www.sanchodistribuidora.com`) && !PathPrefix(`/api`)"
       - "traefik.http.routers.sancho-frontend.entrypoints=websecure"
       - "traefik.http.routers.sancho-frontend.tls.certresolver=letsencrypt"
+      # Router HTTP con redirección automática
+      - "traefik.http.routers.sancho-frontend-http.rule=Host(`www.sanchodistribuidora.com`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.sancho-frontend-http.entrypoints=web"
+      - "traefik.http.routers.sancho-frontend-http.middlewares=redirect-to-https"
+      # Servicio
       - "traefik.http.services.sancho-frontend.loadbalancer.server.port=80"
 
 networks:
