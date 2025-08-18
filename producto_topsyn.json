@@ -1,0 +1,13 @@
+{
+  "name": "TOPSYN GEL 0.05% 40G",
+  "description": "TOPSYN GEL 0.05% 40G (SYNTEX)",
+  "barcode": "TOPSYNGEL40G",
+  "code": "TOPSYNGEL40",
+  "sku": "TOPSYNGEL40-SYN",
+  "purchase_price": "75.00",
+  "sale_price": "105.00",
+  "category": 25,
+  "brand": 215,
+  "business": 1,
+  "is_active": true
+}

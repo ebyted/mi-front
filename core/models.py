@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class AuditLog(models.Model):
     ACTIONS = [
@@ -125,6 +126,13 @@ class Unit(models.Model):
 
 # Product
 class Product(models.Model):
+    PRODUCT_STATUS_CHOICES = [
+        ('REGULAR', 'Regular'),
+        ('NUEVO', 'Nuevo'),
+        ('OFERTA', 'Oferta'), 
+        ('REMATE', 'Remate'),
+    ]
+    
     business = models.ForeignKey(Business, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True)
@@ -138,6 +146,18 @@ class Product(models.Model):
     image_url = models.URLField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     group = models.IntegerField(default=0)
+    # NUEVOS CAMPOS AGREGADOS
+    cantidad_corrugado = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Cantidad en corrugado"
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=PRODUCT_STATUS_CHOICES,
+        default='REGULAR',
+        help_text="Estado del producto"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
@@ -199,8 +219,39 @@ class Supplier(models.Model):
     contact_person = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
     notes = models.TextField(blank=True)
+    # NUEVOS CAMPOS PARA CRÉDITO MEJORADO
+    has_credit = models.BooleanField(
+        default=False, 
+        help_text="¿El proveedor maneja crédito?"
+    )
+    credit_limit_decimal = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0,
+        help_text="Límite de crédito (nuevo campo decimal)"
+    )
+    credit_days = models.IntegerField(
+        default=0,
+        help_text="Días de crédito"
+    )
+    current_balance = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0,
+        help_text="Saldo actual"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    @property
+    def available_credit(self):
+        return self.credit_limit_decimal - self.current_balance
+        
+    @property
+    def credit_usage_percentage(self):
+        if self.credit_limit_decimal > 0:
+            return (self.current_balance / self.credit_limit_decimal) * 100
+        return 0
     def __str__(self):
         return self.name
 
@@ -337,11 +388,19 @@ class InventoryMovementDetail(models.Model):
     movement = models.ForeignKey(InventoryMovement, on_delete=models.CASCADE, related_name='details')
     product_variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE)
     quantity = models.FloatField(default=0)
-    price = models.DecimalField(max_digits=12, decimal_places=2)
-    total = models.DecimalField(max_digits=12, decimal_places=2)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     lote = models.CharField(max_length=100, blank=True)
     expiration_date = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)  # Agregar campo notes explícitamente
     aux1 = models.CharField(max_length=255, blank=True)
+    
+    def save(self, *args, **kwargs):
+        # Calcular total automáticamente si no se especifica
+        if self.price and self.quantity and not self.total:
+            self.total = self.price * self.quantity
+        super().save(*args, **kwargs)
+    
     def __str__(self):
         return f"{self.product_variant} x {self.quantity}"
 
@@ -371,28 +430,83 @@ class SalesOrderItem(models.Model):
     def __str__(self):
         return f"{self.product_variant} x {self.quantity}"
 
-# Quotation
+# Quotation - IMPLEMENTACIÓN LIMPIA DESDE CERO
 class Quotation(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Borrador'),
+        ('SENT', 'Enviada'),
+        ('APPROVED', 'Aprobada'),
+        ('REJECTED', 'Rechazada'),
+        ('EXPIRED', 'Expirada'),
+    ]
+    
     business = models.ForeignKey(Business, on_delete=models.CASCADE)
-    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
+    # Usar customer_id para ser compatible con DB actual, pero tratar como texto
+    customer_id = models.CharField(max_length=255, help_text="Nombre del cliente como texto libre")
     quote_date = models.DateTimeField()
-    status = models.CharField(max_length=20)
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     exchange = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
+    class Meta:
+        db_table = 'core_quotation'
+        ordering = ['-created_at']
+    
     def __str__(self):
-        return f"Quote {self.id}"
+        return f"Cotización #{self.id} - {self.customer_id}"
+    
+    @property
+    def customer_name(self):
+        """Alias para compatibilidad con frontend"""
+        return self.customer_id
+    
+    @customer_name.setter
+    def customer_name(self, value):
+        """Setter para compatibilidad con frontend"""
+        self.customer_id = value
 
-# QuotationItem
+# QuotationItem - IMPLEMENTACIÓN LIMPIA DESDE CERO  
 class QuotationItem(models.Model):
-    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE)
-    product_variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE)
-    quantity = models.FloatField(default=0)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    total_price = models.DecimalField(max_digits=12, decimal_places=2)
+    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='details')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.FloatField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Precio unitario")
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        db_table = 'core_quotationitem'
+        
     def __str__(self):
-        return f"{self.product_variant} x {self.quantity}"
+        return f"{self.product.name} x {self.quantity}"
+    
+    def save(self, *args, **kwargs):
+        # Asegurar valores mínimos
+        if self.quantity <= 0:
+            self.quantity = 1
+        if self.price < 0:
+            self.price = 0
+        super().save(*args, **kwargs)
+    
+    @property
+    def product_name(self):
+        return self.product.name if self.product else "Producto no especificado"
+    
+    @property  
+    def product_id(self):
+        return self.product.id if self.product else None
+    
+    @property
+    def unit_price(self):
+        """Alias para compatibilidad con frontend"""
+        return self.price
+        
+    @property
+    def total_price(self):
+        """Calcular total automáticamente"""
+        return float(self.quantity) * float(self.price) if self.quantity and self.price else 0
 
 # ExchangeRate
 class ExchangeRate(models.Model):
@@ -424,7 +538,187 @@ class Customer(models.Model):
     address = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     customer_type = models.ForeignKey(CustomerType, on_delete=models.PROTECT)
+    # NUEVOS CAMPOS PARA CRÉDITO
+    has_credit = models.BooleanField(
+        default=False,
+        help_text="¿El cliente tiene crédito?"
+    )
+    credit_limit = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0
+    )
+    credit_days = models.IntegerField(
+        default=0
+    )
+    current_balance = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=0
+    )
+    
     def get_discount(self):
         return self.customer_type.discount_percentage
+    
+    @property
+    def available_credit(self):
+        return self.credit_limit - self.current_balance
+        
+    @property
+    def is_credit_overdue(self):
+        # Lógica para determinar si tiene pagos vencidos
+        return False  # Implementar según reglas de negocio
     def __str__(self):
         return self.name
+
+
+# CustomerProductDiscount - Descuentos por cliente-producto
+class CustomerProductDiscount(models.Model):
+    customer = models.ForeignKey(
+        'Customer', 
+        on_delete=models.CASCADE,
+        related_name='product_discounts'
+    )
+    product = models.ForeignKey(
+        'Product', 
+        on_delete=models.CASCADE,
+        related_name='customer_discounts'
+    )
+    discount_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Porcentaje de descuento (0-100%)"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True,
+        related_name='discounts_created'
+    )
+    
+    class Meta:
+        unique_together = ['customer', 'product']
+        verbose_name = "Descuento Cliente-Producto"
+        verbose_name_plural = "Descuentos Cliente-Producto"
+        
+    def __str__(self):
+        return f"{self.customer.name} - {self.product.name} ({self.discount_percentage}%)"
+
+
+# PurchaseOrderPayment - Pagos de órdenes de compra  
+class PurchaseOrderPayment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('EFECTIVO', 'Efectivo'),
+        ('TRANSFERENCIA', 'Transferencia Bancaria'),
+        ('CHEQUE', 'Cheque'),
+        ('TARJETA', 'Tarjeta'),
+        ('DEPOSITO', 'Depósito Bancario'),
+    ]
+    
+    purchase_order = models.ForeignKey(
+        'PurchaseOrder', 
+        on_delete=models.CASCADE, 
+        related_name='payments'
+    )
+    payment_date = models.DateTimeField(auto_now_add=True)
+    amount = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)]
+    )
+    payment_method = models.CharField(
+        max_length=20, 
+        choices=PAYMENT_METHOD_CHOICES,
+        default='TRANSFERENCIA'
+    )
+    reference_number = models.CharField(
+        max_length=100, 
+        blank=True,
+        help_text="Número de referencia, folio, etc."
+    )
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        'User', 
+        on_delete=models.SET_NULL, 
+        null=True
+    )
+    
+    class Meta:
+        verbose_name = "Pago Orden de Compra"
+        verbose_name_plural = "Pagos Órdenes de Compra"
+        
+    def __str__(self):
+        return f"Pago {self.purchase_order.order_number} - ${self.amount}"
+
+
+# Sale - Ventas
+class Sale(models.Model):
+    SALE_STATUS_CHOICES = [
+        ('DRAFT', 'Borrador'),
+        ('CONFIRMED', 'Confirmada'),
+        ('PAID', 'Pagada'),
+        ('CANCELLED', 'Cancelada'),
+    ]
+    
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
+    sale_number = models.CharField(max_length=20, unique=True)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    remaining_balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    sale_date = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=SALE_STATUS_CHOICES, default='DRAFT')
+    is_paid = models.BooleanField(default=False)
+    created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        verbose_name = "Venta"
+        verbose_name_plural = "Ventas"
+        
+    def save(self, *args, **kwargs):
+        if not self.sale_number:
+            self.sale_number = self.generate_sale_number()
+        self.remaining_balance = self.total_amount - self.paid_amount
+        self.is_paid = self.remaining_balance <= 0
+        super().save(*args, **kwargs)
+        
+    def generate_sale_number(self):
+        from datetime import datetime
+        return f"VTA-{datetime.now().strftime('%Y%m%d')}-{self.pk or 1:04d}"
+        
+    def __str__(self):
+        return f"Venta {self.sale_number} - {self.customer.name}"
+
+
+# SalePayment - Pagos de ventas
+class SalePayment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('EFECTIVO', 'Efectivo'),
+        ('TRANSFERENCIA', 'Transferencia Bancaria'),
+        ('CHEQUE', 'Cheque'),
+        ('TARJETA', 'Tarjeta'),
+        ('DEPOSITO', 'Depósito Bancario'),
+    ]
+    
+    sale = models.ForeignKey('Sale', on_delete=models.CASCADE, related_name='payments')
+    payment_date = models.DateTimeField(auto_now_add=True)
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    payment_method = models.CharField(
+        max_length=20, 
+        choices=PAYMENT_METHOD_CHOICES,
+        default='EFECTIVO'
+    )
+    reference_number = models.CharField(max_length=100, blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
+    
+    class Meta:
+        verbose_name = "Pago de Venta"
+        verbose_name_plural = "Pagos de Ventas"
+        
+    def __str__(self):
+        return f"Pago {self.sale.sale_number} - ${self.amount}"

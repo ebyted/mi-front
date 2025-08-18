@@ -1,0 +1,13 @@
+{
+  "name": "BEDOYECTA CAPSULAS C/30",
+  "description": "BEDOYECTA CAPSULAS C/30",
+  "barcode": "BEDOYECTA30CAP",
+  "code": "BEDOYECTA30",
+  "sku": "BEDOYECTA30-GRO",
+  "purchase_price": "85.00",
+  "sale_price": "120.00",
+  "category": 29,
+  "brand": 217,
+  "business": 1,
+  "is_active": true
+}

@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sancho_backend_local
+    restart: unless-stopped
+    environment:
+      - DEBUG=True
+      - DATABASE_ENGINE=django.db.backends.postgresql
+      - DATABASE_HOST=host.docker.internal
+      - DATABASE_NAME=maestro_inventario
+      - DATABASE_USER=maestro
+      - DATABASE_PASSWORD=maestro123
+      - DATABASE_PORT=5433
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
+      - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8030:8030"
+    command: sh -c "python manage.py runserver 0.0.0.0:8030"
+
+  frontend:
+    build: ./dbackf
+    container_name: sancho_frontend_local
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8030/api/

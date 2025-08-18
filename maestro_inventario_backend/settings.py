@@ -105,6 +105,9 @@ DATABASES = {
             'PASSWORD': DATABASE_PASSWORD,
             'HOST': DATABASE_HOST,
             'PORT': DATABASE_PORT,
+            'OPTIONS': {
+                'options': '-c client_encoding=UTF8'
+            } if DATABASE_ENGINE == 'django.db.backends.postgresql' else {},
         }
     }
 
@@ -191,6 +194,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://localhost:5174",  # Puerto para el frontend actual
     "http://localhost:3000",
     "https://sanchodistribuidora.com",
     "https://www.sanchodistribuidora.com",

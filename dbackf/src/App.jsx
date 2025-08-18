@@ -10,7 +10,7 @@ import Users from './pages/Users';
 import Products from './pages/Products';
 import Warehouses from './pages/Warehouses';
 import PurchaseOrders from './pages/PurchaseOrders';
-import Quotations from './pages/Quotations';
+import QuotationsNew from './pages/QuotationsNew';
 import SalesOrders from './pages/SalesOrders';
 import SalesOrderDetails from './pages/SalesOrderDetails';
 import InventoryMovements from './pages/InventoryMovements';
@@ -78,7 +78,7 @@ function AppContent() {
         <Route path="/products" element={renderWithSidebar(Products)} />
         <Route path="/warehouses" element={renderWithSidebar(Warehouses)} />
         <Route path="/purchase-orders" element={renderWithSidebar(PurchaseOrders)} />
-        <Route path="/quotations" element={renderWithSidebar(Quotations)} />
+        <Route path="/quotations" element={renderWithSidebar(QuotationsNew)} />
         <Route path="/sales-orders" element={renderWithSidebar(SalesOrders)} />
         <Route path="/sales-order-details" element={renderWithSidebar(SalesOrderDetails)} />
         <Route path="/inventory-movements" element={renderWithSidebar(InventoryMovements)} />

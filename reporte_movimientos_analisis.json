@@ -1,0 +1,317 @@
+{
+  "total_movements": 17,
+  "total_details": 101,
+  "movements_by_type": {
+    "INGRESO": 9,
+    "EGRESO": 8
+  },
+  "movements_by_date": {
+    "2025-07-24": 2,
+    "2025-07-25": 2,
+    "2025-07-17": 2,
+    "2025-07-21": 2,
+    "2025-08-05": 2,
+    "2025-08-06": 1,
+    "2025-07-31": 2,
+    "2025-07-20": 1,
+    "2025-08-01": 2,
+    "2025-07-23": 1
+  },
+  "products_summary": {
+    "ACXION 30MG C/30 TABS FENTERMINA (IFA)": {
+      "total_quantity": 50.0,
+      "total_value": 0.0,
+      "movements_count": 2
+    },
+    "ACXION AP 30MG C/30 TABS FENTERMINA (IFA)": {
+      "total_quantity": 44.0,
+      "total_value": 0.0,
+      "movements_count": 2
+    },
+    "ADIOLOL 100MG C/50 + 50 DUO CAPS TRAMADOL (SBL)": {
+      "total_quantity": 64.0,
+      "total_value": 1248.0,
+      "movements_count": 2
+    },
+    "ADIOLOL 100MG C/60 + 60 DUO CAPS TRAMADOL (SBL)": {
+      "total_quantity": 34.0,
+      "total_value": 0.0,
+      "movements_count": 2
+    },
+    "ALIVIAX 550MG C/10 TABS NAPROXENO SODICO (GENOMMA LAB)": {
+      "total_quantity": 25.0,
+      "total_value": 224.75,
+      "movements_count": 2
+    },
+    "ALIN 0.75MG C/30 TABS DEXAMETASONA (CHINOIN)": {
+      "total_quantity": 20.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "AMOXIL 500MG SUSP AMOXICILINA (GLAXO SMITH KLINE)": {
+      "total_quantity": 20.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "AMPICILINA EXHIBIDOR C/100 CAPS (SAIMED)": {
+      "total_quantity": 10.0,
+      "total_value": 239.9,
+      "movements_count": 1
+    },
+    "ARDOSONS C/20 CAPS INDOMETACINA, BETAMETASONA, METOCARBAMOL (SON'S)": {
+      "total_quantity": 9.0,
+      "total_value": 80.91,
+      "movements_count": 2
+    },
+    "ARDOSONS C/20 CAPS INDOMETACINA, BETAMETASONA, METOCARBAMOL (SON'S) EMPAQUE": {
+      "total_quantity": 24.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "AVAPENA 25MG C/20 TABS CLOROPIRAMINA (SANDOZ)": {
+      "total_quantity": 4.0,
+      "total_value": 75.96,
+      "movements_count": 1
+    },
+    "BARMICIL 30G CREMA Betametasona,Gentamicina,Clotrimazol (SON'S)": {
+      "total_quantity": 23.0,
+      "total_value": 0.0,
+      "movements_count": 5
+    },
+    "BEDOYECTA CAPSULAS C/30 (GROSSMAN)": {
+      "total_quantity": 3.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "BEDOYECTA TRI C/5 AMP (GROSSMAN)": {
+      "total_quantity": 213.0,
+      "total_value": 4470.87,
+      "movements_count": 5
+    },
+    "BEDOYECTA TRI C/5 AMP (GROSSMAN) (SIN EMPAQUE)": {
+      "total_quantity": 78.0,
+      "total_value": 0.0,
+      "movements_count": 2
+    },
+    "CANESTEN V 20 MG C/3 OVULOS CLOTRIMAZOL (BAYER)": {
+      "total_quantity": 18.0,
+      "total_value": 0.0,
+      "movements_count": 3
+    },
+    "CANESTEN V 20G CREMA CLOTRIMAZOL (BAYER)": {
+      "total_quantity": 35.0,
+      "total_value": 0.0,
+      "movements_count": 3
+    },
+    "CITRA 100MG C/120 TABS TRAMADOL (VICTORY)": {
+      "total_quantity": 30.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "DIPROSPAN HYPAK AMP 1ML (SCHERING-PLOUGH)": {
+      "total_quantity": 16.0,
+      "total_value": 511.84,
+      "movements_count": 1
+    },
+    "DOLO-NEORUBIÓN DC C/3 AMP (MERCK)": {
+      "total_quantity": 982.0,
+      "total_value": 33378.18,
+      "movements_count": 9
+    },
+    "DOLO-NEORUBIÓN DC C/3 AMP (MERCK) (EMPAQUE)": {
+      "total_quantity": 16.0,
+      "total_value": 0.0,
+      "movements_count": 2
+    },
+    "DOLO-NEUROBION DC FORTE INY (MERCK)": {
+      "total_quantity": 113.0,
+      "total_value": 0.0,
+      "movements_count": 6
+    },
+    "DOLO-NEUROBION FORTE C/30 TABS (MERCK)": {
+      "total_quantity": 39.0,
+      "total_value": 0.0,
+      "movements_count": 4
+    },
+    "ERISPAN C/1 AMP Y JERINGA BETAMETASONA (MAVER)": {
+      "total_quantity": 10.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "FARMAPRAM 2MG C/90 TABS ALPRAZOLAM (IFA CELTICS)": {
+      "total_quantity": 15.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "GELMICIN 40G Betametasona,Gentamicina,Clotrimazol (COLLINS)": {
+      "total_quantity": 148.0,
+      "total_value": 0.0,
+      "movements_count": 3
+    },
+    "GELMICIN 40G Betametasona,Gentamicina,Clotrimazol (COLLINS) (SIN EMPAQUE)": {
+      "total_quantity": 80.0,
+      "total_value": 239.2,
+      "movements_count": 1
+    },
+    "MELOX PLUS CEREZA 360ML ALUMINIO, MAGNESIO, DIMETICONA (SANOFI)": {
+      "total_quantity": 6.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "METAX C/3 AMP DEXAMETASONA (SONS)": {
+      "total_quantity": 10.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "MICROGYNON C/21 TABLETAS (BAYER)": {
+      "total_quantity": 30.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "NEO-MELUBRINA JBE INF 100ML (SANOFI AVENTIS)": {
+      "total_quantity": 3.0,
+      "total_value": 44.97,
+      "movements_count": 1
+    },
+    "NEO-MELUBRINA TABS 500MG C/10 TAB METAMIZOL SODICO (SANOFI AVENTIS)": {
+      "total_quantity": 15.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "NESAJAR C/16 CAPS PINAVERIO / DIMETICONA (GEL PHARMA)": {
+      "total_quantity": 5.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "NIKSON C/90 TABS (GENOMMA LAB)": {
+      "total_quantity": 30.0,
+      "total_value": 1049.7,
+      "movements_count": 1
+    },
+    "NISTATINA (Alpharma) SUSP. Fco./Gotero 24 ML. 100,000 UI/1 ML. ALPHARMA": {
+      "total_quantity": 4.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "NORDET C/21 TABLETAS (PFIZER)": {
+      "total_quantity": 5.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "PENIXILIN 500MG 800,000 UI C/100 CAPS PENICILINA (HEALTHTEC)": {
+      "total_quantity": 20.0,
+      "total_value": 699.8,
+      "movements_count": 1
+    },
+    "PENPROCILINA 800,000 U INY BENCILPENICILINA PROCAINA (LAKESIDE)": {
+      "total_quantity": 18.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "PENTIBROXIL 250MG SUSP. AMOXICILINA / AMBROXOL (MAVER)": {
+      "total_quantity": 20.0,
+      "total_value": 159.8,
+      "movements_count": 1
+    },
+    "PENTIBROXIL 500MG C/16 CAPS AMOXICILINA / AMBROXOL (MAVER)": {
+      "total_quantity": 15.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "PENTREXYL 500MG C/28 CAPS AMPICILINA (ASPEN)": {
+      "total_quantity": 64.0,
+      "total_value": 1215.36,
+      "movements_count": 1
+    },
+    "PIRIMIR 100MG C/24 TABS (MEDLEY)": {
+      "total_quantity": 3.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "POTA-VI-KIN 800,000 U C/40 TAB PENICILINA (COLLINS)": {
+      "total_quantity": 206.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "POSTDAY C/1 COMPRIMIDOS 1.5MG (INV FARMACÉUTICAS)": {
+      "total_quantity": 2.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "QUADRIDERM NF CREMA 30G (SANFER)": {
+      "total_quantity": 2.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "RIOPAN GEL ANTIACIDO 250ML (TAKEDA)": {
+      "total_quantity": 20.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "SALUDIN OTICO 10ML (PISA)": {
+      "total_quantity": 10.0,
+      "total_value": 99.9,
+      "movements_count": 1
+    },
+    "TEMPRA PEDIATRICO 100ML PARACETAMOL (BRISTOL-MYERS SQUIBB)": {
+      "total_quantity": 33.0,
+      "total_value": 461.66999999999996,
+      "movements_count": 2
+    },
+    "TERRAMICINA 10G OFTALMICA OXITETRACICLINA-POLIMIXINA B (PFIZER)": {
+      "total_quantity": 92.0,
+      "total_value": 719.4,
+      "movements_count": 3
+    },
+    "TERRA-TROCISCOS 15MG C/18 PAST (RRX)": {
+      "total_quantity": 5.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "TESALON TESACOF ADULTO CEREZA 100ML (NOVARTIS)": {
+      "total_quantity": 5.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "TOPSYN GEL 0.05% 40G (SYNTEX)": {
+      "total_quantity": 1.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "TRAMED RV 100MG C/60 + 60 CAPS DUO TRAMADOL (BAJAMED)": {
+      "total_quantity": 10.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "TRIXONA 1.0G INY I.M CEFTRIAXONA (BRULUAGSA)": {
+      "total_quantity": 15.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "TRIBEDOCE DX C/3 AMP (BRULUART)": {
+      "total_quantity": 3.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "VERMOX 100MG C/6 TABS MEBENDAZOL (JANSSEN-CILAG)": {
+      "total_quantity": 6.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    },
+    "VERMOX 10ML 1 DIA CEREZA MEBENDAZOL (JANSSEN)": {
+      "total_quantity": 10.0,
+      "total_value": 89.9,
+      "movements_count": 1
+    },
+    "VOLFENAC RETARD 100MG C/20 TABS DICLOFENACO (COLLINS)": {
+      "total_quantity": 29.0,
+      "total_value": 0.0,
+      "movements_count": 2
+    },
+    "ZISUAL-C 30G UNG RECTAL C/6 CANULAS LIDOCAINA/ HIDROCORTISONA (SONS)": {
+      "total_quantity": 2.0,
+      "total_value": 0.0,
+      "movements_count": 1
+    }
+  }
+}

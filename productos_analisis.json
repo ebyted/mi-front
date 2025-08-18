@@ -1,0 +1,400 @@
+{
+  "found": [
+    {
+      "csv_name": "ACXION 30MG C/30 TABS FENTERMINA (IFA)",
+      "api_name": "ACXION 30MG C/30 TABS FENTERMINA (IFA)",
+      "api_id": 10174,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "CITRA 100MG C/120 TABS TRAMADOL (VICTORY)",
+      "api_name": "CITRA 100MG C/120 TABS TRAMADOL (VICTORY)                  ",
+      "api_id": 10472,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "DIPROSPAN HYPAK AMP 1ML (SCHERING-PLOUGH)",
+      "api_name": "DIPROSPAN HYPAK AMP 1ML (SCHERING-PLOUGH)",
+      "api_id": 11166,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "DOLO-NEUROBION DC FORTE INY (MERCK)",
+      "api_name": "DOLO-NEUROBION DC FORTE INY (MERCK)",
+      "api_id": 11188,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "DOLO-NEUROBION FORTE C/30 TABS (MERCK)",
+      "api_name": "DOLO-NEUROBION FORTE C/30 TABS (MERCK)",
+      "api_id": 11189,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "ERISPAN C/1 AMP Y JERINGA BETAMETASONA (MAVER)",
+      "api_name": "ERISPAN  C/1 AMP Y JERINGA BETAMETASONA (MAVER)",
+      "api_id": 11246,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "FARMAPRAM 2MG C/90 TABS ALPRAZOLAM (IFA CELTICS)",
+      "api_name": "FARMAPRAM 2MG C/90 TABS ALPRAZOLAM (IFA CELTICS)",
+      "api_id": 10651,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "MELOX PLUS CEREZA 360ML ALUMINIO, MAGNESIO, DIMETICONA (SANOFI)",
+      "api_name": "MELOX PLUS CEREZA 360ML ALUMINIO, MAGNESIO, DIMETICONA (SANOFI)                  ",
+      "api_id": 11815,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "MICROGYNON C/21 TABLETAS (BAYER)",
+      "api_name": "MICROGYNON C/21 TABLETAS (BAYER)                  ",
+      "api_id": 11860,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "NEO-MELUBRINA JBE INF 100ML (SANOFI AVENTIS)",
+      "api_name": "NEO-MELUBRINA JBE INF 100ML (SANOFI AVENTIS)      ",
+      "api_id": 11918,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "NEO-MELUBRINA TABS 500MG C/10 TAB METAMIZOL SODICO (SANOFI AVENTIS)",
+      "api_name": "NEO-MELUBRINA TABS 500MG C/10 TAB METAMIZOL SODICO (SANOFI AVENTIS)",
+      "api_id": 11919,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "NESAJAR C/16 CAPS PINAVERIO / DIMETICONA (GEL PHARMA)",
+      "api_name": "NESAJAR C/16 CAPS  PINAVERIO / DIMETICONA  (GEL PHARMA)",
+      "api_id": 11921,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "NIKSON C/90 TABS (GENOMMA LAB)",
+      "api_name": "NIKSON C/90 TABS (GENOMMA LAB)                ",
+      "api_id": 11932,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "NORDET C/21 TABLETAS (PFIZER)",
+      "api_name": "NORDET C/21 TABLETAS (PFIZER)                     ",
+      "api_id": 11959,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "PENPROCILINA 800,000 U INY BENCILPENICILINA PROCAINA (LAKESIDE)",
+      "api_name": "PENPROCILINA 800,000 U INY BENCILPENICILINA PROCAINA  (LAKESIDE)",
+      "api_id": 10719,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "PENTIBROXIL 250MG SUSP. AMOXICILINA / AMBROXOL (MAVER)",
+      "api_name": "PENTIBROXIL 250MG SUSP.  AMOXICILINA / AMBROXOL (MAVER)",
+      "api_id": 10688,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "PENTIBROXIL 500MG C/16 CAPS AMOXICILINA / AMBROXOL (MAVER)",
+      "api_name": "PENTIBROXIL 500MG C/16 CAPS AMOXICILINA / AMBROXOL  (MAVER)",
+      "api_id": 10689,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "PIRIMIR 100MG C/24 TABS (MEDLEY)",
+      "api_name": "PIRIMIR 100MG C/24 TABS (MEDLEY)                  ",
+      "api_id": 12079,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "POTA-VI-KIN 800,000 U C/40 TAB PENICILINA (COLLINS)",
+      "api_name": "POTA-VI-KIN 800,000 U C/40 TAB PENICILINA (COLLINS)",
+      "api_id": 10721,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "RIOPAN GEL ANTIACIDO 250ML (TAKEDA)",
+      "api_name": "RIOPAN GEL ANTIACIDO 250ML (TAKEDA)               ",
+      "api_id": 12225,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "TEMPRA PEDIATRICO 100ML PARACETAMOL (BRISTOL-MYERS SQUIBB)",
+      "api_name": "TEMPRA PEDIATRICO 100ML PARACETAMOL (BRISTOL-MYERS SQUIBB)",
+      "api_id": 12458,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "TERRAMICINA 10G OFTALMICA OXITETRACICLINA-POLIMIXINA B (PFIZER)",
+      "api_name": "TERRAMICINA 10G OFTALMICA OXITETRACICLINA-POLIMIXINA B (PFIZER)",
+      "api_id": 12467,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "TERRA-TROCISCOS 15MG C/18 PAST (RRX)",
+      "api_name": "TERRA-TROCISCOS 15MG C/18 PAST (RRX)              ",
+      "api_id": 12471,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "TESALON TESACOF ADULTO CEREZA 100ML (NOVARTIS)",
+      "api_name": "TESALON TESACOF ADULTO CEREZA 100ML (NOVARTIS)    ",
+      "api_id": 12483,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "TRIBEDOCE DX C/3 AMP (BRULUART)",
+      "api_name": "TRIBEDOCE DX C/3 AMP (BRULUART)                   ",
+      "api_id": 12537,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "VERMOX 100MG C/6 TABS MEBENDAZOL (JANSSEN-CILAG)",
+      "api_name": "VERMOX 100MG C/6 TABS MEBENDAZOL (JANSSEN-CILAG)             ",
+      "api_id": 12594,
+      "match_type": "EXACTO"
+    },
+    {
+      "csv_name": "ZISUAL-C 30G UNG RECTAL C/6 CANULAS LIDOCAINA/ HIDROCORTISONA (SONS)",
+      "api_name": "ZISUAL-C 30G UNG RECTAL C/6 CANULAS LIDOCAINA/ HIDROCORTISONA (SONS)                   ",
+      "api_id": 12685,
+      "match_type": "EXACTO"
+    }
+  ],
+  "partial_matches": [
+    {
+      "csv_name": "ACXION AP 30MG C/30 TABS FENTERMINA (IFA)",
+      "api_name": "ACXION 30MG C/30 TABS FENTERMINA (IFA)",
+      "api_id": 10174,
+      "similarity": 0.96,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "ADIOLOL 100MG C/50 + 50 DUO CAPS TRAMADOL (SBL)",
+      "api_name": "ADIOLOL 100MG C/50 + 50 DUO CAPS TRAMADOL (SBL) (2)",
+      "api_id": 10157,
+      "similarity": 0.9782608695652174,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "ADIOLOL 100MG C/60 + 60 DUO CAPS TRAMADOL (SBL)",
+      "api_name": "ADIOLOL 100MG C/60 + 60 DUO CAPS TRAMADOL (SBL) (2)",
+      "api_id": 10159,
+      "similarity": 0.9782608695652174,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "ALIVIAX 550MG C/10 TABS NAPROXENO SODICO (GENOMMA LAB)",
+      "api_name": "ALIVIAX 550MG C/10 TABS NAPROXENO SODICO (GENOMMA LAB) (14)",
+      "api_id": 10197,
+      "similarity": 0.9719626168224299,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "ALIN 0.75MG C/30 TABS DEXAMETASONA (CHINOIN)",
+      "api_name": "ALIN 0.5MG C/30 TABS DEXAMETASONA (CHINOIN)",
+      "api_id": 10561,
+      "similarity": 0.9876543209876543,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "AMOXIL 500MG SUSP AMOXICILINA (GLAXO SMITH KLINE)",
+      "api_name": "AMOXIL 500MG SUSP AMOXICILINA (GLAXO SMITH KLINE) (22)",
+      "api_id": 10235,
+      "similarity": 0.9690721649484536,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "AMPICILINA EXHIBIDOR C/100 CAPS (SAIMED)",
+      "api_name": "AMPICILINA EXHIBIDOR C/100 CAPS (SAIMED) (24)",
+      "api_id": 10247,
+      "similarity": 0.9620253164556962,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "ARDOSONS C/20 CAPS INDOMETACINA, BETAMETASONA, METOCARBAMOL (SON'S)",
+      "api_name": "ARDOSONS C/20 CAPS INDOMETACINA, BETAMETASONA, METOCARBAMOL (SON'S) (32)    ",
+      "api_id": 10281,
+      "similarity": 0.9767441860465116,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "ARDOSONS C/20 CAPS INDOMETACINA, BETAMETASONA, METOCARBAMOL (SON'S) EMPAQUE",
+      "api_name": "ARDOSONS C/20 CAPS INDOMETACINA, BETAMETASONA, METOCARBAMOL (SON'S) (32)    ",
+      "api_id": 10281,
+      "similarity": 0.9343065693430657,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "AVAPENA 25MG C/20 TABS CLOROPIRAMINA (SANDOZ)",
+      "api_name": "AVAPENA 25MG C/20 TABS CLOROPIRAMINA (SANDOZ) (40)",
+      "api_id": 10331,
+      "similarity": 0.9662921348314607,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "BARMICIL 30G CREMA Betametasona,Gentamicina,Clotrimazol (SON'S)",
+      "api_name": "BARMICIL 30G CREMA Betametasona,Gentamicina,Clotrimazol",
+      "api_id": 12706,
+      "similarity": 0.9482758620689655,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "BEDOYECTA CAPSULAS C/30 (GROSSMAN)",
+      "api_name": "BEDOYECTA CAPSULAS C/30",
+      "api_id": 101,
+      "similarity": 0.8363636363636363,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "BEDOYECTA TRI C/5 AMP (GROSSMAN)",
+      "api_name": "BEDOYECTA TRI C/5 AMP (GROSSMAN) (47)",
+      "api_id": 10362,
+      "similarity": 0.9523809523809523,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "BEDOYECTA TRI C/5 AMP (GROSSMAN) (SIN EMPAQUE)",
+      "api_name": "BEDOYECTA TRI C/5 AMP (GROSSMAN) (47)",
+      "api_id": 10362,
+      "similarity": 0.8266666666666667,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "CANESTEN V 20 MG C/3 OVULOS CLOTRIMAZOL (BAYER)",
+      "api_name": "CANESTEN V 200MG C/3 OVULOS CLOTRIMAZOL (BAYER) (68)",
+      "api_id": 10420,
+      "similarity": 0.946236559139785,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "CANESTEN V 20G CREMA CLOTRIMAZOL (BAYER)",
+      "api_name": "CANESTEN V 20G CREMA CLOTRIMAZOL (BAYER)  (68)              ",
+      "api_id": 10421,
+      "similarity": 0.9620253164556962,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "DOLO-NEORUBIÓN DC C/3 AMP (MERCK)",
+      "api_name": "DOLO-NEORUBI??N DC C/3 AMP (MERCK)                 ",
+      "api_id": 11185,
+      "similarity": 0.9523809523809523,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "DOLO-NEORUBIÓN DC C/3 AMP (MERCK) (EMPAQUE)",
+      "api_name": "DOLO-NEORUBI??N DC C/3 AMP (MERCK)                 ",
+      "api_id": 11185,
+      "similarity": 0.8450704225352113,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "GELMICIN 40G Betametasona,Gentamicina,Clotrimazol (COLLINS)",
+      "api_name": "GELMICIN 60G Betametasona,Gentamicina,Clotrimazol (COLLINS)",
+      "api_id": 11435,
+      "similarity": 0.9824561403508771,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "GELMICIN 40G Betametasona,Gentamicina,Clotrimazol (COLLINS) (SIN EMPAQUE)",
+      "api_name": "GELMICIN 40G BETAMETASONA, GENTAMICINA, CLOTRIMAZOL (COLLINS) (44)                             ",
+      "api_id": 10351,
+      "similarity": 0.8992248062015504,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "METAX C/3 AMP DEXAMETASONA (SONS)",
+      "api_name": "METAX C/3 AMP DEXAMETASONA (SONS) (10)",
+      "api_id": 10190,
+      "similarity": 0.9538461538461539,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "NISTATINA (Alpharma) SUSP. Fco./Gotero 24 ML. 100,000 UI/1 ML. ALPHARMA",
+      "api_name": "NISTATINA SUSP. Fco./Gotero 24 ML. 100,000 UI/1 ML.",
+      "api_id": 102,
+      "similarity": 0.8392857142857143,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "PENIXILIN 500MG 800,000 UI C/100 CAPS PENICILINA (HEALTHTEC)",
+      "api_name": "PENICILINA 500MG 800,000 UI C/100 CAPS PENIXILIN (HEALTH TEC)",
+      "api_id": 10717,
+      "similarity": 0.9401709401709402,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "PENTREXYL 500MG C/28 CAPS AMPICILINA (ASPEN)",
+      "api_name": "PENTREXYL 500MG C/28 CAPS AMPICILINA (ASPEN) (24) ",
+      "api_id": 10255,
+      "similarity": 0.9655172413793104,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "POSTDAY C/1 COMPRIMIDOS 1.5MG (INV FARMACÉUTICAS)",
+      "api_name": "POSTDAY C/2 COMPRIMIDOS 0.75G (INV FARMAC??UTICAS) ",
+      "api_id": 12127,
+      "similarity": 0.9032258064516129,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "QUADRIDERM NF CREMA 30G (SANFER)",
+      "api_name": "QUADRIDERM NF 15GR (SANFER)              ",
+      "api_id": 12168,
+      "similarity": 0.8,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "SALUDIN OTICO 10ML (PISA)",
+      "api_name": "SOLDRIN OTICO 10ML (PISA)                         ",
+      "api_id": 12349,
+      "similarity": 0.9130434782608695,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "TOPSYN GEL 0.05% 40G (SYNTEX)",
+      "api_name": "TOPSYN GEL 0.05% 40G",
+      "api_id": 103,
+      "similarity": 0.8444444444444444,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "TRAMED RV 100MG C/60 + 60 CAPS DUO TRAMADOL (BAJAMED)",
+      "api_name": "TRAMED RV 100MG C/60 + 60 CAPS DUO TRAMADOL (BAJAMED) (2)",
+      "api_id": 12525,
+      "similarity": 0.9807692307692307,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "TRIXONA 1.0G INY I.M CEFTRIAXONA (BRULUAGSA)",
+      "api_name": "TRIXONA 1.0G INY I.M CEFTRIAXONA (BRULUAGSA) (20)",
+      "api_id": 10227,
+      "similarity": 0.963855421686747,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "VERMOX 10ML 1 DIA CEREZA MEBENDAZOL (JANSSEN)",
+      "api_name": "VERMOX 10ML 1 DIA CEREZA MEBENDAZOL",
+      "api_id": 12745,
+      "similarity": 0.8974358974358975,
+      "match_type": "SIMILAR"
+    },
+    {
+      "csv_name": "VOLFENAC RETARD 100MG C/20 TABS DICLOFENACO (COLLINS)",
+      "api_name": "VOLFENAC RETARD 100MG C/20 TABS DICLOFENACO (COLLINS) (34)      ",
+      "api_id": 10290,
+      "similarity": 0.9714285714285714,
+      "match_type": "SIMILAR"
+    }
+  ],
+  "not_found": [],
+  "summary": {
+    "csv_total": 59,
+    "found_exact": 27,
+    "found_similar": 32,
+    "not_found": 0,
+    "coverage_percentage": 100.0
+  }
+}

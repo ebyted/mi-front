@@ -1,0 +1,13 @@
+{
+    "customer_name": "Cliente Test Debug",
+    "quote_date": "2025-08-18",
+    "status": "DRAFT",
+    "notes": "Cotizacion de prueba para debug",
+    "details": [
+        {
+            "product_id": 10153,
+            "quantity": 2,
+            "unit_price": 150.50
+        }
+    ]
+}

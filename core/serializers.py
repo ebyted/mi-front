@@ -5,7 +5,7 @@ from .models import (
     User, Business, Category, Brand, Unit, Product, ProductVariant, Warehouse, ProductWarehouseStock,
     Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem,
     InventoryMovement, ExchangeRate, CustomerType, Customer, SalesOrder, SalesOrderItem, Quotation, QuotationItem,
-    Role, MenuOption, InventoryMovementDetail
+    Role, MenuOption, InventoryMovementDetail, CustomerProductDiscount, PurchaseOrderPayment, Sale, SalePayment
 )
 
 
@@ -83,12 +83,20 @@ class ProductSerializer(serializers.ModelSerializer):
     image = serializers.CharField(source='image_url', read_only=True)  # Alias para compatibilidad con frontend
     category = CategorySerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
+    brand_name = serializers.CharField(source='brand.name', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
     
     class Meta:
         model = Product
         fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
                  'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
-                 'image', 'is_active', 'group', 'created_at', 'updated_at', 'price', 'current_stock']
+                 'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
+                 'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name']
+    
+    def validate_cantidad_corrugado(self, value):
+        if value < 0:
+            raise serializers.ValidationError("La cantidad de corrugado no puede ser negativa")
+        return value
     
     def get_price(self, obj):
         """Obtener el precio del primer ProductVariant asociado"""
@@ -202,37 +210,153 @@ class PurchaseOrderReceiptItemSerializer(serializers.ModelSerializer):
         model = PurchaseOrderReceiptItem
         fields = '__all__'
 
+# === NUEVOS SERIALIZERS DE MOVIMIENTOS DE INVENTARIO - IMPLEMENTACIÓN LIMPIA ===
+
 class InventoryMovementDetailSerializer(serializers.ModelSerializer):
-    product_variant = ProductVariantSerializer(read_only=True)
+    # Campos de lectura para mostrar información del producto
+    product_variant_name = serializers.CharField(source='product_variant.name', read_only=True)
+    product_name = serializers.CharField(source='product_variant.product.name', read_only=True)
+    product_code = serializers.CharField(source='product_variant.sku', read_only=True)
+    
+    # Campo para recibir product_id del frontend y convertirlo a product_variant
+    product_id = serializers.IntegerField(write_only=True, required=False)
     
     class Meta:
         model = InventoryMovementDetail
-        fields = ['id', 'product_variant', 'quantity', 'price', 'total', 'lote', 'expiration_date']
-
+        fields = ['id', 'movement', 'product_variant', 'product_variant_name', 'product_name', 
+                 'product_code', 'product_id', 'quantity', 'price', 'total', 'lote', 
+                 'expiration_date', 'notes']
+        extra_kwargs = {
+            'movement': {'required': False},
+            'product_variant': {'required': False}
+        }
+    
+    def create(self, validated_data):
+        # Si viene product_id, buscar o crear el product_variant correspondiente
+        product_id = validated_data.pop('product_id', None)
+        if product_id and not validated_data.get('product_variant'):
+            try:
+                product = Product.objects.get(id=product_id)
+                # Buscar ProductVariant existente o crear uno por defecto
+                product_variant = ProductVariant.objects.filter(product=product).first()
+                if not product_variant:
+                    # Crear ProductVariant por defecto si no existe
+                    product_variant = ProductVariant.objects.create(
+                        product=product,
+                        name=product.name,
+                        sku=product.sku or f"VAR-{product.id}",
+                        sale_price=0.00,
+                        cost_price=0.00,
+                        is_default=True
+                    )
+                validated_data['product_variant'] = product_variant
+            except Product.DoesNotExist:
+                raise serializers.ValidationError(f"Product with id {product_id} does not exist")
+        
+        # Asegurar que price y total tengan valores por defecto
+        if 'price' not in validated_data or validated_data['price'] is None:
+            validated_data['price'] = 0.00
+        
+        # Calcular total si no viene especificado
+        if 'total' not in validated_data or validated_data['total'] is None:
+            validated_data['total'] = validated_data['price'] * validated_data.get('quantity', 0)
+        
+        return super().create(validated_data)
+        
 class InventoryMovementSerializer(serializers.ModelSerializer):
-    warehouse = WarehouseSerializer(read_only=True)
-    warehouse_id = serializers.PrimaryKeyRelatedField(queryset=Warehouse.objects.all(), source='warehouse', write_only=True)
+    warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
     details = InventoryMovementDetailSerializer(many=True, read_only=True)
-    details_ids = serializers.PrimaryKeyRelatedField(queryset=InventoryMovementDetail.objects.all(), source='details', many=True, write_only=True, required=False)
-    user = UserSerializer(read_only=True)
-
+    
+    # Campo para enviar el ID del almacén en el POST
+    warehouse_id = serializers.IntegerField(write_only=True, required=False)
+    
+    # Campo type para compatibilidad con frontend
+    type = serializers.CharField(write_only=True, required=False)
+    
+    # Campos de autorización
+    created_by_email = serializers.SerializerMethodField()
+    authorized_by_email = serializers.SerializerMethodField()
+    cancelled_by_email = serializers.SerializerMethodField()
+    can_authorize = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
+    can_cancel = serializers.SerializerMethodField()
+    
     class Meta:
         model = InventoryMovement
-        fields = '__all__'
-        extra_fields = ['warehouse_id', 'details_ids']
-
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        # warehouse como objeto anidado
-        rep['warehouse'] = WarehouseSerializer(instance.warehouse).data if instance.warehouse else None
-        # details como lista de objetos
-        details_qs = instance.details.all() if hasattr(instance, 'details') else []
-        rep['details'] = InventoryMovementDetailSerializer(details_qs, many=True).data
-        # usuario creador como objeto anidado
-        rep['user'] = UserSerializer(instance.user).data if instance.user else None
-        # cantidad total sumada
-        rep['total_quantity'] = sum([float(d.quantity) for d in details_qs if d.quantity is not None]) if details_qs else 0
-        return rep
+        fields = ['id', 'warehouse', 'warehouse_name', 'warehouse_id', 
+                 'movement_type', 'type', 'reference_document', 'notes', 
+                 'user', 'user_email', 'created_at', 
+                 'authorized', 'authorized_by', 'authorized_at', 'is_cancelled', 
+                 'cancelled_at', 'cancellation_reason', 'details',
+                 'created_by_email', 'authorized_by_email', 'cancelled_by_email',
+                 'can_authorize', 'can_delete', 'can_cancel']
+        read_only_fields = ['user', 'authorized_by', 'authorized_at', 'cancelled_by', 'cancelled_at']
+        extra_kwargs = {
+            'warehouse': {'required': False},
+            'movement_type': {'required': False}
+        }
+    
+    def get_created_by_email(self, obj):
+        return obj.user.email if obj.user else ''
+    
+    def get_authorized_by_email(self, obj):
+        return obj.authorized_by.email if obj.authorized_by else ''
+    
+    def get_cancelled_by_email(self, obj):
+        return obj.cancelled_by.email if obj.cancelled_by else ''
+    
+    def get_can_authorize(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+        # Puede autorizar si: no está autorizado, no está cancelado, y no es el creador
+        return (not obj.authorized and not obj.is_cancelled and 
+                obj.user != request.user)
+    
+    def get_can_delete(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+        # Puede eliminar si: no está autorizado y es el creador o admin
+        return (not obj.authorized and 
+                (obj.user == request.user or request.user.is_staff))
+    
+    def get_can_cancel(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+        # Puede cancelar si: está autorizado y no está cancelado
+        return (obj.authorized and not obj.is_cancelled)
+    
+    def create(self, validated_data):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔧 InventoryMovementSerializer.create - validated_data inicial: {validated_data}")
+        
+        # Manejar warehouse_id
+        warehouse_id = validated_data.pop('warehouse_id', None)
+        logger.info(f"🔧 warehouse_id extraído: {warehouse_id}")
+        
+        if warehouse_id:
+            try:
+                warehouse = Warehouse.objects.get(id=warehouse_id)
+                validated_data['warehouse'] = warehouse
+                logger.info(f"🔧 Warehouse asignado: {warehouse.name}")
+            except Warehouse.DoesNotExist:
+                raise serializers.ValidationError(f"Warehouse with id {warehouse_id} does not exist")
+        
+        # Manejar type -> movement_type
+        movement_type = validated_data.pop('type', None)
+        logger.info(f"🔧 movement_type extraído: {movement_type}")
+        
+        if movement_type:
+            validated_data['movement_type'] = movement_type
+            logger.info(f"🔧 movement_type asignado: {movement_type}")
+        
+        logger.info(f"🔧 validated_data final: {validated_data}")
+        
+        return super().create(validated_data)
 
 class ExchangeRateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -381,16 +505,142 @@ class SalesOrderItemSerializer(serializers.ModelSerializer):
         model = SalesOrderItem
         fields = '__all__'
 
-class QuotationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Quotation
-        fields = '__all__'
-
-
+# SERIALIZERS DESDE CERO - COTIZACIONES
 class QuotationItemSerializer(serializers.ModelSerializer):
+    """Serializer para items de cotización - completamente limpio"""
+    product_name = serializers.ReadOnlyField(source='product.name')
+    product_id = serializers.IntegerField(write_only=True)
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, source='price')
+    total_price = serializers.ReadOnlyField()
+    
     class Meta:
         model = QuotationItem
-        fields = '__all__'
+        fields = ['id', 'product', 'product_id', 'product_name', 'quantity', 'unit_price', 'total_price', 'notes']
+        extra_kwargs = {
+            'product': {'read_only': True}
+        }
+    
+    def validate_product_id(self, value):
+        """Validar que el producto existe"""
+        try:
+            Product.objects.get(id=value)
+            return value
+        except Product.DoesNotExist:
+            raise serializers.ValidationError("El producto especificado no existe")
+    
+    def validate_quantity(self, value):
+        """Validar cantidad positiva"""
+        if value <= 0:
+            raise serializers.ValidationError("La cantidad debe ser mayor a 0")
+        return value
+    
+    def validate_unit_price(self, value):
+        """Validar precio no negativo"""
+        if value < 0:
+            raise serializers.ValidationError("El precio no puede ser negativo")
+        return value
+
+class QuotationSerializer(serializers.ModelSerializer):
+    """Serializer principal para cotizaciones - completamente limpio"""
+    details = QuotationItemSerializer(many=True)
+    customer_name = serializers.CharField(source='customer_id')
+    
+    class Meta:
+        model = Quotation
+        fields = ['id', 'business', 'customer_name', 'quote_date', 'status', 
+                 'total_amount', 'notes', 'exchange', 'created_at', 'updated_at', 'details']
+        extra_kwargs = {
+            'business': {'required': False},
+            'total_amount': {'read_only': True}
+        }
+    
+    def validate_customer_name(self, value):
+        """Validar nombre del cliente"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("El nombre del cliente es requerido")
+        return value.strip()
+    
+    def validate_details(self, value):
+        """Validar que hay al menos un item"""
+        if not value or len(value) == 0:
+            raise serializers.ValidationError("Debe incluir al menos un producto")
+        return value
+    
+    def create(self, validated_data):
+        """Crear cotización con items"""
+        details_data = validated_data.pop('details', [])
+        
+        # customer_name ya viene mapeado a customer_id por el source='customer_id'
+        # No necesitamos hacer nada adicional aquí
+        
+        # Asignar business por defecto
+        if not validated_data.get('business'):
+            try:
+                default_business = Business.objects.first()
+                if default_business:
+                    validated_data['business'] = default_business
+            except Business.DoesNotExist:
+                raise serializers.ValidationError("No hay un business configurado")
+        
+        # Crear la cotización
+        quotation = Quotation.objects.create(**validated_data)
+        
+        # Crear los items y calcular total
+        total_amount = 0
+        for detail_data in details_data:
+            # Obtener el producto
+            product_id = detail_data.pop('product_id')
+            product = Product.objects.get(id=product_id)
+            detail_data['product'] = product
+            
+            # Manejar unit_price -> price
+            if 'unit_price' in detail_data:
+                detail_data['price'] = detail_data.pop('unit_price')
+            
+            detail_data['quotation'] = quotation
+            item = QuotationItem.objects.create(**detail_data)
+            total_amount += item.total_price
+        
+        # Actualizar el total
+        quotation.total_amount = total_amount
+        quotation.save()
+        
+        return quotation
+    
+    def update(self, instance, validated_data):
+        """Actualizar cotización con items"""
+        details_data = validated_data.pop('details', [])
+        
+        # customer_name ya viene mapeado a customer_id por el source='customer_id'
+        
+        # Actualizar campos de la cotización
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Eliminar items existentes
+        instance.details.all().delete()
+        
+        # Crear nuevos items y calcular total
+        total_amount = 0
+        for detail_data in details_data:
+            # Obtener el producto
+            product_id = detail_data.pop('product_id')
+            product = Product.objects.get(id=product_id)
+            detail_data['product'] = product
+            
+            # Manejar unit_price -> price
+            if 'unit_price' in detail_data:
+                detail_data['price'] = detail_data.pop('unit_price')
+            
+            detail_data['quotation'] = instance
+            item = QuotationItem.objects.create(**detail_data)
+            total_amount += item.total_price
+        
+        # Actualizar el total
+        instance.total_amount = total_amount
+        instance.save()
+        
+        return instance
 
 # Serializers para Role y MenuOption
 

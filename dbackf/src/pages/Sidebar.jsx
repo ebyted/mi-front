@@ -15,6 +15,7 @@ const menuItems = [
   { name: "Marcas", path: "/brands" },
   { name: "Tasas de Cambio", path: "/exchange-rates" },
   { name: "Tienda", path: "/store" },
+  { name: "Tienda Tijuana", path: "/enhanced-store" },
 ];
 
 

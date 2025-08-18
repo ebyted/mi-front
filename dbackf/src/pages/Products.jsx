@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
+import DiscountManager from '../components/DiscountManager';
 
 function Products() {
   // Hook para cambiar el título de la pestaña
@@ -23,9 +24,28 @@ function Products() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    sku: '', 
+    description: '',
+    brand: '', 
+    category: '', 
+    barcode: '', 
+    minimum_stock: '', 
+    maximum_stock: '', 
+    cantidad_corrugado: '', 
+    status: 'REGULAR', 
+    is_active: true, 
+    group: '',
+    image_url: ''
+  });
   const [formError, setFormError] = useState('');
   const [editId, setEditId] = useState(null);
+  
+  // Estados para gestión de descuentos
+  const [showDiscountManager, setShowDiscountManager] = useState(false);
+  const [selectedProductForDiscount, setSelectedProductForDiscount] = useState(null);
+  const [showDiscountModal, setShowDiscountModal] = useState({show: false, productId: null, productName: ''});
   
   // Estados para modal de inventario
   const [showInventoryModal, setShowInventoryModal] = useState(false);
@@ -251,13 +271,17 @@ function Products() {
     const editFormData = {
       name: product.name || '',
       sku: product.sku || '',
+      description: product.description || '',
       brand: typeof product.brand === 'object' && product.brand !== null ? product.brand.id : product.brand || '',
       category: typeof product.category === 'object' && product.category !== null ? product.category.id : product.category || '',
       barcode: product.barcode || '',
       minimum_stock: product.minimum_stock || '',
       maximum_stock: product.maximum_stock || '',
+      cantidad_corrugado: product.cantidad_corrugado || '',
+      status: product.status || 'NORMAL',
       is_active: product.is_active ?? true,
-      group: product.group || ''
+      group: product.group || '',
+      image_url: product.image_url || ''
     };
     setFormData(editFormData);
     setShowForm(true);
@@ -274,13 +298,17 @@ function Products() {
     setFormData({ 
       name: '', 
       sku: '', 
+      description: '',
       brand: '', 
       category: '', 
       barcode: '', 
       minimum_stock: '', 
       maximum_stock: '', 
+      cantidad_corrugado: '',
+      status: 'NORMAL',
       is_active: true, 
-      group: ''
+      group: '',
+      image_url: ''
     });
     setShowForm(true);
   };
@@ -430,6 +458,17 @@ function Products() {
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) {
       errors.push('Stock máximo debe ser un número positivo');
     }
+    // Validar cantidad_corrugado
+    if (formData.cantidad_corrugado && (isNaN(formData.cantidad_corrugado) || parseFloat(formData.cantidad_corrugado) < 0)) {
+      errors.push('Cantidad corrugado debe ser un número positivo');
+    }
+    // Validar URL de imagen (opcional)
+    if (formData.image_url && formData.image_url.trim()) {
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+      if (!urlPattern.test(formData.image_url.trim())) {
+        errors.push('URL de imagen no válida');
+      }
+    }
     // Validar que stock máximo sea mayor que mínimo
     if (formData.minimum_stock && formData.maximum_stock) {
       const minStock = parseFloat(formData.minimum_stock);
@@ -456,6 +495,8 @@ function Products() {
         ...formData,
         minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
         maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
+        cantidad_corrugado: formData.cantidad_corrugado ? Number(formData.cantidad_corrugado) : 0,
+        status: formData.status || 'REGULAR',
         group: formData.group ? Number(formData.group) : null,
         brand: Number(formData.brand),
         category: Number(formData.category),
@@ -472,7 +513,7 @@ function Products() {
       }
       setShowForm(false);
       setEditId(null);
-      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
+      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', description: '', image_url: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '' });
       fetchProducts();
     } catch (err) {
       let errorMessage = 'Error al guardar producto.';
@@ -556,6 +597,35 @@ function Products() {
   };
 
   const selectedProduct = products.find(p => String(p.id) === String(selectedId));
+
+  // Funciones para gestión de descuentos
+  const handleOpenDiscountManager = (product) => {
+    setSelectedProductForDiscount(product);
+    setShowDiscountManager(true);
+  };
+
+  const handleCloseDiscountManager = () => {
+    setShowDiscountManager(false);
+    setSelectedProductForDiscount(null);
+  };
+
+  // Función para obtener badge de status del producto
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      'NUEVO': { class: 'bg-primary', icon: 'bi-star', text: 'Nuevo' },
+      'OFERTA': { class: 'bg-warning', icon: 'bi-tag', text: 'Oferta' },
+      'REMATE': { class: 'bg-danger', icon: 'bi-fire', text: 'Remate' }
+    };
+    
+    const config = statusConfig[status] || statusConfig['NUEVO'];
+    
+    return (
+      <span className={`badge ${config.class} ms-1`}>
+        <i className={`${config.icon} me-1`}></i>
+        {config.text}
+      </span>
+    );
+  };
 
   return (
     <div className="container py-5">
@@ -779,6 +849,31 @@ function Products() {
               onChange={handleChange}
             />
           </div>
+          
+          {/* Campo Descripción */}
+          <div className="mb-3">
+            <textarea
+              name="description"
+              className="form-control"
+              placeholder="Descripción del producto"
+              value={formData.description}
+              onChange={handleChange}
+              rows="3"
+            />
+          </div>
+          
+          {/* Campo URL de Imagen */}
+          <div className="mb-3">
+            <input
+              type="url"
+              name="image_url"
+              className="form-control"
+              placeholder="URL de imagen del producto"
+              value={formData.image_url}
+              onChange={handleChange}
+            />
+          </div>
+          
           <div className="mb-3">
             <input
               type="number"
@@ -799,6 +894,36 @@ function Products() {
               onChange={handleChange}
             />
           </div>
+          
+          {/* Nuevo campo: Cantidad Corrugado */}
+          <div className="mb-3">
+            <input
+              type="number"
+              name="cantidad_corrugado"
+              className="form-control"
+              placeholder="Cantidad corrugado"
+              value={formData.cantidad_corrugado}
+              onChange={handleChange}
+              min="0"
+            />
+          </div>
+
+          {/* Nuevo campo: Status del Producto */}
+          <div className="mb-3">
+            <label className="form-label">Estado del Producto</label>
+            <select
+              name="status"
+              className="form-select"
+              value={formData.status}
+              onChange={handleChange}
+            >
+              <option value="REGULAR">Regular</option>
+              <option value="NUEVO">Nuevo</option>
+              <option value="OFERTA">Oferta</option>
+              <option value="REMATE">Remate</option>
+            </select>
+          </div>
+
           <div className="mb-3">
             <label className="form-check-label me-2">Activo</label>
             <input
@@ -836,7 +961,7 @@ function Products() {
             setShowForm(false);
             setEditId(null);
             setFormError('');
-            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', is_active: true, group: '' });
+            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', description: '', image_url: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '' });
           }}>
             ✖ Cancelar
           </button>
@@ -885,6 +1010,8 @@ function Products() {
                 <th>Código de barras</th>
                 <th>Stock mínimo</th>
                 <th>Stock máximo</th>
+                <th>Corrugado</th>
+                <th>Estado</th>
                 <th>Stock por Almacén</th>
                 <th>Activo</th>
                 <th>Grupo</th>
@@ -894,7 +1021,7 @@ function Products() {
             <tbody>
               {paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan="12" className="text-center py-4">
+                  <td colSpan="13" className="text-center py-4">
                     📪 <p className="text-muted mb-0">No hay productos en esta página</p>
                     <small className="text-muted">Intenta navegar a una página anterior</small>
                   </td>
@@ -953,6 +1080,26 @@ function Products() {
                     </td>
                     <td>{p.maximum_stock || '-'}</td>
                     <td>
+                      {p.cantidad_corrugado ? (
+                        <span className="fw-semibold text-primary">
+                          {p.cantidad_corrugado.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span className="text-muted">-</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${
+                        p.status === 'REGULAR' ? 'bg-primary' :
+                        p.status === 'NUEVO' ? 'bg-success' :
+                        p.status === 'OFERTA' ? 'bg-warning text-dark' :
+                        p.status === 'REMATE' ? 'bg-danger' :
+                        'bg-secondary'
+                      }`}>
+                        {p.status || 'REGULAR'}
+                      </span>
+                    </td>
+                    <td>
                       <div className="small">
                         {warehouseInfo.warehouses.length > 0 ? (
                           <>
@@ -995,7 +1142,14 @@ function Products() {
                           title="Ver inventario"
                           onClick={() => handleViewInventory(p)}
                         >
-                          �
+                          🏭
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline-warning" 
+                          title="Gestionar descuentos"
+                          onClick={() => setShowDiscountModal({show: true, productId: p.id, productName: p.name})}
+                        >
+                          💰
                         </button>
                       </div>
                     </td>
@@ -1359,6 +1513,24 @@ function Products() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Gestión de Descuentos */}
+      {showDiscountManager && selectedProductForDiscount && (
+        <DiscountManager
+          productId={selectedProductForDiscount.id}
+          productName={selectedProductForDiscount.name}
+          onClose={handleCloseDiscountManager}
+        />
+      )}
+
+      {/* Modal de Gestión de Descuentos desde tabla */}
+      {showDiscountModal.show && (
+        <DiscountManager
+          productId={showDiscountModal.productId}
+          productName={showDiscountModal.productName}
+          onClose={() => setShowDiscountModal({show: false, productId: null, productName: ''})}
+        />
       )}
     </div>
   );

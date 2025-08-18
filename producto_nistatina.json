@@ -1,0 +1,13 @@
+{
+  "name": "NISTATINA SUSP. Fco./Gotero 24 ML. 100,000 UI/1 ML.",
+  "description": "NISTATINA (Alpharma) SUSP. Fco./Gotero 24 ML. 100,000 UI/1 ML. ALPHARMA",
+  "barcode": "NISTATINA24ML",
+  "code": "NISTATINA24",
+  "sku": "NISTATINA24-ALP",
+  "purchase_price": "45.00",
+  "sale_price": "65.00",
+  "category": 39,
+  "brand": 216,
+  "business": 1,
+  "is_active": true
+}
