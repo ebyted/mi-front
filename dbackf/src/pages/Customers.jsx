@@ -98,14 +98,32 @@ function Customers() {
 
 	const handleSubmit = async e => {
 		e.preventDefault();
+		
+		// Validar campos obligatorios
+		if (!form.name.trim()) {
+			setError('El nombre del cliente es obligatorio');
+			return;
+		}
+		if (!form.code.trim()) {
+			setError('El código del cliente es obligatorio');
+			return;
+		}
+		if (!form.email.trim()) {
+			setError('El email del cliente es obligatorio');
+			return;
+		}
+		
+		// Limpiar error previo
+		setError('');
+		
 		try {
 		// Preparar datos para enviar al backend
 		const submitData = {
-			name: form.name,
-			email: form.email,
-			phone: form.phone,
-			address: form.address,
-			code: form.code,
+			name: form.name.trim(),
+			email: form.email.trim().toLowerCase(),
+			phone: form.phone.trim(),
+			address: form.address.trim(),
+			code: form.code.trim().toUpperCase(),
 			business: form.business,
 			customer_type: form.customer_type,
 			is_active: true,
@@ -124,7 +142,42 @@ function Customers() {
 		} catch (err) {
 			console.error('Error completo:', err);
 			console.error('Respuesta del servidor:', err.response?.data);
-			setError(`Error al guardar el cliente: ${err.response?.data?.message || err.message}`);
+			
+			// Manejo específico de errores de validación del backend
+			if (err.response?.status === 400 && err.response?.data) {
+				const backendErrors = err.response.data;
+				let errorMessage = 'Error de validación:\n';
+				
+				// Mostrar errores específicos por campo
+				Object.keys(backendErrors).forEach(field => {
+					const fieldErrors = Array.isArray(backendErrors[field]) 
+						? backendErrors[field] 
+						: [backendErrors[field]];
+					
+					fieldErrors.forEach(error => {
+						switch(field) {
+							case 'code':
+								errorMessage += `• Código: ${error}\n`;
+								break;
+							case 'email':
+								errorMessage += `• Email: ${error}\n`;
+								break;
+							case 'name':
+								errorMessage += `• Nombre: ${error}\n`;
+								break;
+							case 'customer_type':
+								errorMessage += `• Tipo de cliente: ${error}\n`;
+								break;
+							default:
+								errorMessage += `• ${field}: ${error}\n`;
+						}
+					});
+				});
+				
+				setError(errorMessage);
+			} else {
+				setError(`Error al guardar el cliente: ${err.response?.data?.message || err.message}`);
+			}
 		}
 	};
 
@@ -141,28 +194,48 @@ function Customers() {
 		<div className="container py-4">
 			<h2 className="mb-4 text-primary">Gestión de Clientes</h2>
 			<form className="card p-3 mb-4" onSubmit={handleSubmit}>
+				<div className="card-header bg-light mb-3">
+					<h6 className="mb-0 text-muted">
+						<i className="bi bi-info-circle me-2"></i>
+						Campos obligatorios marcados con <span className="text-danger">*</span>
+					</h6>
+				</div>
 				<div className="row g-3">
 					<div className="col-md-4">
-						<input name="name" className="form-control" placeholder="Nombre" value={form.name} onChange={handleChange} required />
+						<label className="form-label small text-muted">Nombre <span className="text-danger">*</span></label>
+						<input name="name" className="form-control" placeholder="Nombre del cliente" value={form.name} onChange={handleChange} required />
 					</div>
 					<div className="col-md-3">
-						<input name="email" className="form-control" placeholder="Email" value={form.email} onChange={handleChange} />
+						<label className="form-label small text-muted">Email <span className="text-danger">*</span></label>
+						<input name="email" type="email" className="form-control" placeholder="cliente@email.com" value={form.email} onChange={handleChange} required />
 					</div>
 					<div className="col-md-2">
-						<input name="phone" className="form-control" placeholder="Teléfono" value={form.phone} onChange={handleChange} />
+						<label className="form-label small text-muted">Teléfono</label>
+						<input name="phone" className="form-control" placeholder="123-456-7890" value={form.phone} onChange={handleChange} />
 					</div>
 					<div className="col-md-3">
-						<input name="address" className="form-control" placeholder="Dirección" value={form.address} onChange={handleChange} />
+						<label className="form-label small text-muted">Dirección</label>
+						<input name="address" className="form-control" placeholder="Dirección del cliente" value={form.address} onChange={handleChange} />
 					</div>
 					<div className="col-md-2">
-						<input name="code" className="form-control" placeholder="Código" value={form.code} onChange={handleChange} />
+						<label className="form-label small text-muted">Código <span className="text-danger">*</span></label>
+						<input 
+							name="code" 
+							className="form-control" 
+							placeholder="CLI001" 
+							value={form.code} 
+							onChange={handleChange} 
+							required 
+							style={{textTransform: 'uppercase'}}
+						/>
 					</div>
 					<div className="col-md-2">
-						<select name="level" className="form-select" value={form.level} onChange={handleChange}>
-							<option value={1}>🥉 Nivel 1</option>
-							<option value={2}>🥈 Nivel 2</option>
-							<option value={3}>🥇 Nivel 3</option>
-							<option value={4}>💎 Nivel 4</option>
+						<label className="form-label small text-muted">Tipo de Cliente <span className="text-danger">*</span></label>
+						<select name="customer_type" className="form-select" value={form.customer_type} onChange={handleChange} required>
+							<option value={1}>🥉 Nivel 1 (0%)</option>
+							<option value={2}>🥈 Nivel 2 (5%)</option>
+							<option value={3}>🥇 Nivel 3 (10%)</option>
+							<option value={4}>💎 Nivel 4 (15%)</option>
 						</select>
 					</div>
 					
@@ -247,7 +320,15 @@ function Customers() {
 					<span className="badge bg-primary">Total: {filtered.length}</span>
 				</div>
 			</div>
-			{error && <div className="alert alert-danger">{error}</div>}
+			{error && (
+				<div className="alert alert-danger">
+					<h6 className="alert-heading mb-2">
+						<i className="bi bi-exclamation-triangle me-2"></i>
+						Error al guardar el cliente
+					</h6>
+					<div style={{whiteSpace: 'pre-line'}}>{error}</div>
+				</div>
+			)}
 			{loading ? (
 				<div className="text-center py-5">
 					<div className="spinner-border text-primary" role="status"></div>

@@ -369,9 +369,93 @@ class CustomerTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class CustomerSerializer(serializers.ModelSerializer):
+    business = serializers.PrimaryKeyRelatedField(read_only=True)
+    
     class Meta:
         model = Customer
-        fields = '__all__'
+        fields = ['id', 'business', 'name', 'code', 'email', 'phone', 'address', 
+                 'is_active', 'customer_type', 'has_credit', 'credit_limit', 
+                 'credit_days', 'current_balance']
+        extra_kwargs = {
+            'code': {
+                'required': True,
+                'error_messages': {
+                    'unique': 'Ya existe un cliente con este código. Por favor, use un código diferente.',
+                    'required': 'El código del cliente es obligatorio.',
+                    'blank': 'El código del cliente no puede estar vacío.'
+                }
+            },
+            'email': {
+                'required': True,
+                'error_messages': {
+                    'unique': 'Ya existe un cliente con este email. Por favor, use un email diferente.',
+                    'required': 'El email del cliente es obligatorio.',
+                    'invalid': 'Por favor, ingrese un email válido.'
+                }
+            },
+            'customer_type': {
+                'required': True,
+                'error_messages': {
+                    'required': 'El tipo de cliente es obligatorio.',
+                    'does_not_exist': 'El tipo de cliente seleccionado no existe.'
+                }
+            },
+            'name': {
+                'required': True,
+                'error_messages': {
+                    'required': 'El nombre del cliente es obligatorio.',
+                    'blank': 'El nombre del cliente no puede estar vacío.'
+                }
+            }
+        }
+    
+    def validate_code(self, value):
+        """Validación adicional para el código"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("El código del cliente no puede estar vacío.")
+        
+        # Verificar si ya existe (solo en creación)
+        if not self.instance:  # Solo en creación, no en actualización
+            if Customer.objects.filter(code=value.strip().upper()).exists():
+                raise serializers.ValidationError("Ya existe un cliente con este código. Por favor, use un código diferente.")
+        
+        return value.strip().upper()
+    
+    def validate_email(self, value):
+        """Validación adicional para el email"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("El email del cliente es obligatorio.")
+        
+        # Verificar si ya existe (solo en creación)
+        if not self.instance:  # Solo en creación, no en actualización
+            if Customer.objects.filter(email=value.strip().lower()).exists():
+                raise serializers.ValidationError("Ya existe un cliente con este email. Por favor, use un email diferente.")
+        
+        return value.strip().lower()
+    
+    def validate_customer_type(self, value):
+        """Validación para customer_type"""
+        if not value:
+            raise serializers.ValidationError("El tipo de cliente es obligatorio.")
+        return value
+    
+    def create(self, validated_data):
+        # Asignar automáticamente el business del usuario actual
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'business'):
+            validated_data['business'] = request.user.business
+        elif request and hasattr(request.user, 'userprofile') and request.user.userprofile.business:
+            validated_data['business'] = request.user.userprofile.business
+        else:
+            # Si no hay business asociado, usar el primer business disponible
+            from .models import Business
+            first_business = Business.objects.first()
+            if first_business:
+                validated_data['business'] = first_business
+            else:
+                raise serializers.ValidationError("No se encontró un business para el usuario. Contacte al administrador.")
+        
+        return super().create(validated_data)
 
 class SalesOrderSerializer(serializers.ModelSerializer):
     items = serializers.ListField(write_only=True, required=False)
