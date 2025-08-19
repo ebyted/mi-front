@@ -190,11 +190,26 @@ class SupplierProductViewSet(viewsets.ModelViewSet):
     serializer_class = SupplierProductSerializer
 
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
-    queryset = PurchaseOrder.objects.all()
+    queryset = PurchaseOrder.objects.select_related('supplier', 'business').prefetch_related('purchaseorderitem_set__product_variant__product').all()
     serializer_class = PurchaseOrderSerializer
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+    @action(detail=False, methods=['get'])
+    def by_status(self, request):
+        """Filtrar órdenes por status"""
+        status_param = request.query_params.get('status')
+        if status_param:
+            orders = self.get_queryset().filter(status=status_param)
+            serializer = self.get_serializer(orders, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'status es requerido'}, status=400)
 
 class PurchaseOrderItemViewSet(viewsets.ModelViewSet):
-    queryset = PurchaseOrderItem.objects.all()
+    queryset = PurchaseOrderItem.objects.select_related('purchase_order', 'product_variant__product').all()
     serializer_class = PurchaseOrderItemSerializer
 
 class PurchaseOrderReceiptViewSet(viewsets.ModelViewSet):

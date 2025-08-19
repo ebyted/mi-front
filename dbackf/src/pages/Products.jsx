@@ -67,6 +67,30 @@ function Products() {
     stockStatus: ''
   });
 
+  // Estado para vista móvil
+  const [viewMode, setViewMode] = useState('auto'); // 'cards', 'table', 'auto'
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si es móvil
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+
+  // Determinar vista actual
+  const getCurrentView = () => {
+    if (viewMode === 'auto') {
+      return isMobile ? 'cards' : 'table';
+    }
+    return viewMode;
+  };
+
   useEffect(() => {
     fetchProducts();
     fetchCurrentBusiness();
@@ -627,86 +651,269 @@ function Products() {
     );
   };
 
-  return (
-    <div className="container py-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="display-5 mb-0 text-primary">
-          📦 Productos
-        </h1>
-        <div className="d-flex gap-3">
-          <div className="text-center">
-            <div className="h4 mb-0 text-primary">{products.length}</div>
-            <small className="text-muted">Total</small>
+  // Componente Card para vista móvil
+  const ProductCard = ({ product }) => {
+    const warehouseInfo = getProductWarehouseInfo(product.id);
+    
+    let brandDesc = product.brand;
+    let categoryDesc = product.category;
+    
+    if (typeof product.brand === 'number' || typeof product.brand === 'string') {
+      const b = brands.find(br => String(br.id) === String(product.brand));
+      brandDesc = b ? (b.description || b.name || b.id) : product.brand;
+    } else if (typeof product.brand === 'object' && product.brand !== null) {
+      brandDesc = product.brand.description || product.brand.name || product.brand;
+    }
+    
+    if (typeof product.category === 'number' || typeof product.category === 'string') {
+      const c = categories.find(cat => String(cat.id) === String(product.category));
+      categoryDesc = c ? (c.description || c.name || c.id) : product.category;
+    } else if (typeof product.category === 'object' && product.category !== null) {
+      categoryDesc = product.category.description || product.category.name || product.category;
+    }
+
+    return (
+      <div className="card mb-3 shadow-sm">
+        <div className="card-body">
+          {/* Header con nombre y estado */}
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <h6 className="card-title mb-0 flex-grow-1 pe-2">
+              {product.name}
+              {!product.is_active && (
+                <span className="badge bg-secondary ms-2 d-block d-sm-inline mt-1 mt-sm-0">Inactivo</span>
+              )}
+            </h6>
+            <span className={`badge ${
+              product.status === 'REGULAR' ? 'bg-primary' :
+              product.status === 'NUEVO' ? 'bg-success' :
+              product.status === 'OFERTA' ? 'bg-warning text-dark' :
+              product.status === 'REMATE' ? 'bg-danger' :
+              'bg-secondary'
+            }`}>
+              {product.status || 'REGULAR'}
+            </span>
           </div>
-          <div className="text-center">
-            <div className="h4 mb-0 text-success">{products.filter(p => p.is_active).length}</div>
-            <small className="text-muted">Activos</small>
+
+          {/* SKU y código de barras */}
+          <div className="row g-2 mb-2">
+            <div className="col-6">
+              <small className="text-muted d-block">SKU</small>
+              <code className="bg-light px-2 py-1 rounded small">{product.sku}</code>
+            </div>
+            <div className="col-6">
+              <small className="text-muted d-block">Código</small>
+              {product.barcode ? (
+                <code className="bg-light px-2 py-1 rounded small">{product.barcode}</code>
+              ) : (
+                <span className="text-muted">-</span>
+              )}
+            </div>
           </div>
-          <div className="text-center">
-            <div className="h4 mb-0 text-warning">{filteredProducts.length}</div>
-            <small className="text-muted">Filtrados</small>
+
+          {/* Marca y categoría */}
+          <div className="row g-2 mb-2">
+            <div className="col-6">
+              <small className="text-muted d-block">Marca</small>
+              <span className="fw-medium">{brandDesc}</span>
+            </div>
+            <div className="col-6">
+              <small className="text-muted d-block">Categoría</small>
+              <span className="fw-medium">{categoryDesc}</span>
+            </div>
+          </div>
+
+          {/* Stock info */}
+          <div className="row g-2 mb-3">
+            <div className="col-4">
+              <small className="text-muted d-block">Stock Min</small>
+              <span className="fw-bold">{product.minimum_stock || '-'}</span>
+            </div>
+            <div className="col-4">
+              <small className="text-muted d-block">Stock Max</small>
+              <span className="fw-bold">{product.maximum_stock || '-'}</span>
+            </div>
+            <div className="col-4">
+              <small className="text-muted d-block">Total Stock</small>
+              <span className={`fw-bold ${warehouseInfo.totalStock > 0 ? 'text-success' : 'text-danger'}`}>
+                {warehouseInfo.totalStock}
+              </span>
+            </div>
+          </div>
+
+          {/* Stock por almacén - colapsible */}
+          {warehouseInfo.warehouses.length > 0 && (
+            <div className="mb-3">
+              <button 
+                className="btn btn-sm btn-outline-info w-100" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target={`#warehouse-${product.id}`}
+              >
+                <i className="bi bi-building me-1"></i>
+                Ver stock por almacén ({warehouseInfo.warehouses.length})
+              </button>
+              <div className="collapse mt-2" id={`warehouse-${product.id}`}>
+                <div className="card card-body bg-light p-2">
+                  {warehouseInfo.warehouses.slice(0, 3).map((wh, idx) => (
+                    <div key={idx} className="d-flex justify-content-between">
+                      <small>{wh.name}</small>
+                      <small className="fw-bold">{wh.quantity}</small>
+                    </div>
+                  ))}
+                  {warehouseInfo.warehouses.length > 3 && (
+                    <small className="text-muted text-center d-block">
+                      +{warehouseInfo.warehouses.length - 3} almacenes más
+                    </small>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Botones de acción - Touch friendly */}
+          <div className="d-grid gap-2">
+            <div className="row g-2">
+              <div className="col-6">
+                <button 
+                  className="btn btn-primary w-100 py-2"
+                  onClick={() => handleEdit(product)}
+                >
+                  <i className="bi bi-pencil me-1"></i>
+                  <span className="d-none d-sm-inline">Editar</span>
+                </button>
+              </div>
+              <div className="col-6">
+                <button 
+                  className="btn btn-info w-100 py-2"
+                  onClick={() => handleViewInventory(product)}
+                  title="Ver inventario"
+                >
+                  <i className="bi bi-box me-1"></i>
+                  <span className="d-none d-sm-inline">Stock</span>
+                </button>
+              </div>
+            </div>
+            <button 
+              className="btn btn-warning w-100 py-2"
+              onClick={() => setShowDiscountModal({show: true, productId: product.id, productName: product.name})}
+            >
+              <i className="bi bi-tag me-1"></i>
+              <span>Descuentos</span>
+            </button>
           </div>
         </div>
       </div>
-      <div className="row mb-3">
+    );
+  };
+
+  return (
+    <div className="container-fluid py-3">
+      {/* Header responsivo */}
+      <div className="row align-items-center mb-4">
         <div className="col">
-          <div className="input-group">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Buscar por nombre, SKU, marca o categoría..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            <button 
-              className="btn btn-outline-secondary" 
-              type="button"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              🔍 Filtros 
-              {getActiveFiltersCount() > 0 && (
-                <span className="badge bg-primary ms-1">{getActiveFiltersCount()}</span>
-              )}
-            </button>
-            {getActiveFiltersCount() > 0 && (
-              <button 
-                className="btn btn-outline-danger" 
-                type="button"
-                onClick={clearFilters}
-                title="Limpiar filtros"
-              >
-                ✖
-              </button>
-            )}
-          </div>
+          <h1 className={`mb-0 text-primary ${isMobile ? 'h4' : 'display-6'}`}>
+            <i className="bi bi-box-seam me-2"></i>
+            Productos
+          </h1>
         </div>
         <div className="col-auto">
-          <button className="btn btn-primary" onClick={handleNew}>
-            ➕ Nuevo producto
+          <button 
+            className={`btn btn-primary ${isMobile ? 'btn-lg px-3' : ''}`} 
+            onClick={handleNew}
+          >
+            <i className="bi bi-plus-circle me-1"></i>
+            {isMobile ? 'Nuevo' : 'Nuevo Producto'}
           </button>
         </div>
       </div>
+
+      {/* Stats cards responsivos */}
+      <div className="row g-2 mb-4">
+        <div className="col-4">
+          <div className="card bg-primary text-white text-center">
+            <div className="card-body py-2">
+              <div className={isMobile ? 'h5' : 'h4'}>{products.length}</div>
+              <small>Total</small>
+            </div>
+          </div>
+        </div>
+        <div className="col-4">
+          <div className="card bg-success text-white text-center">
+            <div className="card-body py-2">
+              <div className={isMobile ? 'h5' : 'h4'}>{products.filter(p => p.is_active).length}</div>
+              <small>Activos</small>
+            </div>
+          </div>
+        </div>
+        <div className="col-4">
+          <div className="card bg-info text-white text-center">
+            <div className="card-body py-2">
+              <div className={isMobile ? 'h5' : 'h4'}>{filteredProducts.length}</div>
+              <small>Filtrados</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Barra de búsqueda y controles */}
+      <div className="row g-2 mb-3">
+        <div className="col">
+          <div className="input-group">
+            <span className="input-group-text">
+              <i className="bi bi-search"></i>
+            </span>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar productos..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="col-auto">
+          <button 
+            className="btn btn-outline-secondary" 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <i className="bi bi-funnel me-1"></i>
+            {getActiveFiltersCount() > 0 && (
+              <span className="badge bg-primary ms-1">{getActiveFiltersCount()}</span>
+            )}
+          </button>
+        </div>
+        {!isMobile && (
+          <div className="col-auto">
+            <div className="btn-group" role="group">
+              <button 
+                className={`btn btn-outline-secondary ${getCurrentView() === 'cards' ? 'active' : ''}`}
+                onClick={() => setViewMode('cards')}
+              >
+                <i className="bi bi-grid-3x3-gap"></i>
+              </button>
+              <button 
+                className={`btn btn-outline-secondary ${getCurrentView() === 'table' ? 'active' : ''}`}
+                onClick={() => setViewMode('table')}
+              >
+                <i className="bi bi-table"></i>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       
-      {/* Panel de filtros avanzados (sin negocio) */}
+      {/* Filtros colapsibles */}
       {showFilters && (
         <div className="card mb-3">
           <div className="card-body">
-            <h6 className="card-title">Filtros Avanzados</h6>
-            {filters.warehouse && (
-              <div className="alert alert-info small mb-3">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Filtro por almacén activo:</strong> Solo se muestran productos que tienen stock disponible en el almacén seleccionado.
-              </div>
-            )}
-            <div className="row g-3">
-              <div className="col-md-3">
-                <label className="form-label">Marca</label>
+            <div className="row g-2">
+              <div className={isMobile ? "col-12" : "col-md-3"}>
+                <label className="form-label small">Marca</label>
                 <select 
                   className="form-select form-select-sm"
                   value={filters.brand}
                   onChange={e => handleFilterChange('brand', e.target.value)}
                 >
-                  <option value="">Todas las marcas</option>
+                  <option value="">Todas</option>
                   {brands
                     .sort((a, b) => {
                       const nameA = (a.description || a.name || a.id).toString().toLowerCase();
@@ -718,14 +925,14 @@ function Products() {
                     ))}
                 </select>
               </div>
-              <div className="col-md-3">
-                <label className="form-label">Categoría</label>
+              <div className={isMobile ? "col-12" : "col-md-3"}>
+                <label className="form-label small">Categoría</label>
                 <select 
                   className="form-select form-select-sm"
                   value={filters.category}
                   onChange={e => handleFilterChange('category', e.target.value)}
                 >
-                  <option value="">Todas las categorías</option>
+                  <option value="">Todas</option>
                   {categories
                     .sort((a, b) => {
                       const nameA = (a.description || a.name || a.id).toString().toLowerCase();
@@ -737,27 +944,8 @@ function Products() {
                     ))}
                 </select>
               </div>
-              <div className="col-md-3">
-                <label className="form-label">Almacén</label>
-                <select 
-                  className="form-select form-select-sm"
-                  value={filters.warehouse}
-                  onChange={e => handleFilterChange('warehouse', e.target.value)}
-                >
-                  <option value="">Todos los almacenes</option>
-                  {warehouses
-                    .sort((a, b) => {
-                      const nameA = (a.name || a.description || a.id).toString().toLowerCase();
-                      const nameB = (b.name || b.description || b.id).toString().toLowerCase();
-                      return nameA.localeCompare(nameB);
-                    })
-                    .map(w => (
-                      <option key={w.id} value={w.id}>{w.name || w.description || `Almacén ${w.id}`}</option>
-                    ))}
-                </select>
-              </div>
-              <div className="col-md-3">
-                <label className="form-label">Estado</label>
+              <div className={isMobile ? "col-12" : "col-md-3"}>
+                <label className="form-label small">Estado</label>
                 <select 
                   className="form-select form-select-sm"
                   value={filters.isActive}
@@ -768,204 +956,249 @@ function Products() {
                   <option value="false">Inactivos</option>
                 </select>
               </div>
+              <div className={isMobile ? "col-12" : "col-md-3"}>
+                <label className="form-label small">&nbsp;</label>
+                <button className="btn btn-outline-danger btn-sm d-block w-100" onClick={clearFilters}>
+                  <i className="bi bi-x-circle me-1"></i>
+                  Limpiar
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
       {showForm && (
-        <form ref={formRef} className="bg-white p-4 rounded shadow mb-4" onSubmit={handleSubmit} style={{maxWidth: 600}}>
-          <h2 className="mb-3">{editId ? 'Editar producto' : 'Nuevo producto'}</h2>
-          <div className="mb-3">
-            <input
-              type="text"
-              name="name"
-              className="form-control"
-              placeholder="Nombre*"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <input
-              type="text"
-              name="sku"
-              className="form-control"
-              placeholder="SKU*"
-              value={formData.sku}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <label className="form-label">Marca*</label>
-            <select
-              name="brand"
-              className="form-select"
-              value={formData.brand}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Selecciona marca</option>
-              {brands
-                .sort((a, b) => {
-                  const nameA = (a.description || a.name || a.id).toString().toLowerCase();
-                  const nameB = (b.description || b.name || b.id).toString().toLowerCase();
-                  return nameA.localeCompare(nameB);
-                })
-                .map(b => (
-                  <option key={b.id} value={b.id}>{b.description || b.name || b.id}</option>
-                ))}
-            </select>
-          </div>
-          <div className="mb-3">
-            <label className="form-label">Categoría*</label>
-            <select
-              name="category"
-              className="form-select"
-              value={formData.category}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Selecciona categoría</option>
-              {categories
-                .sort((a, b) => {
-                  const nameA = (a.description || a.name || a.id).toString().toLowerCase();
-                  const nameB = (b.description || b.name || b.id).toString().toLowerCase();
-                  return nameA.localeCompare(nameB);
-                })
-                .map(c => (
-                  <option key={c.id} value={c.id}>{c.description || c.name || c.id}</option>
-                ))}
-            </select>
-          </div>
-          <div className="mb-3">
-            <input
-              type="text"
-              name="barcode"
-              className="form-control"
-              placeholder="Código de barras"
-              value={formData.barcode}
-              onChange={handleChange}
-            />
-          </div>
-          
-          {/* Campo Descripción */}
-          <div className="mb-3">
-            <textarea
-              name="description"
-              className="form-control"
-              placeholder="Descripción del producto"
-              value={formData.description}
-              onChange={handleChange}
-              rows="3"
-            />
-          </div>
-          
-          {/* Campo URL de Imagen */}
-          <div className="mb-3">
-            <input
-              type="url"
-              name="image_url"
-              className="form-control"
-              placeholder="URL de imagen del producto"
-              value={formData.image_url}
-              onChange={handleChange}
-            />
-          </div>
-          
-          <div className="mb-3">
-            <input
-              type="number"
-              name="minimum_stock"
-              className="form-control"
-              placeholder="Stock mínimo"
-              value={formData.minimum_stock}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="mb-3">
-            <input
-              type="number"
-              name="maximum_stock"
-              className="form-control"
-              placeholder="Stock máximo"
-              value={formData.maximum_stock}
-              onChange={handleChange}
-            />
-          </div>
-          
-          {/* Nuevo campo: Cantidad Corrugado */}
-          <div className="mb-3">
-            <input
-              type="number"
-              name="cantidad_corrugado"
-              className="form-control"
-              placeholder="Cantidad corrugado"
-              value={formData.cantidad_corrugado}
-              onChange={handleChange}
-              min="0"
-            />
-          </div>
+        <div className={`modal fade show d-block`} tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={(e) => e.target === e.currentTarget && setShowForm(false)}>
+          <div className={`modal-dialog ${isMobile ? 'modal-fullscreen' : 'modal-lg modal-dialog-scrollable'}`}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">{editId ? 'Editar producto' : 'Nuevo producto'}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowForm(false)}></button>
+              </div>
+              <div className="modal-body">
+                <form ref={formRef} onSubmit={handleSubmit}>
+                  <div className={`row ${isMobile ? 'g-3' : 'g-2'}`}>
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Nombre del Producto *</label>
+                      <input
+                        type="text"
+                        name="name"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="Ingrese el nombre del producto"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Código SKU *</label>
+                      <input
+                        type="text"
+                        name="sku"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="Código único del producto"
+                        value={formData.sku}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Marca *</label>
+                      <select
+                        name="brand"
+                        className={`form-select ${isMobile ? 'form-select-lg' : ''}`}
+                        value={formData.brand}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Selecciona marca</option>
+                        {brands
+                          .sort((a, b) => {
+                            const nameA = (a.description || a.name || a.id).toString().toLowerCase();
+                            const nameB = (b.description || b.name || b.id).toString().toLowerCase();
+                            return nameA.localeCompare(nameB);
+                          })
+                          .map(b => (
+                            <option key={b.id} value={b.id}>{b.description || b.name || b.id}</option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Categoría *</label>
+                      <select
+                        name="category"
+                        className={`form-select ${isMobile ? 'form-select-lg' : ''}`}
+                        value={formData.category}
+                        onChange={handleChange}
+                        required
+                      >
+                        <option value="">Selecciona categoría</option>
+                        {categories
+                          .sort((a, b) => {
+                            const nameA = (a.description || a.name || a.id).toString().toLowerCase();
+                            const nameB = (b.description || b.name || b.id).toString().toLowerCase();
+                            return nameA.localeCompare(nameB);
+                          })
+                          .map(c => (
+                            <option key={c.id} value={c.id}>{c.description || c.name || c.id}</option>
+                          ))}
+                      </select>
+                    </div>
+                    
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Código de Barras</label>
+                      <input
+                        type="text"
+                        name="barcode"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="Código de barras del producto"
+                        value={formData.barcode}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Descripción</label>
+                      <textarea
+                        name="description"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="Descripción detallada del producto"
+                        value={formData.description}
+                        onChange={handleChange}
+                        rows={isMobile ? "4" : "3"}
+                      />
+                    </div>
+                    
+                    <div className="col-12">
+                      <label className="form-label fw-bold">URL de Imagen</label>
+                      <input
+                        type="url"
+                        name="image_url"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                        value={formData.image_url}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    
+                    <div className={`col-${isMobile ? '12' : '6'}`}>
+                      <label className="form-label fw-bold">Stock Mínimo</label>
+                      <input
+                        type="number"
+                        name="minimum_stock"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="0"
+                        value={formData.minimum_stock}
+                        onChange={handleChange}
+                        min="0"
+                      />
+                    </div>
+                    <div className={`col-${isMobile ? '12' : '6'}`}>
+                      <label className="form-label fw-bold">Stock Máximo</label>
+                      <input
+                        type="number"
+                        name="maximum_stock"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="100"
+                        value={formData.maximum_stock}
+                        onChange={handleChange}
+                        min="0"
+                      />
+                    </div>
+                    
+                    <div className={`col-${isMobile ? '12' : '6'}`}>
+                      <label className="form-label fw-bold">Cantidad Corrugado</label>
+                      <input
+                        type="number"
+                        name="cantidad_corrugado"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="0"
+                        value={formData.cantidad_corrugado}
+                        onChange={handleChange}
+                        min="0"
+                      />
+                    </div>
 
-          {/* Nuevo campo: Status del Producto */}
-          <div className="mb-3">
-            <label className="form-label">Estado del Producto</label>
-            <select
-              name="status"
-              className="form-select"
-              value={formData.status}
-              onChange={handleChange}
-            >
-              <option value="REGULAR">Regular</option>
-              <option value="NUEVO">Nuevo</option>
-              <option value="OFERTA">Oferta</option>
-              <option value="REMATE">Remate</option>
-            </select>
-          </div>
+                    <div className={`col-${isMobile ? '12' : '6'}`}>
+                      <label className="form-label fw-bold">Estado del Producto</label>
+                      <select
+                        name="status"
+                        className={`form-select ${isMobile ? 'form-select-lg' : ''}`}
+                        value={formData.status}
+                        onChange={handleChange}
+                      >
+                        <option value="REGULAR">🔸 Regular</option>
+                        <option value="NUEVO">✨ Nuevo</option>
+                        <option value="OFERTA">🔥 Oferta</option>
+                        <option value="REMATE">💥 Remate</option>
+                      </select>
+                    </div>
 
-          <div className="mb-3">
-            <label className="form-check-label me-2">Activo</label>
-            <input
-              type="checkbox"
-              name="is_active"
-              className="form-check-input"
-              checked={formData.is_active}
-              onChange={handleChange}
-            />
+                    <div className={`col-${isMobile ? '12' : '6'}`}>
+                      <label className="form-label fw-bold">Grupo</label>
+                      <input
+                        type="number"
+                        name="group"
+                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
+                        placeholder="Número de grupo"
+                        value={formData.group}
+                        onChange={handleChange}
+                        min="0"
+                      />
+                    </div>
+
+                    <div className="col-12">
+                      <div className={`form-check ${isMobile ? 'form-check-lg' : ''}`}>
+                        <input
+                          type="checkbox"
+                          name="is_active"
+                          className="form-check-input"
+                          id="is_active"
+                          checked={formData.is_active}
+                          onChange={handleChange}
+                        />
+                        <label className="form-check-label fw-bold" htmlFor="is_active">
+                          ✅ Producto Activo
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  
+          {formError && <div className="alert alert-danger mb-3">{formError}</div>}
+                </form>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline-secondary" disabled={isSubmitting} onClick={() => {
+                  setShowForm(false);
+                  setEditId(null);
+                  setFormError('');
+                  setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', description: '', image_url: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '' });
+                }}>
+                  ✖ Cancelar
+                </button>
+                <button 
+                  type="button"
+                  className={`btn ${isMobile ? 'btn-primary btn-lg flex-fill' : 'btn-primary'}`} 
+                  disabled={isSubmitting}
+                  onClick={() => formRef.current?.requestSubmit()}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      {editId ? 'Actualizando...' : 'Guardando...'}
+                    </>
+                  ) : (
+                    <>
+                      💾 {editId ? 'Actualizar' : 'Guardar'}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="mb-3">
-            <input
-              type="number"
-              name="group"
-              className="form-control"
-              placeholder="Grupo"
-              value={formData.group}
-              onChange={handleChange}
-            />
-          </div>
-          {formError && <div className="alert alert-danger mb-2">{formError}</div>}
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                {editId ? 'Actualizando...' : 'Guardando...'}
-              </>
-            ) : (
-              <>
-                💾 {editId ? 'Actualizar' : 'Guardar'}
-              </>
-            )}
-          </button>
-          <button type="button" className="btn btn-light ms-2" disabled={isSubmitting} onClick={() => {
-            setShowForm(false);
-            setEditId(null);
-            setFormError('');
-            setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', description: '', image_url: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '' });
-          }}>
-            ✖ Cancelar
-          </button>
-        </form>
+        </div>
       )}
       {loading && (
         <div className="text-center py-5">
@@ -980,26 +1213,41 @@ function Products() {
           ⚠️ {error}
         </div>
       )}
+      {/* Contenido principal */}
       {!loading && !error && (
-        <div>
+        <>
           {filteredProducts.length === 0 ? (
             <div className="text-center py-5">
-              🔍 <h5 className="text-muted">No se encontraron productos</h5>
+              <i className="bi bi-search display-1 text-muted"></i>
+              <h5 className="text-muted mt-3">No se encontraron productos</h5>
               <p className="text-muted">
                 {search || getActiveFiltersCount() > 0 
-                  ? 'Intenta ajustar los criterios de búsqueda o filtros'
+                  ? 'Intenta ajustar los criterios de búsqueda'
                   : 'No hay productos registrados aún'
                 }
               </p>
               {(search || getActiveFiltersCount() > 0) && (
                 <button className="btn btn-outline-primary" onClick={clearFilters}>
-                  ✖ Limpiar filtros
+                  <i className="bi bi-x-circle me-1"></i>
+                  Limpiar filtros
                 </button>
               )}
             </div>
           ) : (
             <>
-              <table className="table table-bordered table-hover">
+              {/* Vista Cards (móvil) */}
+              {getCurrentView() === 'cards' && (
+                <div>
+                  {paginatedProducts.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+
+              {/* Vista Tabla (desktop) */}
+              {getCurrentView() === 'table' && (
+                <div className="table-responsive">
+                  <table className="table table-hover">
             <thead className="table-primary">
               <tr>
                 <th>Nombre</th>
@@ -1156,70 +1404,55 @@ function Products() {
                   </tr>
                 );
               }))}
-            </tbody>
-          </table>
-          <nav className="d-flex justify-content-between align-items-center mt-4">
-            <div className="d-flex align-items-center">
-              <span className="text-muted">
-                {filteredProducts.length === 0 
-                  ? 'No hay productos para mostrar'
-                  : `Mostrando ${(page - 1) * pageSize + 1} - ${Math.min(page * pageSize, filteredProducts.length)} de ${filteredProducts.length} productos`
-                }
-              </span>
-            </div>
-            <div className="d-flex align-items-center gap-2">
-              <button 
-                className="btn btn-outline-secondary btn-sm" 
-                disabled={page === 1} 
-                onClick={() => setPage(1)}
-                title="Primera página"
-              >
-                ⏮️
-              </button>
-              <button 
-                className="btn btn-outline-secondary btn-sm" 
-                disabled={page === 1} 
-                onClick={() => setPage(page - 1)}
-                title="Página anterior"
-              >
-                ⬅️
-              </button>
-              <span className="px-3">
-                Página <strong>{page}</strong> de <strong>{totalPages}</strong>
-              </span>
-              <button 
-                className="btn btn-outline-secondary btn-sm" 
-                disabled={page === totalPages || totalPages === 0} 
-                onClick={() => setPage(page + 1)}
-                title="Página siguiente"
-              >
-                ➡️
-              </button>
-              <button 
-                className="btn btn-outline-secondary btn-sm" 
-                disabled={page === totalPages || totalPages === 0} 
-                onClick={() => setPage(totalPages)}
-                title="Última página"
-              >
-                ⏭️
-              </button>
-            </div>
-            <div className="d-flex align-items-center">
-              <label className="form-label me-2 mb-0">Mostrar:</label>
-              <select 
-                className="form-select form-select-sm" 
-                style={{ width: 100 }} 
-                value={pageSize} 
-                onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-              >
-                {[5, 10, 20, 50, 100].map(size => (
-                  <option key={size} value={size}>{size}</option>
-                ))}
-              </select>
-            </div>
-          </nav>
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
+        </>
+      )}
+
+      {/* Paginación responsiva */}
+      {!loading && !error && filteredProducts.length > 0 && (
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 gap-2">
+          <small className="text-muted">
+            Mostrando {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, filteredProducts.length)} de {filteredProducts.length}
+          </small>
+          
+          <div className="d-flex align-items-center gap-2">
+            <button 
+              className="btn btn-sm btn-outline-secondary" 
+              disabled={page === 1} 
+              onClick={() => setPage(page - 1)}
+            >
+              <i className="bi bi-chevron-left"></i>
+            </button>
+            
+            <span className="px-2">
+              {page} / {totalPages}
+            </span>
+            
+            <button 
+              className="btn btn-sm btn-outline-secondary" 
+              disabled={page === totalPages} 
+              onClick={() => setPage(page + 1)}
+            >
+              <i className="bi bi-chevron-right"></i>
+            </button>
+          </div>
+          
+          <select 
+            className="form-select form-select-sm" 
+            style={{ width: 'auto' }} 
+            value={pageSize} 
+            onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
         </div>
       )}
       

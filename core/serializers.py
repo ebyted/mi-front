@@ -190,15 +190,87 @@ class SupplierProductSerializer(serializers.ModelSerializer):
         model = SupplierProduct
         fields = '__all__'
 
-class PurchaseOrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PurchaseOrder
-        fields = '__all__'
-
 class PurchaseOrderItemSerializer(serializers.ModelSerializer):
+    product_variant_detail = serializers.SerializerMethodField(read_only=True)
+    
     class Meta:
         model = PurchaseOrderItem
-        fields = '__all__'
+        fields = ['id', 'product_variant', 'quantity', 'unit_price', 'total_price', 'product_variant_detail']
+    
+    def get_product_variant_detail(self, obj):
+        if obj.product_variant:
+            return {
+                'id': obj.product_variant.id,
+                'name': obj.product_variant.name,
+                'sku': obj.product_variant.sku,
+                'product_name': obj.product_variant.product.name if obj.product_variant.product else '',
+            }
+        return None
+
+class PurchaseOrderSerializer(serializers.ModelSerializer):
+    items = PurchaseOrderItemSerializer(many=True, read_only=True, source='purchaseorderitem_set')
+    items_data = serializers.ListField(write_only=True, required=False)
+    supplier_detail = serializers.SerializerMethodField(read_only=True)
+    business = serializers.PrimaryKeyRelatedField(read_only=True)
+    
+    class Meta:
+        model = PurchaseOrder
+        fields = ['id', 'business', 'supplier', 'supplier_detail', 'order_date', 'expected_delivery_date', 
+                 'status', 'total_amount', 'notes', 'created_at', 'updated_at', 'items', 'items_data']
+        extra_kwargs = {
+            'order_date': {'required': False},
+            'status': {'required': False},
+        }
+    
+    def get_supplier_detail(self, obj):
+        if obj.supplier:
+            return {
+                'id': obj.supplier.id,
+                'name': obj.supplier.name,
+                'company_name': obj.supplier.company_name,
+                'email': obj.supplier.email,
+                'phone': obj.supplier.phone,
+            }
+        return None
+    
+    def create(self, validated_data):
+        items_data = validated_data.pop('items_data', [])
+        
+        # Asignar business automáticamente
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'business'):
+            validated_data['business'] = request.user.business
+        elif request and hasattr(request.user, 'userprofile') and request.user.userprofile.business:
+            validated_data['business'] = request.user.userprofile.business
+        else:
+            from .models import Business
+            first_business = Business.objects.first()
+            if first_business:
+                validated_data['business'] = first_business
+        
+        # Establecer valores por defecto
+        if 'status' not in validated_data:
+            validated_data['status'] = 'DRAFT'
+        
+        # Calcular total si no se proporciona
+        total_calculated = 0
+        for item in items_data:
+            quantity = float(item.get('quantity', 0))
+            unit_price = float(item.get('unit_price', 0))
+            total_calculated += quantity * unit_price
+        
+        if not validated_data.get('total_amount'):
+            validated_data['total_amount'] = total_calculated
+        
+        purchase_order = PurchaseOrder.objects.create(**validated_data)
+        
+        # Crear items
+        for item_data in items_data:
+            item_data['purchase_order'] = purchase_order
+            item_data['total_price'] = float(item_data['quantity']) * float(item_data['unit_price'])
+            PurchaseOrderItem.objects.create(**item_data)
+        
+        return purchase_order
 
 class PurchaseOrderReceiptSerializer(serializers.ModelSerializer):
     class Meta:
