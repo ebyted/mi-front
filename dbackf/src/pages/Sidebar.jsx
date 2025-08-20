@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
   { name: "Usuarios", path: "/users", icon: "bi-people" },
-  { name: "Productos", path: "/products", icon: "bi-box-seam" },
+  // { name: "Productos", path: "/products", icon: "bi-box-seam" }, // Eliminado del sidebar
   { name: "Almacenes", path: "/warehouses", icon: "bi-building" },
   { name: "Inventario General", path: "/inventory-overview", icon: "bi-clipboard-data" },
   { name: "Órdenes de Compra", path: "/purchase-orders", icon: "bi-cart-plus" },
