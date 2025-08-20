@@ -75,8 +75,6 @@ function Dashboard() {
             { to: '/inventory-movements', icon: '🔄', label: 'Movimientos de almacén', color: 'warning' },
             { to: '/exchange-rates', icon: '💱', label: 'Tipo de cambio', color: 'secondary' },
             { to: '/store', icon: '🛍️', label: 'Tienda', color: 'primary' },
-            { to: '/tijuana-store', icon: '🏪', label: 'Tienda TIJUANA', color: 'success' },
-            { to: '/enhanced-store', icon: '⭐', label: 'Tienda Premium', color: 'warning' },
           ].map((item, idx) => (
             <div className="col-12 col-sm-6 col-md-4 col-lg-3" key={item.to}>
               <Link to={item.to} className={`card border-0 shadow-lg text-center h-100 py-4 px-2 bg-white hover-shadow position-relative menu-card menu-card-${item.color}`}

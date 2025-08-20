@@ -1,200 +1,950 @@
 
-
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
-import DiscountManager from '../components/DiscountManager';
+
+// Hook personalizado para debounce
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 function Products() {
   // Hook para cambiar el título de la pestaña
   useDocumentTitle('Productos - Maestro Inventario');
-  
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const formRef = React.useRef(null);
+  const navigate = useNavigate();
+
+  // Estados principales
   const [products, setProducts] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
-  const [currentBusiness, setCurrentBusiness] = useState(1); // Business por defecto
-  // Eliminado manejo de múltiples negocios
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ 
-    name: '', 
-    sku: '', 
-    description: '',
-    brand: '', 
-    category: '', 
-    barcode: '', 
-    minimum_stock: '', 
-    maximum_stock: '', 
-    cantidad_corrugado: '', 
-    status: 'REGULAR', 
-    is_active: true, 
-    group: '',
-    image_url: ''
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Paginación
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 25,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrevious: false
   });
-  const [formError, setFormError] = useState('');
-  const [editId, setEditId] = useState(null);
+
+  // Búsqueda y filtros
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   
-  // Estados para gestión de descuentos
-  const [showDiscountManager, setShowDiscountManager] = useState(false);
-  const [selectedProductForDiscount, setSelectedProductForDiscount] = useState(null);
-  const [showDiscountModal, setShowDiscountModal] = useState({show: false, productId: null, productName: ''});
-  
-  // Estados para modal de inventario
-  const [showInventoryModal, setShowInventoryModal] = useState(false);
-  const [inventoryProduct, setInventoryProduct] = useState(null);
-  const [productInventory, setProductInventory] = useState([]);
-  const [loadingInventory, setLoadingInventory] = useState(false);
-  const [inventoryWarehouseFilter, setInventoryWarehouseFilter] = useState(''); // Filtro por almacén en modal
-  const [productMovements, setProductMovements] = useState([]);
-  const [loadingMovements, setLoadingMovements] = useState(false);
-  
-  // Estado para stock por almacén de todos los productos
-  const [productWarehouseStocks, setProductWarehouseStocks] = useState([]);
-  
-  // Estados para filtros avanzados
-  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     brand: '',
     category: '',
-    warehouse: '',
-    isActive: '',
-    stockStatus: ''
+    isActive: 'all' // 'all', 'true', 'false'
   });
 
-  // Estado para vista móvil
-  const [viewMode, setViewMode] = useState('auto'); // 'cards', 'table', 'auto'
-  const [isMobile, setIsMobile] = useState(false);
+  // Ordenamiento
+  const [sortConfig, setSortConfig] = useState({
+    key: 'updated_at',
+    direction: 'desc'
+  });
 
-  // Detectar si es móvil
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-    
-    return () => window.removeEventListener('resize', checkIfMobile);
+  // Vista y estados UI
+  const [viewMode, setViewMode] = useState('table');
+
+  // Catálogos (cache)
+  const [catalogs, setCatalogs] = useState({
+    brands: [],
+    categories: [],
+    warehouses: []
+  });
+
+  // Estadísticas
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    filtered: 0
+  });
+  
+  // Función principal para obtener productos con paginación
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        page_size: pagination.pageSize.toString(),
+        ordering: sortConfig.direction === 'desc' ? `-${sortConfig.key}` : sortConfig.key
+      });
+
+      // Agregar búsqueda si existe
+      if (debouncedSearch.trim()) {
+        params.append('search', debouncedSearch.trim());
+      }
+
+      // Agregar filtros
+      if (filters.brand) params.append('brand', filters.brand);
+      if (filters.category) params.append('category', filters.category);
+      if (filters.isActive !== 'all') params.append('is_active', filters.isActive);
+
+      console.log('Fetching products with params:', params.toString());
+
+      const response = await api.get(`/products/?${params.toString()}`);
+      
+      // Manejo de respuesta paginada
+      const data = response.data;
+      const results = data.results || data.items || data || [];
+      
+      setProducts(results);
+      setPagination(prev => ({
+        ...prev,
+        total: data.count || data.total || results.length,
+        totalPages: Math.ceil((data.count || data.total || results.length) / prev.pageSize),
+        hasNext: !!data.next,
+        hasPrevious: !!data.previous
+      }));
+
+      // Actualizar estadísticas
+      setStats(prev => ({
+        ...prev,
+        filtered: data.count || data.total || results.length
+      }));
+
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setError('Error al cargar los productos. Usando datos de ejemplo.');
+      
+      // Fallback a datos de ejemplo en caso de error
+      const mockProducts = getMockProducts();
+      setProducts(mockProducts);
+      setPagination(prev => ({ 
+        ...prev, 
+        total: mockProducts.length, 
+        totalPages: Math.ceil(mockProducts.length / prev.pageSize),
+        hasNext: false,
+        hasPrevious: false
+      }));
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.page, pagination.pageSize, debouncedSearch, filters, sortConfig]);
+
+  // Función para obtener catálogos (cache)
+  const fetchCatalogs = useCallback(async () => {
+    try {
+      const [brandsRes, categoriesRes, warehousesRes] = await Promise.all([
+        api.get('/brands/').catch(() => ({ data: [] })),
+        api.get('/categories/').catch(() => ({ data: [] })),
+        api.get('/warehouses/').catch(() => ({ data: [] }))
+      ]);
+
+      setCatalogs({
+        brands: brandsRes.data.results || brandsRes.data || getMockBrands(),
+        categories: categoriesRes.data.results || categoriesRes.data || getMockCategories(),
+        warehouses: warehousesRes.data.results || warehousesRes.data || getMockWarehouses()
+      });
+    } catch (error) {
+      console.error('Error fetching catalogs:', error);
+      setCatalogs({
+        brands: getMockBrands(),
+        categories: getMockCategories(),
+        warehouses: getMockWarehouses()
+      });
+    }
   }, []);
 
-  // Determinar vista actual
-  const getCurrentView = () => {
-    if (viewMode === 'auto') {
-      return isMobile ? 'cards' : 'table';
+  // Función para obtener estadísticas generales
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await api.get('/products/stats/');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      setStats({ total: 2600, active: 2580, filtered: pagination.total });
     }
-    return viewMode;
-  };
+  }, [pagination.total]);
+
+  // Efectos
+  useEffect(() => {
+    fetchCatalogs();
+    fetchStats();
+  }, [fetchCatalogs, fetchStats]);
+
+  useEffect(() => {
+    // Reset página cuando cambian filtros o búsqueda
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [debouncedSearch, filters]);
 
   useEffect(() => {
     fetchProducts();
-    fetchCurrentBusiness();
-    fetchProductWarehouseStocks();
-    // Cargar marcas, categorías y almacenes
-    api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
-    api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
-    api.get('warehouses/').then(res => {
-      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
-      setWarehouses(data);
-    }).catch(() => setWarehouses([]));
-  }, []);
+  }, [fetchProducts]);
 
-  // Debug effect para el search
-  useEffect(() => {
-    if (search && search.trim()) {
-      console.log('Search changed to:', search);
-    }
-  }, [search]);
+  // Handlers de paginación
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  const fetchCurrentBusiness = () => {
-    // Intentar obtener el business del usuario actual
-    api.get('user/profile/')
-      .then(res => {
-        if (res.data && res.data.business) {
-          setCurrentBusiness(res.data.business.id || res.data.business);
-        }
-      })
-      .catch(() => {
-        // Si falla, intentar obtener el primer business disponible
-        api.get('businesses/')
-          .then(res => {
-            if (res.data && res.data.length > 0) {
-              setCurrentBusiness(res.data[0].id);
+  const handlePageSizeChange = (newPageSize) => {
+    setPagination(prev => ({ 
+      ...prev, 
+      pageSize: parseInt(newPageSize),
+      page: 1 
+    }));
+  };
+
+  // Handlers de filtros
+  const handleSearchChange = (value) => {
+    setSearch(value);
+  };
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({ ...prev, [filterType]: value }));
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setFilters({ brand: '', category: '', isActive: 'all' });
+    setSortConfig({ key: 'updated_at', direction: 'desc' });
+  };
+
+  // Handlers de ordenamiento
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Handlers de acciones
+  const handleEdit = (product) => {
+    navigate(`/products/${product.id}/edit`);
+  };
+
+  const handleInventoryConsultation = (product) => {
+    navigate('/inventory-consultation', {
+      state: { selectedProduct: product }
+    });
+  };
+
+  const handleDiscounts = (product) => {
+    navigate(`/products/${product.id}/discounts`);
+  };
+
+  // Componente de paginación
+  const PaginationComponent = () => (
+    <div className="d-flex justify-content-between align-items-center mt-4">
+      <div className="d-flex align-items-center">
+        <span className="text-muted me-3">
+          Mostrando {((pagination.page - 1) * pagination.pageSize) + 1} - {Math.min(pagination.page * pagination.pageSize, pagination.total)} de {pagination.total} productos
+        </span>
+        
+        <select 
+          className="form-select form-select-sm" 
+          style={{ width: 'auto' }}
+          value={pagination.pageSize}
+          onChange={(e) => handlePageSizeChange(e.target.value)}
+        >
+          <option value={10}>10 por página</option>
+          <option value={25}>25 por página</option>
+          <option value={50}>50 por página</option>
+          <option value={100}>100 por página</option>
+        </select>
+      </div>
+
+      <nav>
+        <ul className="pagination pagination-sm mb-0">
+          <li className={`page-item ${!pagination.hasPrevious ? 'disabled' : ''}`}>
+            <button 
+              className="page-link" 
+              onClick={() => handlePageChange(1)}
+              disabled={!pagination.hasPrevious}
+            >
+              ‹‹
+            </button>
+          </li>
+          <li className={`page-item ${!pagination.hasPrevious ? 'disabled' : ''}`}>
+            <button 
+              className="page-link" 
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={!pagination.hasPrevious}
+            >
+              ‹
+            </button>
+          </li>
+          
+          {/* Páginas numeradas */}
+          {[...Array(Math.min(5, pagination.totalPages))].map((_, index) => {
+            const pageNumber = Math.max(1, pagination.page - 2) + index;
+            if (pageNumber <= pagination.totalPages) {
+              return (
+                <li key={pageNumber} className={`page-item ${pagination.page === pageNumber ? 'active' : ''}`}>
+                  <button 
+                    className="page-link" 
+                    onClick={() => handlePageChange(pageNumber)}
+                  >
+                    {pageNumber}
+                  </button>
+                </li>
+              );
             }
-          })
-          .catch(() => {
-            console.warn('No se pudo obtener business, usando valor por defecto (1)');
-          });
-      });
-  };
+            return null;
+          })}
+          
+          <li className={`page-item ${!pagination.hasNext ? 'disabled' : ''}`}>
+            <button 
+              className="page-link" 
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNext}
+            >
+              ›
+            </button>
+          </li>
+          <li className={`page-item ${!pagination.hasNext ? 'disabled' : ''}`}>
+            <button 
+              className="page-link" 
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={!pagination.hasNext}
+            >
+              ››
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  );
 
-  // Eliminada función fetchBusinesses
+  // Componente de filtros avanzados
+  const FiltersComponent = () => (
+    <div className="card mb-4">
+      <div className="card-body">
+        <div className="row g-3">
+          {/* Búsqueda principal */}
+          <div className="col-md-4">
+            <label className="form-label fw-bold">
+              <i className="bi bi-search me-1"></i>
+              Buscar Productos
+            </label>
+            <div className="input-group">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por nombre, SKU o código..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+              {search && (
+                <button
+                  className="btn btn-outline-secondary"
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                >
+                  <i className="bi bi-x"></i>
+                </button>
+              )}
+            </div>
+            {debouncedSearch !== search && (
+              <small className="text-muted">
+                <i className="bi bi-clock me-1"></i>
+                Buscando...
+              </small>
+            )}
+          </div>
 
-  const fetchProducts = () => {
-    setLoading(true);
-    api.get('products/')
-      .then(res => {
-        const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
-        setProducts(data);
-      })
-      .catch(() => {
-        setProducts([]);
-        setError('No se pudo cargar la lista de productos.');
-      })
-      .finally(() => setLoading(false));
-  };
+          {/* Filtro por marca */}
+          <div className="col-md-2">
+            <label className="form-label fw-bold">
+              <i className="bi bi-tag me-1"></i>
+              Marca
+            </label>
+            <select
+              className="form-select"
+              value={filters.brand}
+              onChange={(e) => handleFilterChange('brand', e.target.value)}
+            >
+              <option value="">Todas las marcas</option>
+              {catalogs.brands.map(brand => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-  const fetchProductWarehouseStocks = () => {
-    // Obtener stock de todos los productos por almacén
-    api.get('product-warehouse-stocks/')
-      .then(res => {
-        const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
-        setProductWarehouseStocks(data);
-      })
-      .catch(err => {
-        console.error('Error al obtener stocks por almacén:', err);
-        setProductWarehouseStocks([]);
-      });
-  };
+          {/* Filtro por categoría */}
+          <div className="col-md-2">
+            <label className="form-label fw-bold">
+              <i className="bi bi-grid me-1"></i>
+              Categoría
+            </label>
+            <select
+              className="form-select"
+              value={filters.category}
+              onChange={(e) => handleFilterChange('category', e.target.value)}
+            >
+              <option value="">Todas las categorías</option>
+              {catalogs.categories.map(category => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-  const filteredProducts = products.filter(p => {
-    // Filtro de búsqueda general - mejorado y simplificado
-    let matchesSearch = true;
-    if (search && search.trim()) {
-      const searchLower = search.toLowerCase().trim();
-      
-      // Función helper para limpiar y normalizar texto
-      const normalizeText = (text) => {
-        return (text || '').toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // Remover acentos
-          .replace(/[^\w\s]/g, ' ') // Reemplazar caracteres especiales con espacios
-          .replace(/\s+/g, ' ') // Normalizar espacios múltiples
-          .trim();
-      };
-      
-      const searchNormalized = normalizeText(searchLower);
-      
-      // Buscar en nombre del producto
-      const nameMatch = normalizeText(p.name).includes(searchNormalized);
-      
-      // Buscar en SKU
-      const skuMatch = normalizeText(p.sku).includes(searchNormalized);
-      
-      // Buscar en marca
-      let brandMatch = false;
-      if (p.brand) {
-        if (typeof p.brand === 'object') {
-          brandMatch = normalizeText(p.brand.name || p.brand.description).includes(searchNormalized);
-        } else {
-          brandMatch = normalizeText(String(p.brand)).includes(searchNormalized);
+          {/* Filtro por estado */}
+          <div className="col-md-2">
+            <label className="form-label fw-bold">
+              <i className="bi bi-toggle-on me-1"></i>
+              Estado
+            </label>
+            <select
+              className="form-select"
+              value={filters.isActive}
+              onChange={(e) => handleFilterChange('isActive', e.target.value)}
+            >
+              <option value="all">Todos</option>
+              <option value="true">Activos</option>
+              <option value="false">Inactivos</option>
+            </select>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="col-md-2">
+            <label className="form-label fw-bold text-transparent">Acciones</label>
+            <div className="d-flex gap-2">
+              <button
+                className="btn btn-outline-secondary flex-fill"
+                onClick={clearFilters}
+                disabled={!search && !filters.brand && !filters.category && filters.isActive === 'all'}
+              >
+                <i className="bi bi-x-circle me-1"></i>
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Indicadores de filtros activos */}
+        {(search || filters.brand || filters.category || filters.isActive !== 'all') && (
+          <div className="mt-3 pt-3 border-top">
+            <div className="d-flex flex-wrap gap-2 align-items-center">
+              <small className="text-muted fw-bold">Filtros activos:</small>
+              
+              {search && (
+                <span className="badge bg-primary">
+                  Búsqueda: "{search}"
+                  <button
+                    className="btn-close btn-close-white ms-1"
+                    style={{ fontSize: '0.6em' }}
+                    onClick={() => handleSearchChange('')}
+                  ></button>
+                </span>
+              )}
+              
+              {filters.brand && (
+                <span className="badge bg-info">
+                  Marca: {catalogs.brands.find(b => b.id == filters.brand)?.name}
+                  <button
+                    className="btn-close btn-close-white ms-1"
+                    style={{ fontSize: '0.6em' }}
+                    onClick={() => handleFilterChange('brand', '')}
+                  ></button>
+                </span>
+              )}
+              
+              {filters.category && (
+                <span className="badge bg-warning">
+                  Categoría: {catalogs.categories.find(c => c.id == filters.category)?.name}
+                  <button
+                    className="btn-close btn-close-white ms-1"
+                    style={{ fontSize: '0.6em' }}
+                    onClick={() => handleFilterChange('category', '')}
+                  ></button>
+                </span>
+              )}
+              
+              {filters.isActive !== 'all' && (
+                <span className="badge bg-success">
+                  Estado: {filters.isActive === 'true' ? 'Activos' : 'Inactivos'}
+                  <button
+                    className="btn-close btn-close-white ms-1"
+                    style={{ fontSize: '0.6em' }}
+                    onClick={() => handleFilterChange('isActive', 'all')}
+                  ></button>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Componente de skeleton loader
+  const SkeletonLoader = () => (
+    <div className="table-responsive">
+      <table className="table table-hover">
+        <thead>
+          <tr>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <th key={i}>
+                <div className="placeholder-glow">
+                  <span className="placeholder col-8"></span>
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: pagination.pageSize }).map((_, i) => (
+            <tr key={i}>
+              {Array.from({ length: 8 }).map((_, j) => (
+                <td key={j}>
+                  <div className="placeholder-glow">
+                    <span className="placeholder col-10"></span>
+                  </div>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // Componente de fila de producto optimizada
+  const ProductRow = React.memo(({ product, onEdit, onInventory, onDiscounts }) => (
+    <tr>
+      <td>
+        <div className="d-flex align-items-center">
+          {product.image_url ? (
+            <img 
+              src={product.image_url} 
+              alt={product.name} 
+              className="rounded me-2"
+              style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+              loading="lazy"
+            />
+          ) : (
+            <div 
+              className="bg-light rounded d-flex align-items-center justify-content-center me-2"
+              style={{ width: '32px', height: '32px' }}
+            >
+              <i className="bi bi-image text-muted"></i>
+            </div>
+          )}
+          <div>
+            <div className="fw-medium text-truncate" style={{ maxWidth: '150px' }}>
+              {product.name}
+            </div>
+            {product.description && (
+              <small className="text-muted text-truncate d-block" style={{ maxWidth: '150px' }}>
+                {product.description}
+              </small>
+            )}
+          </div>
+        </div>
+      </td>
+      <td>
+        <code className="bg-light px-2 py-1 rounded small">
+          {product.sku || 'N/A'}
+        </code>
+      </td>
+      <td>
+        <span className="badge bg-secondary">
+          {product.brand?.name || product.brand_name || 'Sin marca'}
+        </span>
+      </td>
+      <td>
+        <span className="badge bg-info">
+          {product.category?.name || product.category_name || 'Sin categoría'}
+        </span>
+      </td>
+      <td>
+        {product.barcode ? (
+          <code className="small">{product.barcode}</code>
+        ) : (
+          <span className="text-muted">-</span>
+        )}
+      </td>
+      <td className="text-center">
+        {product.minimum_stock || '-'}
+      </td>
+      <td className="text-center">
+        {product.maximum_stock || '-'}
+      </td>
+      <td className="text-center">
+        <span className={`badge ${product.is_active ? 'bg-success' : 'bg-danger'}`}>
+          {product.is_active ? 'ACTIVO' : 'INACTIVO'}
+        </span>
+      </td>
+      <td className="text-center">
+        <span className={`fw-bold ${(product.total_stock || 0) > 0 ? 'text-success' : 'text-warning'}`}>
+          {product.total_stock || 0}
+        </span>
+      </td>
+      <td>
+        <div className="btn-group btn-group-sm">
+          <button
+            className="btn btn-outline-primary"
+            onClick={() => onEdit(product)}
+            title="Editar producto"
+          >
+            <i className="bi bi-pencil"></i>
+          </button>
+          <button
+            className="btn btn-outline-success"
+            onClick={() => onInventory(product)}
+            title="Consulta de inventario"
+          >
+            <i className="bi bi-graph-up"></i>
+          </button>
+          <button
+            className="btn btn-outline-warning"
+            onClick={() => onDiscounts(product)}
+            title="Gestionar descuentos"
+          >
+            <i className="bi bi-percent"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  ));
+
+  // Componente de tabla optimizada
+  const ProductTable = () => (
+    <div className="table-responsive">
+      <table className="table table-hover table-sm">
+        <thead className="table-light sticky-top">
+          <tr>
+            <th style={{ width: '200px' }}>
+              <button
+                className="btn btn-sm btn-ghost d-flex align-items-center"
+                onClick={() => handleSort('name')}
+              >
+                Nombre
+                {sortConfig.key === 'name' && (
+                  <i className={`bi bi-chevron-${sortConfig.direction === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                )}
+              </button>
+            </th>
+            <th style={{ width: '120px' }}>
+              <button
+                className="btn btn-sm btn-ghost d-flex align-items-center"
+                onClick={() => handleSort('sku')}
+              >
+                SKU
+                {sortConfig.key === 'sku' && (
+                  <i className={`bi bi-chevron-${sortConfig.direction === 'asc' ? 'up' : 'down'} ms-1`}></i>
+                )}
+              </button>
+            </th>
+            <th style={{ width: '100px' }}>Marca</th>
+            <th style={{ width: '120px' }}>Categoría</th>
+            <th style={{ width: '120px' }}>Código Barras</th>
+            <th style={{ width: '80px' }} className="text-center">Stock Min</th>
+            <th style={{ width: '80px' }} className="text-center">Stock Max</th>
+            <th style={{ width: '80px' }} className="text-center">Estado</th>
+            <th style={{ width: '100px' }} className="text-center">Stock Total</th>
+            <th style={{ width: '120px' }} className="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map((product) => (
+            <ProductRow 
+              key={product.id} 
+              product={product}
+              onEdit={handleEdit}
+              onInventory={handleInventoryConsultation}
+              onDiscounts={handleDiscounts}
+            />
+          ))}
+        </tbody>
+      </table>
+
+      {products.length === 0 && !loading && (
+        <div className="text-center py-5">
+          <i className="bi bi-inbox display-1 text-muted"></i>
+          <h5 className="text-muted mt-3">No se encontraron productos</h5>
+          <p className="text-muted">
+            {search || filters.brand || filters.category || filters.isActive !== 'all' 
+              ? 'Intenta ajustar los filtros de búsqueda'
+              : 'No hay productos registrados en el sistema'
+            }
+          </p>
+          {(search || filters.brand || filters.category || filters.isActive !== 'all') && (
+            <button className="btn btn-outline-primary" onClick={clearFilters}>
+              <i className="bi bi-arrow-clockwise me-2"></i>
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  // Render principal del componente
+  return (
+    <div className="container-fluid py-4">
+      {/* Header con título y estadísticas */}
+      <div className="row mb-4">
+        <div className="col-md-8">
+          <div className="d-flex align-items-center mb-3">
+            <i className="bi bi-box-seam display-6 text-primary me-3"></i>
+            <div>
+              <h1 className="h3 mb-1">Productos</h1>
+              <p className="text-muted mb-0">Gestión completa del catálogo de productos</p>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4 text-end">
+          <div className="btn-group mb-3">
+            <button
+              className="btn btn-outline-success"
+              onClick={() => navigate('/inventory-consultation')}
+              title="Ir a consulta avanzada de inventario"
+            >
+              <i className="bi bi-search me-2"></i>
+              Consulta Inventario
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate('/products/new')}
+            >
+              <i className="bi bi-plus-circle me-2"></i>
+              Nuevo Producto
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Estadísticas */}
+      <div className="row mb-4">
+        <div className="col-md-4">
+          <div className="card bg-primary text-white">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h2 className="mb-1">{stats.total.toLocaleString()}</h2>
+                  <p className="mb-0">Total</p>
+                </div>
+                <i className="bi bi-boxes display-6 opacity-75"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="card bg-success text-white">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h2 className="mb-1">{stats.active.toLocaleString()}</h2>
+                  <p className="mb-0">Activos</p>
+                </div>
+                <i className="bi bi-check-circle display-6 opacity-75"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="card bg-info text-white">
+            <div className="card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h2 className="mb-1">{pagination.total.toLocaleString()}</h2>
+                  <p className="mb-0">Filtrados</p>
+                </div>
+                <i className="bi bi-funnel display-6 opacity-75"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <FiltersComponent />
+
+      {/* Error state */}
+      {error && (
+        <div className="alert alert-danger d-flex align-items-center mb-4">
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+          <div>
+            <strong>Error:</strong> {error}
+            <button 
+              className="btn btn-sm btn-outline-danger ms-3"
+              onClick={fetchProducts}
+            >
+              <i className="bi bi-arrow-clockwise me-1"></i>
+              Reintentar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Controles de vista */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="d-flex align-items-center gap-3">
+          <div className="btn-group btn-group-sm">
+            <button
+              className={`btn ${viewMode === 'table' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setViewMode('table')}
+            >
+              <i className="bi bi-table me-1"></i>
+              Tabla
+            </button>
+            <button
+              className={`btn ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setViewMode('cards')}
+            >
+              <i className="bi bi-grid-3x3-gap me-1"></i>
+              Tarjetas
+            </button>
+          </div>
+
+          {loading && (
+            <div className="d-flex align-items-center text-muted">
+              <div className="spinner-border spinner-border-sm me-2"></div>
+              <small>Cargando productos...</small>
+            </div>
+          )}
+        </div>
+
+        <div className="text-muted small">
+          {!loading && (
+            <>
+              Página {pagination.page} de {pagination.totalPages}
+              {pagination.total > 0 && (
+                <> • {pagination.total} producto{pagination.total !== 1 ? 's' : ''} total{pagination.total !== 1 ? 'es' : ''}</>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Contenido principal */}
+      <div className="card">
+        <div className="card-body p-0">
+          {loading ? (
+            <SkeletonLoader />
+          ) : (
+            <ProductTable />
+          )}
+        </div>
+      </div>
+
+      {/* Paginación */}
+      {!loading && products.length > 0 && <PaginationComponent />}
+    </div>
+  );
+}
+
+// Datos mock para desarrollo
+const getMockProducts = () => [
+  {
+    id: 1,
+    name: 'ABRUNT 5MG C/10 TABS DESLORATADINA (BRULUART)',
+    sku: 'SKU000333',
+    brand_name: 'BRULUART',
+    category_name: 'ANTIHISTAMINICO',
+    barcode: '1234567890123',
+    is_active: true,
+    minimum_stock: 5,
+    maximum_stock: 50,
+    total_stock: 25,
+    description: 'Antihistamínico para alergias',
+    image_url: null
+  },
+  {
+    id: 2,
+    name: 'ACC 600MG C/20 TABS EFERVECENTES ACETILCISTEINA (SANDOZ)',
+    sku: 'SKU000337',
+    brand_name: 'SANDOZ',
+    category_name: 'ANTIHISTAMINICO',
+    barcode: '2345678901234',
+    is_active: true,
+    minimum_stock: 10,
+    maximum_stock: 100,
+    total_stock: 45,
+    description: 'Mucolítico para la tos',
+    image_url: null
+  },
+  {
+    id: 3,
+    name: 'Acetafen 500mg c/12 Tabs Paracetamol (Rayere)',
+    sku: 'SKU000339',
+    brand_name: 'Rayere',
+    category_name: 'ANALGESICO',
+    barcode: '3456789012345',
+    is_active: true,
+    minimum_stock: 15,
+    maximum_stock: 75,
+    total_stock: 30,
+    description: 'Analgésico y antipirético',
+    image_url: null
+  },
+  {
+    id: 4,
+    name: 'Acetafen 750mg c/12 Tabs Paracetamol (Rayere)',
+    sku: 'SKU000343',
+    brand_name: 'Rayere',
+    category_name: 'ANALGESICO',
+    barcode: '4567890123456',
+    is_active: true,
+    minimum_stock: 20,
+    maximum_stock: 80,
+    total_stock: 50,
+    description: 'Analgésico y antipirético concentrado',
+    image_url: null
+  },
+  {
+    id: 5,
+    name: 'ACICLOVIR 400MG C/35 TABS (AMSA)',
+    sku: 'SKU000356',
+    brand_name: 'AMSA',
+    category_name: 'ANTIVIRAL',
+    barcode: '5678901234567',
+    is_active: true,
+    minimum_stock: 8,
+    maximum_stock: 40,
+    total_stock: 12,
+    description: 'Antiviral para herpes',
+    image_url: null
+  }
+];
+
+const getMockBrands = () => [
+  { id: 1, name: 'BRULUART' },
+  { id: 2, name: 'SANDOZ' },
+  { id: 3, name: 'Rayere' },
+  { id: 4, name: 'AMSA' },
+  { id: 5, name: 'ARMSTRONG' },
+  { id: 6, name: 'INDIO PAPAGO' }
+];
+
+const getMockCategories = () => [
+  { id: 1, name: 'ANTIHISTAMINICO' },
+  { id: 2, name: 'ANALGESICO' },
+  { id: 3, name: 'ANTIVIRAL' },
+  { id: 4, name: 'ANTIBIOTICO' },
+  { id: 5, name: 'CARDIOVASCULAR' }
+];
+
+const getMockWarehouses = () => [
+  { id: 1, name: 'Almacén Principal' },
+  { id: 2, name: 'Almacén Secundario' },
+  { id: 3, name: 'Almacén de Tránsito' }
+];
+
+export default Products;
         }
       }
       
@@ -448,65 +1198,6 @@ function Products() {
       }]);
     } finally {
       setLoadingInventory(false);
-      // Cargar movimientos del producto
-      loadProductMovements(product.id);
-    }
-  };
-
-  const loadProductMovements = async (productId) => {
-    setLoadingMovements(true);
-    setProductMovements([]);
-    
-    try {
-      console.log('Cargando movimientos para producto:', productId);
-      
-      // Buscar movimientos del producto
-      const response = await api.get(`/inventory-movements/?product_id=${productId}`);
-      const movements = response.data.results || response.data || [];
-      
-      console.log('Movimientos encontrados:', movements);
-      
-      // Procesar y formatear los movimientos
-      const formattedMovements = movements.map(movement => ({
-        id: movement.id,
-        date: movement.created_at || movement.date,
-        type: movement.type || movement.movement_type,
-        reference: movement.reference_document || `${movement.type || 'MOV'}-${String(movement.id).padStart(3, '0')}`,
-        quantity: movement.details?.reduce((sum, detail) => sum + (detail.quantity || 0), 0) || movement.quantity || 0,
-        balance: 0, // Se calculará después
-        user: movement.created_by_email || movement.user || 'Sistema',
-        notes: movement.notes || '',
-        warehouse: movement.warehouse_name || movement.warehouse?.name || 'N/A'
-      }));
-      
-      // Calcular balance acumulativo
-      let runningBalance = 0;
-      const movementsWithBalance = formattedMovements
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .map(movement => {
-          const quantity = movement.quantity;
-          const isInbound = movement.type === 'IN' || movement.type === 'INGRESO' || movement.type === 'ENTRADA';
-          
-          if (isInbound) {
-            runningBalance += quantity;
-          } else {
-            runningBalance -= quantity;
-          }
-          
-          return {
-            ...movement,
-            balance: runningBalance,
-            isInbound
-          };
-        });
-      
-      setProductMovements(movementsWithBalance);
-      
-    } catch (err) {
-      console.error('Error al cargar movimientos:', err);
-      setProductMovements([]);
-    } finally {
-      setLoadingMovements(false);
     }
   };
 
@@ -514,7 +1205,6 @@ function Products() {
     setShowInventoryModal(false);
     setInventoryProduct(null);
     setProductInventory([]);
-    setProductMovements([]);
     setInventoryWarehouseFilter(''); // Limpiar filtro
   };
 
@@ -844,24 +1534,29 @@ function Products() {
                   <span className="d-none d-sm-inline">Editar</span>
                 </button>
               </div>
+            </div>
+            <div className="row g-2">
               <div className="col-6">
                 <button 
-                  className="btn btn-info w-100 py-2"
-                  onClick={() => handleViewInventory(product)}
-                  title="Ver inventario"
+                  className="btn btn-warning w-100 py-2"
+                  onClick={() => setShowDiscountModal({show: true, productId: product.id, productName: product.name})}
+                  title="Gestionar descuentos y promociones del producto"
                 >
-                  <i className="bi bi-box me-1"></i>
-                  <span className="d-none d-sm-inline">Stock</span>
+                  <i className="bi bi-tag me-1"></i>
+                  <span>Descuentos</span>
+                </button>
+              </div>
+              <div className="col-6">
+                <button 
+                  className="btn btn-success w-100 py-2"
+                  onClick={() => navigate('/inventory-consultation', { state: { selectedProduct: product } })}
+                  title="Ver consulta detallada de inventario con Kardex"
+                >
+                  <i className="bi bi-graph-up me-1"></i>
+                  <span>Consulta</span>
                 </button>
               </div>
             </div>
-            <button 
-              className="btn btn-warning w-100 py-2"
-              onClick={() => setShowDiscountModal({show: true, productId: product.id, productName: product.name})}
-            >
-              <i className="bi bi-tag me-1"></i>
-              <span>Descuentos</span>
-            </button>
           </div>
         </div>
       </div>
@@ -879,13 +1574,23 @@ function Products() {
           </h1>
         </div>
         <div className="col-auto">
-          <button 
-            className={`btn btn-primary ${isMobile ? 'btn-lg px-3' : ''}`} 
-            onClick={handleNew}
-          >
-            <i className="bi bi-plus-circle me-1"></i>
-            {isMobile ? 'Nuevo' : 'Nuevo Producto'}
-          </button>
+          <div className="d-flex gap-2">
+            <button 
+              className={`btn btn-success ${isMobile ? 'btn-lg px-3' : ''}`} 
+              onClick={() => navigate('/inventory-consultation')}
+              title="Consulta completa de inventario"
+            >
+              <i className="bi bi-graph-up me-1"></i>
+              {isMobile ? 'Consulta' : 'Consulta Inventario'}
+            </button>
+            <button 
+              className={`btn btn-primary ${isMobile ? 'btn-lg px-3' : ''}`} 
+              onClick={handleNew}
+            >
+              <i className="bi bi-plus-circle me-1"></i>
+              {isMobile ? 'Nuevo' : 'Nuevo Producto'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -919,18 +1624,18 @@ function Products() {
       {/* Barra de búsqueda y controles */}
       <div className="row g-2 mb-3">
         <div className="col">
-          <div className="input-group">
-            <span className="input-group-text">
-              <i className="bi bi-search"></i>
-            </span>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Buscar productos..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
+          <ProductSearch
+            onSelect={(product) => {
+              if (product) {
+                setSearch(product.name + ' ' + product.sku);
+              } else {
+                setSearch('');
+              }
+            }}
+            placeholder="Buscar productos por nombre, SKU o código..."
+            showDetails={false}
+            size="md"
+          />
         </div>
         <div className="col-auto">
           <button 
@@ -1448,18 +2153,18 @@ function Products() {
                           ✏️
                         </button>
                         <button 
-                          className="btn btn-sm btn-outline-info" 
-                          title="Ver inventario"
-                          onClick={() => handleViewInventory(p)}
-                        >
-                          🏭
-                        </button>
-                        <button 
                           className="btn btn-sm btn-outline-warning" 
                           title="Gestionar descuentos"
                           onClick={() => setShowDiscountModal({show: true, productId: p.id, productName: p.name})}
                         >
                           💰
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline-success" 
+                          title="Ver consulta detallada de inventario con Kardex y movimientos"
+                          onClick={() => navigate('/inventory-consultation', { state: { selectedProduct: p } })}
+                        >
+                          📊
                         </button>
                       </div>
                     </td>
@@ -1793,215 +2498,6 @@ function Products() {
                         </div>
                       </div>
                     )}
-
-                    {/* Kardex de Movimientos */}
-                    <div className="mt-4">
-                      <div className="d-flex justify-content-between align-items-center mb-3">
-                        <h6 className="mb-0">
-                          <i className="bi bi-card-list me-2"></i>
-                          📋 4. Kardex de Movimientos
-                        </h6>
-                        <div className="d-flex gap-2">
-                          <button 
-                            className="btn btn-outline-primary btn-sm"
-                            onClick={() => loadProductMovements(inventoryProduct.id)}
-                            disabled={loadingMovements}
-                          >
-                            <i className="bi bi-refresh me-1"></i>
-                            {loadingMovements ? 'Actualizando...' : 'Actualizar'}
-                          </button>
-                          <button className="btn btn-outline-success btn-sm">
-                            <i className="bi bi-funnel me-1"></i>
-                            Filtros
-                          </button>
-                          <button className="btn btn-outline-info btn-sm">
-                            <i className="bi bi-download me-1"></i>
-                            Exportar
-                          </button>
-                        </div>
-                      </div>
-
-                      {loadingMovements ? (
-                        <div className="text-center py-4">
-                          <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">Cargando movimientos...</span>
-                          </div>
-                          <p className="mt-2">Cargando historial de movimientos...</p>
-                        </div>
-                      ) : productMovements.length === 0 ? (
-                        <div className="alert alert-info text-center">
-                          <i className="bi bi-info-circle me-2"></i>
-                          No se encontraron movimientos para este producto
-                        </div>
-                      ) : (
-                        <>
-                          {/* Información del Inventario */}
-                          <div className="row mb-4">
-                            <div className="col-md-3">
-                              <div className="card bg-light border-0">
-                                <div className="card-body text-center py-2">
-                                  <div className="h5 text-primary mb-0">
-                                    {productMovements[productMovements.length - 1]?.balance || 0}
-                                  </div>
-                                  <small className="text-muted">Stock Actual</small>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-light border-0">
-                                <div className="card-body text-center py-2">
-                                  <div className="h5 text-success mb-0">$0</div>
-                                  <small className="text-muted">Precio Venta</small>
-                                  <div><small className="text-muted">Costo: $0</small></div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-light border-0">
-                                <div className="card-body text-center py-2">
-                                  <div className="h5 text-warning mb-0">
-                                    {inventoryProduct.minimum_stock || 0}
-                                  </div>
-                                  <small className="text-muted">Mínimo</small>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-light border-0">
-                                <div className="card-body text-center py-2">
-                                  <div className="h5 text-info mb-0">
-                                    {inventoryProduct.maximum_stock || 0}
-                                  </div>
-                                  <small className="text-muted">Máximo</small>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Tabla de Movimientos */}
-                          <div className="table-responsive">
-                            <table className="table table-hover table-sm">
-                              <thead className="table-light">
-                                <tr>
-                                  <th>Fecha</th>
-                                  <th>Tipo</th>
-                                  <th>Referencia</th>
-                                  <th className="text-center">Cantidad</th>
-                                  <th className="text-center">Balance</th>
-                                  <th>Usuario</th>
-                                  <th>Notas</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {productMovements.slice(-10).reverse().map((movement, index) => (
-                                  <tr key={movement.id}>
-                                    <td>
-                                      <small>
-                                        {new Date(movement.date).toLocaleDateString('es-MX')}
-                                        <br />
-                                        <span className="text-muted">
-                                          {new Date(movement.date).toLocaleTimeString('es-MX', {
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
-                                        </span>
-                                      </small>
-                                    </td>
-                                    <td>
-                                      <span className={`badge ${
-                                        movement.isInbound 
-                                          ? 'bg-success' 
-                                          : movement.type === 'AJUSTE' || movement.type === 'ADJUSTMENT'
-                                            ? 'bg-info'
-                                            : 'bg-danger'
-                                      }`}>
-                                        {movement.isInbound ? '✅ ENTRADA' : 
-                                         movement.type === 'AJUSTE' || movement.type === 'ADJUSTMENT' ? '🔄 AJUSTE +' : '❌ SALIDA'}
-                                      </span>
-                                    </td>
-                                    <td>
-                                      <code className="bg-light px-2 py-1 rounded small">
-                                        {movement.reference}
-                                      </code>
-                                    </td>
-                                    <td className="text-center">
-                                      <span className={`fw-bold ${
-                                        movement.isInbound ? 'text-success' : 'text-danger'
-                                      }`}>
-                                        {movement.isInbound ? '+' : '-'}{Math.abs(movement.quantity)}
-                                      </span>
-                                    </td>
-                                    <td className="text-center">
-                                      <span className="fw-bold text-primary">
-                                        {movement.balance}
-                                      </span>
-                                    </td>
-                                    <td>
-                                      <small className="text-muted">
-                                        {movement.user}
-                                      </small>
-                                    </td>
-                                    <td>
-                                      <small className="text-muted">
-                                        {movement.notes || '-'}
-                                      </small>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-
-                          {/* Resumen de totales */}
-                          <div className="row mt-3">
-                            <div className="col-md-3">
-                              <div className="card bg-success bg-opacity-10 border-success">
-                                <div className="card-body text-center py-2">
-                                  <div className="h6 text-success mb-0">
-                                    +{productMovements
-                                      .filter(m => m.isInbound)
-                                      .reduce((sum, m) => sum + m.quantity, 0)}
-                                  </div>
-                                  <small className="text-success">Total Entradas</small>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-danger bg-opacity-10 border-danger">
-                                <div className="card-body text-center py-2">
-                                  <div className="h6 text-danger mb-0">
-                                    {productMovements
-                                      .filter(m => !m.isInbound && m.type !== 'AJUSTE')
-                                      .reduce((sum, m) => sum + m.quantity, 0)}
-                                  </div>
-                                  <small className="text-danger">Total Salidas</small>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-primary bg-opacity-10 border-primary">
-                                <div className="card-body text-center py-2">
-                                  <div className="h6 text-primary mb-0">
-                                    {productMovements[productMovements.length - 1]?.balance || 0}
-                                  </div>
-                                  <small className="text-primary">Balance Final</small>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="col-md-3">
-                              <div className="card bg-info bg-opacity-10 border-info">
-                                <div className="card-body text-center py-2">
-                                  <div className="h6 text-info mb-0">
-                                    {productMovements.length}
-                                  </div>
-                                  <small className="text-info">Total Movimientos</small>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
                   </>
                 )}
               </div>

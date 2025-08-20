@@ -1,22 +1,24 @@
 import { useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext.jsx";
+
 const menuItems = [
-  { name: "Dashboard", path: "/dashboard" },
-  { name: "Usuarios", path: "/users" },
-  { name: "Productos", path: "/products" },
-  { name: "Almacenes", path: "/warehouses" },
-  { name: "Órdenes de Compra", path: "/purchase-orders" },
-  { name: "Cotizaciones", path: "/quotations" },
-  { name: "Ventas", path: "/sales-orders" },
-  { name: "Detalles de Ventas", path: "/sales-order-details" },
-  { name: "Clientes", path: "/customers" },
-  { name: "🏭 Proveedores", path: "/suppliers" },
-  { name: "Movimientos", path: "/inventory-movements" },
-  { name: "Categorías", path: "/categories" },
-  { name: "Marcas", path: "/brands" },
-  { name: "Tasas de Cambio", path: "/exchange-rates" },
-  { name: "Tienda Tijuana", path: "/enhanced-store" },
+  { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
+  { name: "Usuarios", path: "/users", icon: "bi-people" },
+  { name: "Productos", path: "/products", icon: "bi-box-seam" },
+  { name: "Almacenes", path: "/warehouses", icon: "bi-building" },
+  { name: "Inventario General", path: "/inventory-overview", icon: "bi-clipboard-data" },
+  { name: "Órdenes de Compra", path: "/purchase-orders", icon: "bi-cart-plus" },
+  { name: "Cotizaciones", path: "/quotations", icon: "bi-calculator" },
+  { name: "Ventas", path: "/sales-orders", icon: "bi-receipt" },
+  { name: "Detalles de Ventas", path: "/sales-order-details", icon: "bi-list-check" },
+  { name: "Clientes", path: "/customers", icon: "bi-person-badge" },
+  { name: "Proveedores", path: "/suppliers", icon: "bi-truck" },
+  { name: "Movimientos", path: "/inventory-movements", icon: "bi-arrow-left-right" },
+  { name: "Categorías", path: "/categories", icon: "bi-tags" },
+  { name: "Marcas", path: "/brands", icon: "bi-star" },
+  { name: "Tasas de Cambio", path: "/exchange-rates", icon: "bi-currency-exchange" },
+  { name: "Tienda Tijuana", path: "/enhanced-store", icon: "bi-shop" },
 ];
 
 
@@ -52,7 +54,10 @@ export default function Sidebar({ onClose }) {
         <div className="text-secondary small mb-2">{user?.email || "Sin email"}</div>
         <hr className="my-3" />
       </div>
-      <h2 className="fs-4 fw-bold mb-3 text-primary text-center" style={{fontSize:'1.2rem'}}>{active ? active.name : "Menú"}</h2>
+      <h2 className="fs-4 fw-bold mb-3 text-primary text-center d-flex align-items-center justify-content-center gap-2" style={{fontSize:'1.2rem'}}>
+        {active && <i className={`bi ${active.icon}`}></i>}
+        <span>{active ? active.name : "Menú"}</span>
+      </h2>
       <nav className="nav flex-column gap-1 flex-grow-1">
         {menuItems.map(item => (
           <button
@@ -61,7 +66,7 @@ export default function Sidebar({ onClose }) {
               navigate(item.path);
               if (onClose) onClose();
             }}
-            className={`btn text-start mb-1 fw-semibold ${location.pathname === item.path ? "btn-primary text-white shadow-sm" : "btn-light text-dark"}`}
+            className={`btn text-start mb-1 fw-semibold d-flex align-items-center gap-2 ${location.pathname === item.path ? "btn-primary text-white shadow-sm" : "btn-light text-dark"}`}
             style={{
               borderRadius: '0.7rem',
               fontSize: '1.05rem',
@@ -69,11 +74,13 @@ export default function Sidebar({ onClose }) {
               boxShadow: location.pathname === item.path ? '0 2px 8px rgba(0,0,0,0.07)' : 'none',
               minWidth: '100%',
               whiteSpace: 'nowrap',
+              padding: '0.6rem 0.75rem',
             }}
             onMouseEnter={e => e.currentTarget.classList.add('shadow-sm')}
             onMouseLeave={e => e.currentTarget.classList.remove('shadow-sm')}
           >
-            {item.name}
+            <i className={`bi ${item.icon}`} style={{ fontSize: '1.1rem', minWidth: '1.2rem' }}></i>
+            <span>{item.name}</span>
           </button>
         ))}
       </nav>
