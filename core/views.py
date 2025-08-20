@@ -218,24 +218,24 @@ class ProductViewSet(viewsets.ModelViewSet):
         queryset = Product.objects.select_related('category', 'brand').all().order_by('name')
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
-        @action(detail=False, methods=['get'])
-        def simple_list(self, request):
-            """
-            Endpoint simple: devuelve id, nombre, categoria, marca y estado de todos los productos sin paginación ni filtros
-            """
-            products = Product.objects.select_related('category', 'brand').all().order_by('name')
-            data = [
-                {
-                    'id': p.id,
-                    'name': p.name,
-                    'category': p.category.name if p.category else None,
-                    'brand': p.brand.name if p.brand else None,
-                    'status': p.status,
-                }
-                for p in products
-            ]
-            return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def simple_list(self, request):
+        """
+        Endpoint simple: devuelve id, nombre, categoria, marca y estado de todos los productos sin paginación ni filtros
+        """
+        products = Product.objects.select_related('category', 'brand').all().order_by('name')
+        data = [
+            {
+                'id': p.id,
+                'name': p.name,
+                'category': p.category.name if p.category else None,
+                'brand': p.brand.name if p.brand else None,
+                'status': p.status,
+            }
+            for p in products
+        ]
+        return Response(data)
 
 class ProductVariantViewSet(viewsets.ModelViewSet):
     queryset = ProductVariant.objects.all()
