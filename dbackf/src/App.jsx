@@ -19,7 +19,6 @@ import Brands from './pages/Brands';
 import ExchangeRates from './pages/ExchangeRates';
 import Customers from './pages/Customers';
 import TestCustomers from './pages/TestCustomers';
-import CustomersSimple from './pages/CustomersSimple';
 import Suppliers from './pages/Suppliers';
 import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
 import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
