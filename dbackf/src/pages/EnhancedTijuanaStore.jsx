@@ -132,6 +132,10 @@ const EnhancedTijuanaStore = ({ user }) => {
     console.log('🔍 showCheckout cambió a:', showCheckout);
     if (showCheckout) {
       console.log('🎬 Modal de checkout debería estar visible ahora');
+      console.log('🛒 Estado del cart al abrir modal:', cart);
+      console.log('📦 Cart length al abrir modal:', cart.length);
+      console.log('💰 Total al abrir modal:', getCartTotal());
+      console.log('📱 localStorage al abrir modal:', localStorage.getItem('tijuana_cart'));
       // Verificar si hay conflictos de estilos
       setTimeout(() => {
         const modalElement = document.querySelector('[style*="rgba(255,0,0"]');
@@ -148,6 +152,9 @@ const EnhancedTijuanaStore = ({ user }) => {
       }, 100);
     } else {
       console.log('❌ Modal de checkout se cerró');
+      console.log('🛒 Estado del cart al cerrar modal:', cart);
+      console.log('📦 Cart length al cerrar modal:', cart.length);
+      console.log('📱 localStorage al cerrar modal:', localStorage.getItem('tijuana_cart'));
     }
   }, [showCheckout]);
 
@@ -678,9 +685,17 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   const processSale = async () => {
     console.log('🎯 processSale() iniciado');
+    console.log('🔍 Estado COMPLETO del componente en processSale:');
+    console.log('  - cart:', cart);
+    console.log('  - cart.length:', cart.length);
+    console.log('  - selectedCustomer:', selectedCustomer);
+    console.log('  - checkoutLoading:', checkoutLoading);
+    console.log('  - showCheckout:', showCheckout);
+    console.log('  - localStorage cart:', localStorage.getItem('tijuana_cart'));
     
     if (cart.length === 0) {
-      console.log('❌ Carrito vacío');
+      console.log('❌ Carrito vacío en processSale()');
+      console.log('🔍 Verificando localStorage:', localStorage.getItem('tijuana_cart'));
       showNotification('El carrito está vacío', 'error');
       return;
     }
@@ -734,8 +749,11 @@ const EnhancedTijuanaStore = ({ user }) => {
       console.log('📊 Status de respuesta:', response.status);
       
       // Limpiar carrito y mostrar éxito
+      console.log('🧹 Limpiando carrito después de venta exitosa');
+      console.log('🛒 Cart antes de limpiar:', cart);
       setCart([]);
       localStorage.removeItem('tijuana_cart');
+      console.log('✅ Cart limpiado, cerrando modales');
       setShowCheckout(false);
       setShowCart(false);
       
@@ -2877,6 +2895,10 @@ const EnhancedTijuanaStore = ({ user }) => {
                     className="btn btn-success"
                     onClick={() => {
                       console.log('🔘 Botón de checkout clickeado');
+                      console.log('🛒 Estado del cart antes de processSale:', cart);
+                      console.log('💰 Total antes de processSale:', getCartTotal());
+                      console.log('👤 Cliente seleccionado antes de processSale:', selectedCustomer);
+                      console.log('📦 Contenido detallado del cart:', JSON.stringify(cart, null, 2));
                       processSale();
                     }}
                     disabled={checkoutLoading || cart.length === 0 || !selectedCustomer}

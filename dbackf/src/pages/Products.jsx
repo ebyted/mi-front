@@ -106,12 +106,59 @@ function Products() {
     }).catch(() => setWarehouses([]));
   }, []);
 
-  // Debug effect para el search
+  // Debug effect para el search - MEJORADO
   useEffect(() => {
     if (search && search.trim()) {
-      console.log('Search changed to:', search);
+      console.log('=== ANÁLISIS DE BÚSQUEDA ===');
+      console.log('Término:', search);
+      console.log('Total productos cargados:', products.length);
+      
+      // Mostrar algunos productos para verificar estructura de datos
+      if (products.length > 0) {
+        console.log('Estructura del primer producto:', {
+          name: products[0].name,
+          sku: products[0].sku,
+          brand: products[0].brand,
+          category: products[0].category,
+          barcode: products[0].barcode
+        });
+      }
+      
+      // Buscar productos que contengan el término en el nombre
+      const searchLower = search.toLowerCase();
+      const nameMatches = products.filter(p => 
+        (p.name || '').toLowerCase().includes(searchLower)
+      );
+      
+      console.log('Productos que contienen el término en el nombre:', nameMatches.length);
+      if (nameMatches.length > 0) {
+        console.log('Ejemplos:', nameMatches.slice(0, 3).map(p => p.name));
+      }
+      
+      // Buscar por palabras específicas problemáticas
+      if (searchLower.includes('ampicilina')) {
+        const ampicilinaProducts = products.filter(p => 
+          (p.name || '').toLowerCase().includes('ampicilina')
+        );
+        console.log('=== PRODUCTOS CON AMPICILINA ===');
+        console.log('Encontrados:', ampicilinaProducts.length);
+        ampicilinaProducts.forEach(p => {
+          console.log('- ', p.name, '(SKU:', p.sku, ')');
+        });
+      }
+      
+      if (searchLower.includes('loferon')) {
+        const loferonProducts = products.filter(p => 
+          (p.name || '').toLowerCase().includes('loferon')
+        );
+        console.log('=== PRODUCTOS CON LOFERON ===');
+        console.log('Encontrados:', loferonProducts.length);
+        loferonProducts.forEach(p => {
+          console.log('- ', p.name, '(SKU:', p.sku, ')');
+        });
+      }
     }
-  }, [search]);
+  }, [search, products]);
 
   const fetchCurrentBusiness = () => {
     // Intentar obtener el business del usuario actual
@@ -165,53 +212,124 @@ function Products() {
   };
 
   const filteredProducts = products.filter(p => {
-    // Filtro de búsqueda general - mejorado y simplificado
+    // DEBUG ESPECÍFICO PARA AMPICILINA
+    const isAmpicilina = (p.name || '').toLowerCase().includes('ampicilina');
+    const isSearchingAmpicilina = search && search.toLowerCase().includes('ampicilina');
+    
+    if (isAmpicilina || isSearchingAmpicilina) {
+      console.log('🔍 PRODUCTO AMPICILINA DETECTADO:', {
+        nombre: p.name,
+        sku: p.sku,
+        id: p.id,
+        is_active: p.is_active,
+        brand: p.brand,
+        category: p.category,
+        search: search,
+        isAmpicilina,
+        isSearchingAmpicilina
+      });
+    }
+    
+    // Filtro de búsqueda general - SIMPLIFICADO Y ROBUSTO
     let matchesSearch = true;
     if (search && search.trim()) {
-      const searchLower = search.toLowerCase().trim();
+      const searchTerm = search.toLowerCase().trim();
       
-      // Función helper para limpiar y normalizar texto
-      const normalizeText = (text) => {
-        return (text || '').toLowerCase()
+      // Solo log para productos específicos para no saturar
+      if (isAmpicilina || isSearchingAmpicilina) {
+        console.log('=== BÚSQUEDA ACTIVA (AMPICILINA) ===');
+        console.log('Término de búsqueda:', searchTerm);
+        console.log('Evaluando producto:', p.name);
+      }
+      
+      // Función simple de normalización
+      const normalize = (text) => {
+        if (!text) return '';
+        return String(text).toLowerCase()
           .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // Remover acentos
-          .replace(/[^\w\s]/g, ' ') // Reemplazar caracteres especiales con espacios
-          .replace(/\s+/g, ' ') // Normalizar espacios múltiples
+          .replace(/[\u0300-\u036f]/g, '') // quitar acentos
           .trim();
       };
       
-      const searchNormalized = normalizeText(searchLower);
+      // Obtener todos los textos del producto
+      const productName = normalize(p.name || '');
+      const productSku = normalize(p.sku || '');
+      const productBarcode = normalize(p.barcode || '');
       
-      // Buscar en nombre del producto
-      const nameMatch = normalizeText(p.name).includes(searchNormalized);
-      
-      // Buscar en SKU
-      const skuMatch = normalizeText(p.sku).includes(searchNormalized);
-      
-      // Buscar en marca
-      let brandMatch = false;
+      // Obtener marca
+      let brandText = '';
       if (p.brand) {
         if (typeof p.brand === 'object') {
-          brandMatch = normalizeText(p.brand.name || p.brand.description).includes(searchNormalized);
+          brandText = normalize(p.brand.name || p.brand.description || '');
         } else {
-          brandMatch = normalizeText(String(p.brand)).includes(searchNormalized);
+          brandText = normalize(p.brand);
         }
       }
       
-      // Buscar en categoría
-      let categoryMatch = false;
+      // Obtener categoría
+      let categoryText = '';
       if (p.category) {
         if (typeof p.category === 'object') {
-          categoryMatch = normalizeText(p.category.name || p.category.description).includes(searchNormalized);
+          categoryText = normalize(p.category.name || p.category.description || '');
         } else {
-          categoryMatch = normalizeText(String(p.category)).includes(searchNormalized);
+          categoryText = normalize(p.category);
         }
       }
       
-      // Buscar en código de barras
-      const barcodeMatch = normalizeText(p.barcode).includes(searchNormalized);
+      // Normalizar término de búsqueda
+      const searchNormalized = normalize(searchTerm);
       
-      matchesSearch = nameMatch || skuMatch || brandMatch || categoryMatch || barcodeMatch;
+      // BÚSQUEDA SIMPLE Y DIRECTA
+      const nameMatch = productName.includes(searchNormalized);
+      const skuMatch = productSku.includes(searchNormalized);
+      const barcodeMatch = productBarcode.includes(searchNormalized);
+      const brandMatch = brandText.includes(searchNormalized);
+      const categoryMatch = categoryText.includes(searchNormalized);
+      
+      // BÚSQUEDA POR PALABRAS INDIVIDUALES
+      const searchWords = searchNormalized.split(/\s+/).filter(w => w.length > 0);
+      const wordMatches = searchWords.map(word => {
+        return productName.includes(word) || 
+               productSku.includes(word) || 
+               brandText.includes(word) || 
+               categoryText.includes(word) ||
+               productBarcode.includes(word);
+      });
+      
+      const wordMatch = searchWords.length > 0 && wordMatches.some(match => match);
+      
+      // Debug específico para productos problemáticos
+      if (productName.includes('ampicilina') || productName.includes('loferon') || 
+          searchNormalized.includes('ampicilina') || searchNormalized.includes('loferon')) {
+        console.log('=== PRODUCTO ESPECÍFICO ENCONTRADO ===');
+        console.log('Producto:', p.name);
+        console.log('Búsqueda normalizada:', searchNormalized);
+        console.log('Nombre normalizado:', productName);
+        console.log('Name match:', nameMatch);
+        console.log('SKU match:', skuMatch);
+        console.log('Brand match:', brandMatch);
+        console.log('Category match:', categoryMatch);
+        console.log('Word match:', wordMatch);
+        console.log('Palabras de búsqueda:', searchWords);
+        console.log('Coincidencias por palabra:', wordMatches);
+      }
+      
+      // El producto coincide si hay cualquier tipo de match
+      matchesSearch = nameMatch || skuMatch || barcodeMatch || brandMatch || categoryMatch || wordMatch;
+      
+      // Log detallado solo para productos específicos
+      if (isAmpicilina || isSearchingAmpicilina) {
+        console.log('🎯 RESULTADO BÚSQUEDA AMPICILINA:', {
+          producto: p.name,
+          matchesSearch,
+          nameMatch,
+          skuMatch,
+          barcodeMatch,
+          brandMatch,
+          categoryMatch,
+          wordMatch
+        });
+      }
     }
     
     // Filtros específicos
@@ -243,8 +361,49 @@ function Products() {
       }
     }
     
-    return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesWarehouse && matchesStock;
+    // Debug final para productos específicos
+    const finalResult = matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesWarehouse && matchesStock;
+    
+    if (isAmpicilina || isSearchingAmpicilina) {
+      console.log('🔧 FILTROS APLICADOS A AMPICILINA:', {
+        producto: p.name,
+        filtros: filters,
+        matchesSearch,
+        matchesBrand,
+        matchesCategory,
+        matchesActive,
+        matchesWarehouse,
+        matchesStock,
+        finalResult
+      });
+    }
+    
+    return finalResult;
   });
+
+  // DEBUG: Resumen de productos AMPICILINA
+  React.useEffect(() => {
+    if (search && search.toLowerCase().includes('ampicilina')) {
+      const ampicilinaInProducts = products.filter(p => 
+        (p.name || '').toLowerCase().includes('ampicilina')
+      );
+      const ampicilinaInFiltered = filteredProducts.filter(p => 
+        (p.name || '').toLowerCase().includes('ampicilina')
+      );
+      
+      console.log('📊 RESUMEN AMPICILINA:', {
+        totalProductos: products.length,
+        ampicilinaEnProductos: ampicilinaInProducts.length,
+        ampicilinaEnFiltrados: ampicilinaInFiltered.length,
+        productosAmpicilina: ampicilinaInProducts.map(p => ({
+          nombre: p.name,
+          id: p.id,
+          activo: p.is_active
+        })),
+        filtrosActivos: filters
+      });
+    }
+  }, [search, products, filteredProducts, filters]);
 
   // Paginación
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -340,10 +499,17 @@ function Products() {
   };
 
   const handleViewInventory = async (product) => {
+    console.log('=== ABRIENDO MODAL DE INVENTARIO ===');
+    console.log('Producto seleccionado:', product);
+    console.log('ID del producto:', product.id);
+    
+    // Limpiar estado anterior
     setInventoryProduct(product);
     setShowInventoryModal(true);
     setLoadingInventory(true);
     setProductInventory([]);
+    setProductMovements([]); // Limpiar movimientos anteriores
+    setLoadingMovements(false);
     
     try {
       console.log('Buscando inventario para producto:', product.id);
@@ -449,7 +615,9 @@ function Products() {
     } finally {
       setLoadingInventory(false);
       // Cargar movimientos del producto
-      loadProductMovements(product.id);
+      console.log('=== LLAMANDO A LOAD PRODUCT MOVEMENTS ===');
+      console.log('Product ID a enviar:', product.id);
+      await loadProductMovements(product.id);
     }
   };
 
@@ -458,16 +626,62 @@ function Products() {
     setProductMovements([]);
     
     try {
-      console.log('Cargando movimientos para producto:', productId);
+      console.log('=== CARGANDO MOVIMIENTOS ===');
+      console.log('Product ID recibido:', productId);
+      console.log('Tipo de productId:', typeof productId);
       
-      // Buscar movimientos del producto
-      const response = await api.get(`/inventory-movements/?product_id=${productId}`);
+      // Probar diferentes parámetros de consulta
+      const urls = [
+        `/inventory-movements/?product_id=${productId}`,
+        `/inventory-movements/?product=${productId}`,
+        `/inventory-movements/?product_variant=${productId}`
+      ];
+      
+      let response = null;
+      let usedUrl = '';
+      
+      // Intentar cada URL hasta encontrar una que funcione
+      for (const url of urls) {
+        try {
+          console.log('Intentando URL:', url);
+          response = await api.get(url);
+          usedUrl = url;
+          console.log('✅ URL exitosa:', url);
+          break;
+        } catch (error) {
+          console.log('❌ URL falló:', url, error.message);
+          continue;
+        }
+      }
+      
+      if (!response) {
+        throw new Error('No se pudo obtener movimientos con ningún parámetro');
+      }
       const movements = response.data.results || response.data || [];
       
+      console.log('=== RESPUESTA DEL API ===');
+      console.log('Response completo:', response.data);
       console.log('Movimientos encontrados:', movements);
+      console.log('Cantidad de movimientos:', movements.length);
+      
+      // Filtrar movimientos por producto en el frontend también (doble verificación)
+      const filteredMovements = movements.filter(movement => {
+        const movementProductId = movement.product_id || movement.product?.id || movement.product;
+        const isMatch = String(movementProductId) === String(productId);
+        console.log('Verificando movimiento:', {
+          movementId: movement.id,
+          movementProductId,
+          productIdBuscado: productId,
+          coincide: isMatch
+        });
+        return isMatch;
+      });
+      
+      console.log('=== FILTRADO FRONTEND ===');
+      console.log('Movimientos después del filtro:', filteredMovements.length);
       
       // Procesar y formatear los movimientos
-      const formattedMovements = movements.map(movement => ({
+      const formattedMovements = filteredMovements.map(movement => ({
         id: movement.id,
         date: movement.created_at || movement.date,
         type: movement.type || movement.movement_type,
@@ -476,7 +690,8 @@ function Products() {
         balance: 0, // Se calculará después
         user: movement.created_by_email || movement.user || 'Sistema',
         notes: movement.notes || '',
-        warehouse: movement.warehouse_name || movement.warehouse?.name || 'N/A'
+        warehouse: movement.warehouse_name || movement.warehouse?.name || 'N/A',
+        productId: movement.product_id || movement.product?.id || movement.product // Para debugging
       }));
       
       // Calcular balance acumulativo
@@ -500,10 +715,17 @@ function Products() {
           };
         });
       
+      console.log('=== RESULTADO FINAL ===');
+      console.log('Movimientos finales a mostrar:', movementsWithBalance.length);
+      console.log('Primeros 3 movimientos:', movementsWithBalance.slice(0, 3));
+      
       setProductMovements(movementsWithBalance);
       
     } catch (err) {
-      console.error('Error al cargar movimientos:', err);
+      console.error('=== ERROR AL CARGAR MOVIMIENTOS ===');
+      console.error('Product ID:', productId);
+      console.error('Error completo:', err);
+      console.error('Response del error:', err.response?.data);
       setProductMovements([]);
     } finally {
       setLoadingMovements(false);
@@ -930,6 +1152,15 @@ function Products() {
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
+            {search && (
+              <button 
+                className="btn btn-outline-secondary"
+                onClick={() => setSearch('')}
+                title="Limpiar búsqueda"
+              >
+                <i className="bi bi-x"></i>
+              </button>
+            )}
           </div>
         </div>
         <div className="col-auto">
@@ -943,6 +1174,50 @@ function Products() {
             )}
           </button>
         </div>
+        {search && (
+          <div className="col-auto">
+            <button 
+              className="btn btn-outline-info btn-sm"
+              onClick={() => {
+                console.log('=== DEBUG MANUAL DE BÚSQUEDA ===');
+                console.log('Búsqueda actual:', search);
+                console.log('Productos totales:', products.length);
+                console.log('Productos filtrados:', filteredProducts.length);
+                
+                // Verificar si existen productos con el término
+                const searchLower = search.toLowerCase();
+                const directMatches = products.filter(p => 
+                  (p.name || '').toLowerCase().includes(searchLower)
+                );
+                
+                console.log('Coincidencias directas en nombre:', directMatches.length);
+                directMatches.forEach((p, i) => {
+                  if (i < 10) console.log(`${i+1}. ${p.name} (ID: ${p.id})`);
+                });
+                
+                // Verificar productos que no pasaron el filtro pero deberían
+                const shouldMatch = products.filter(p => {
+                  const name = (p.name || '').toLowerCase();
+                  return name.includes(searchLower);
+                });
+                
+                const actualFiltered = filteredProducts.map(p => p.id);
+                const notFiltered = shouldMatch.filter(p => !actualFiltered.includes(p.id));
+                
+                console.log('Productos que deberían aparecer pero no aparecen:', notFiltered.length);
+                notFiltered.forEach(p => {
+                  console.log('- FALTANTE:', p.name);
+                });
+                
+                alert(`Debug: ${directMatches.length} productos encontrados con "${search}". Ver consola para detalles.`);
+              }}
+              title="Debug de búsqueda"
+            >
+              <i className="bi bi-bug me-1"></i>
+              Debug
+            </button>
+          </div>
+        )}
         {!isMobile && (
           <div className="col-auto">
             <div className="btn-group" role="group">
@@ -1284,15 +1559,52 @@ function Products() {
               <h5 className="text-muted mt-3">No se encontraron productos</h5>
               <p className="text-muted">
                 {search || getActiveFiltersCount() > 0 
-                  ? 'Intenta ajustar los criterios de búsqueda'
+                  ? (
+                    <>
+                      {search && (
+                        <>
+                          Búsqueda: "<strong>{search}</strong>" - No encontrada<br/>
+                          <small>Intenta buscar por palabras clave más cortas o revisa la ortografía</small>
+                        </>
+                      )}
+                      {getActiveFiltersCount() > 0 && !search && 'Intenta ajustar los filtros aplicados'}
+                    </>
+                  )
                   : 'No hay productos registrados aún'
                 }
               </p>
               {(search || getActiveFiltersCount() > 0) && (
-                <button className="btn btn-outline-primary" onClick={clearFilters}>
-                  <i className="bi bi-x-circle me-1"></i>
-                  Limpiar filtros
-                </button>
+                <div className="d-flex gap-2 justify-content-center">
+                  <button className="btn btn-outline-primary" onClick={clearFilters}>
+                    <i className="bi bi-x-circle me-1"></i>
+                    Limpiar filtros
+                  </button>
+                  {search && (
+                    <button 
+                      className="btn btn-outline-info" 
+                      onClick={() => {
+                        console.log('=== INFORMACIÓN DE DEBUG ===');
+                        console.log('Productos totales:', products.length);
+                        console.log('Búsqueda actual:', search);
+                        console.log('Productos que contienen partes del término:');
+                        
+                        const debugMatches = products.filter(p => {
+                          const name = (p.name || '').toLowerCase();
+                          const searchLower = search.toLowerCase();
+                          return name.includes(searchLower.substring(0, 5)) || 
+                                 searchLower.includes(name.substring(0, 5));
+                        });
+                        
+                        debugMatches.slice(0, 10).forEach(p => {
+                          console.log(`- ${p.name} (SKU: ${p.sku})`);
+                        });
+                      }}
+                    >
+                      <i className="bi bi-info-circle me-1"></i>
+                      Debug búsqueda
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           ) : (
@@ -1567,232 +1879,7 @@ function Products() {
                       </div>
                     </div>
 
-                    {/* Inventario por variantes */}
-                    {productInventory.length === 0 ? (
-                      <div className="alert alert-info">
-                        <h6 className="alert-heading">🔍 Sin variantes o inventario</h6>
-                        <p className="mb-0">
-                          Este producto no tiene variantes creadas o no se encontró inventario asociado.
-                          Para tener existencias, primero debes crear variantes del producto y luego registrar movimientos de inventario.
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="d-flex justify-content-between align-items-center mb-3">
-                          <h6 className="mb-0">📋 Stock por Almacén</h6>
-                          
-                          {/* Filtro por almacén en modal */}
-                          <div className="d-flex align-items-center">
-                            <label className="form-label me-2 mb-0 small">Filtrar por almacén:</label>
-                            <select 
-                              className="form-select form-select-sm" 
-                              style={{width: 'auto'}}
-                              value={inventoryWarehouseFilter}
-                              onChange={e => setInventoryWarehouseFilter(e.target.value)}
-                            >
-                              <option value="">Todos los almacenes</option>
-                              {warehouses
-                                .filter(w => {
-                                  // Solo mostrar almacenes que tienen stock de este producto
-                                  return productInventory.some(item => 
-                                    item.inventory.some(inv => 
-                                      (inv.warehouse?.id === w.id || inv.warehouse_id === w.id) && inv.quantity > 0
-                                    )
-                                  );
-                                })
-                                .sort((a, b) => (a.name || a.description).localeCompare(b.name || b.description))
-                                .map(w => (
-                                  <option key={w.id} value={w.id}>
-                                    {w.name || w.description || `Almacén ${w.id}`}
-                                  </option>
-                                ))}
-                            </select>
-                          </div>
-                        </div>
-                        
-                        {/* Mostrar stock directamente sin agrupación por variantes */}
-                        {productInventory.length > 0 && productInventory[0].inventory.length > 0 ? (
-                          <div>
-                            {/* Filtrar el inventario según el almacén seleccionado */}
-                            {(() => {
-                              const filteredInventory = inventoryWarehouseFilter 
-                                ? productInventory[0].inventory.filter(inv => 
-                                    (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
-                                    (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
-                                  )
-                                : productInventory[0].inventory;
-                              
-                              if (filteredInventory.length === 0) {
-                                return (
-                                  <div className="alert alert-warning">
-                                    <h6 className="alert-heading">📭 Sin stock en el almacén seleccionado</h6>
-                                    <p className="mb-0">Este producto no tiene stock en el almacén seleccionado.</p>
-                                  </div>
-                                );
-                              }
-                              
-                              return (
-                                <div className="table-responsive">
-                                  <table className="table table-striped table-hover">
-                                    <thead className="table-dark">
-                                      <tr>
-                                        <th>🏢 Almacén</th>
-                                        <th>📦 Cantidad</th>
-                                        <th>🏷️ Lote</th>
-                                        <th>📅 Vencimiento</th>
-                                        <th>💰 Precio</th>
-                                        <th>🕐 Actualizado</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {filteredInventory.map((inv, invIndex) => (
-                                        <tr key={invIndex}>
-                                          <td>
-                                            <span className="badge bg-info fs-6">
-                                              {inv.warehouse?.name || `Almacén ${inv.warehouse_id}`}
-                                            </span>
-                                          </td>
-                                          <td>
-                                            <span className={`fw-bold fs-5 ${inv.quantity > 0 ? 'text-success' : 'text-danger'}`}>
-                                              {inv.quantity}
-                                            </span>
-                                          </td>
-                                          <td>
-                                            {inv.lote ? (
-                                              <code className="bg-light px-2 py-1 rounded">{inv.lote}</code>
-                                            ) : (
-                                              <span className="text-muted">-</span>
-                                            )}
-                                          </td>
-                                          <td>
-                                            {inv.expiration_date ? (
-                                              <span className="small">
-                                                {new Date(inv.expiration_date).toLocaleDateString()}
-                                              </span>
-                                            ) : (
-                                              <span className="text-muted">-</span>
-                                            )}
-                                          </td>
-                                          <td>
-                                            {inv.price ? (
-                                              <span className="text-success fw-bold">
-                                                ${parseFloat(inv.price).toFixed(2)}
-                                              </span>
-                                            ) : (
-                                              <span className="text-muted">-</span>
-                                            )}
-                                          </td>
-                                          <td>
-                                            <small className="text-muted">
-                                              {inv.updated_at ? 
-                                                new Date(inv.updated_at).toLocaleString() : 
-                                                'N/A'
-                                              }
-                                            </small>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        ) : (
-                          <div className="alert alert-info">
-                            <h6 className="alert-heading">📭 Sin stock registrado</h6>
-                            <p className="mb-0">
-                              Este producto no tiene stock registrado en ningún almacén.
-                            </p>
-                          </div>
-                        )}
-                        
-                        {/* Resumen total */}
-                        <div className="card bg-light">
-                          <div className="card-body">
-                            <h6 className="text-primary mb-2">
-                              📊 Resumen Total
-                              {inventoryWarehouseFilter && (
-                                <span className="badge bg-primary ms-2 small">Filtrado</span>
-                              )}
-                            </h6>
-                            <div className="row">
-                              <div className="col-md-3">
-                                <div className="text-center">
-                                  <div className="h4 text-primary mb-0">
-                                    {(() => {
-                                      if (productInventory.length === 0 || !productInventory[0].inventory) return 0;
-                                      const inventory = inventoryWarehouseFilter 
-                                        ? productInventory[0].inventory.filter(inv => 
-                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
-                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
-                                          )
-                                        : productInventory[0].inventory;
-                                      return inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-                                    })()}
-                                  </div>
-                                  <small className="text-muted">Total en stock</small>
-                                </div>
-                              </div>
-                              <div className="col-md-3">
-                                <div className="text-center">
-                                  <div className="h4 text-info mb-0">
-                                    {(() => {
-                                      if (productInventory.length === 0 || !productInventory[0].inventory) return 0;
-                                      const inventory = inventoryWarehouseFilter 
-                                        ? productInventory[0].inventory.filter(inv => 
-                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
-                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
-                                          )
-                                        : productInventory[0].inventory;
-                                      return inventory.length;
-                                    })()}
-                                  </div>
-                                  <small className="text-muted">
-                                    {inventoryWarehouseFilter ? 'Almacén seleccionado' : 'Almacenes con stock'}
-                                  </small>
-                                </div>
-                              </div>
-                              <div className="col-md-3">
-                                <div className="text-center">
-                                  <div className="h4 text-success mb-0">
-                                    {inventoryWarehouseFilter ? (
-                                      warehouses.find(w => w.id === parseInt(inventoryWarehouseFilter))?.name || 'Almacén'
-                                    ) : (
-                                      productInventory.length > 0 && productInventory[0].inventory ? 
-                                        productInventory[0].inventory.length : 0
-                                    )}
-                                  </div>
-                                  <small className="text-muted">
-                                    {inventoryWarehouseFilter ? 'Almacén filtrado' : 'Ubicaciones totales'}
-                                  </small>
-                                </div>
-                              </div>
-                              <div className="col-md-3">
-                                <div className="text-center">
-                                  <div className="h4 text-warning mb-0">
-                                    ${(() => {
-                                      if (productInventory.length === 0 || !productInventory[0].inventory) return '0.00';
-                                      const inventory = inventoryWarehouseFilter 
-                                        ? productInventory[0].inventory.filter(inv => 
-                                            (inv.warehouse?.id === parseInt(inventoryWarehouseFilter)) || 
-                                            (inv.warehouse_id === parseInt(inventoryWarehouseFilter))
-                                          )
-                                        : productInventory[0].inventory;
-                                      const total = inventory.reduce((sum, inv) => 
-                                        sum + ((inv.quantity || 0) * (inv.price || 0)), 0
-                                      );
-                                      return total.toFixed(2);
-                                    })()}
-                                  </div>
-                                  <small className="text-muted">Valor total</small>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {/* La sección de stock por almacén ha sido eliminada */}
 
                     {/* Kardex de Movimientos */}
                     <div className="mt-4">
