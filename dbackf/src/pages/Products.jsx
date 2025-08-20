@@ -186,9 +186,9 @@ function Products() {
 
   const fetchProducts = () => {
     setLoading(true);
-    api.get('products/')
+    api.get('products/simple_list/')
       .then(res => {
-        const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
+        const data = Array.isArray(res.data) ? res.data : [];
         setProducts(data);
       })
       .catch(() => {

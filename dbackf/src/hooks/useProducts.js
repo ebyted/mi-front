@@ -66,20 +66,40 @@ export const useProducts = (options = {}) => {
   /**
    * Búsqueda de productos con debounce
    */
-  const searchProducts = useCallback(async (search) => {
-    setSearchTerm(search);
-    if (search.length >= 2) {
-      setPage(1);
-      await loadProducts(search, true);
-    } else if (search.length === 0) {
-      setProducts([]);
-      setHasMore(true);
-      setPage(1);
-      if (autoLoad) {
-        await loadProducts('', true);
+    const searchProducts = useCallback(async (search) => {
+      setSearchTerm(search);
+      if (search.length >= 2) {
+        setLoading(true);
+        try {
+          // Usar el nuevo endpoint simple_list
+          const response = await api.get('/products/simple_list/');
+          const allProducts = Array.isArray(response.data) ? response.data : [];
+          // Filtrar por nombre o SKU
+          const normalizedSearch = search.trim().toLowerCase();
+          const filtered = allProducts.filter(product => {
+            const name = (product.name || '').toLowerCase();
+            const idStr = String(product.id);
+            return name.includes(normalizedSearch) || idStr.includes(normalizedSearch);
+          });
+          setProducts(filtered);
+          setPage(1);
+          setHasMore(false);
+        } catch (err) {
+          console.error('Error en búsqueda simple_list:', err);
+          setProducts([]);
+          setHasMore(false);
+        } finally {
+          setLoading(false);
+        }
+      } else if (search.length === 0) {
+        setProducts([]);
+        setHasMore(true);
+        setPage(1);
+        if (autoLoad) {
+          await loadProducts('', true);
+        }
       }
-    }
-  }, [loadProducts, autoLoad]);
+    }, [autoLoad]);
 
   /**
    * Cargar más productos (para infinite scroll)

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import AppNavbar from '../components/AppNavbar';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function Dashboard() {
@@ -27,7 +26,6 @@ function Dashboard() {
 
   return (
     <>
-      <AppNavbar />
       <div className="container py-5">
         <div className="text-center mb-5">
           <h1 className="display-3 fw-bold text-gradient mb-2" style={{background: 'linear-gradient(90deg,#007bff,#00c6ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Menú principal</h1>

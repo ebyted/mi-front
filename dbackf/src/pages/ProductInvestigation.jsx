@@ -43,51 +43,30 @@ const ProductInvestigation = () => {
     console.log('🔍 Investigación - Buscando productos:', term);
 
     try {
-      // Usar el mismo endpoint que Products.jsx
-      const response = await api.get('/products/');
-      
-      // Filtrar localmente con la misma lógica que Products.jsx
-      const allProducts = response.data || [];
-      console.log('📦 Investigación - Total productos cargados:', allProducts.length);
-      
+      // Usar el nuevo endpoint simple_list
+      const response = await api.get('products/simple_list/');
+      const allProducts = Array.isArray(response.data) ? response.data : [];
       // Normalizar texto de búsqueda
       const normalizedSearch = normalizeText(term);
-      
-      // Filtrar productos usando múltiples estrategias
+      // Filtrar por nombre, id, marca, categoría y estado
       const filtered = allProducts.filter(product => {
         const name = normalizeText(product.name || '');
-        const sku = normalizeText(product.sku || '');
-        const description = normalizeText(product.description || '');
-        const barcode = normalizeText(product.barcode || '');
-        
-        // Búsqueda por coincidencia parcial
-        const matchesName = name.includes(normalizedSearch);
-        const matchesSku = sku.includes(normalizedSearch);
-        const matchesDescription = description.includes(normalizedSearch);
-        const matchesBarcode = barcode.includes(normalizedSearch);
-        
-        // Búsqueda por palabras individuales
-        const searchWords = normalizedSearch.split(' ').filter(word => word.length > 0);
-        const matchesWords = searchWords.some(word => 
-          name.includes(word) || sku.includes(word) || description.includes(word) || barcode.includes(word)
+        const idStr = String(product.id);
+        const category = normalizeText(product.category || '');
+        const brand = normalizeText(product.brand || '');
+        const status = normalizeText(product.status || '');
+        return (
+          name.includes(normalizedSearch) ||
+          idStr.includes(normalizedSearch) ||
+          category.includes(normalizedSearch) ||
+          brand.includes(normalizedSearch) ||
+          status.includes(normalizedSearch)
         );
-        
-        const matches = matchesName || matchesSku || matchesDescription || matchesBarcode || matchesWords;
-        
-        if (matches) {
-          console.log(`✅ Producto encontrado: ${product.name} (ID: ${product.id})`);
-        }
-        
-        return matches;
       });
-
-      console.log('📦 Investigación - Productos filtrados:', filtered.length);
-      
-      // Limitar resultados para la UI pero mostrar más que antes
+      // Limitar resultados para la UI
       const limitedResults = filtered.slice(0, 50);
       setSearchResults(limitedResults);
       setShowSearchResults(true);
-      
     } catch (error) {
       console.error('❌ Error buscando productos:', error);
       setSearchResults([]);
@@ -145,49 +124,74 @@ const ProductInvestigation = () => {
       setProductDetails(productResponse.data);
       console.log('📋 Detalles del producto:', productResponse.data);
 
-      // 2. Obtener movimientos de inventario relacionados con este producto
-      // Intentar diferentes enfoques para obtener movimientos
+      // 2. Obtener movimientos de inventario SOLO de este producto específico
       let movements = [];
+      console.log('🔍 Buscando movimientos para producto ID:', product.id);
       
       try {
-        // Opción 1: Buscar por product_id
-        const movementsResponse = await api.get('/inventory-movements/', {
+        // Estrategia 1: Buscar movimientos por product_id específico con paginación grande
+        const movementsResponse = await api.get('inventory-movements/', {
           params: {
             product: product.id,
-            page_size: 100,
+            page_size: 1000, // Aumentar para obtener más registros
             ordering: '-created_at'
           }
         });
-        movements = movementsResponse.data?.results || movementsResponse.data || [];
-        console.log('📦 Movimientos encontrados (por product):', movements.length);
-      } catch (error1) {
-        console.log('⚠️ Error con product_id, intentando con variant_id...');
         
-        try {
-          // Opción 2: Buscar por variant_id
-          const movementsResponse = await api.get('/inventory-movements/', {
+        const responseData = movementsResponse.data;
+        movements = Array.isArray(responseData) ? responseData : (responseData?.results || []);
+        
+        console.log('📦 Movimientos encontrados para producto', product.id, ':', movements.length);
+        
+        // Verificar que los movimientos sean realmente del producto correcto
+        const validMovements = movements.filter(movement => {
+          const isValid = movement.product === product.id || 
+                         movement.product_id === product.id ||
+                         (movement.variant && movement.variant === product.id) ||
+                         (movement.variant_id && movement.variant_id === product.id);
+          
+          if (!isValid) {
+            console.log('❌ Movimiento no válido filtrado:', movement.id, 'product:', movement.product, 'variant:', movement.variant);
+          }
+          return isValid;
+        });
+        
+        movements = validMovements;
+        console.log('📦 Movimientos válidos después del filtro:', movements.length);
+        
+        if (movements.length === 0) {
+          console.log('⚠️ No se encontraron movimientos específicos. Intentando búsqueda alternativa...');
+          
+          // Estrategia 2: Obtener todos los movimientos y filtrar localmente (como fallback)
+          const allMovementsResponse = await api.get('inventory-movements/', {
             params: {
-              variant: product.id,
-              page_size: 100,
+              page_size: 1000,
               ordering: '-created_at'
             }
           });
-          movements = movementsResponse.data?.results || movementsResponse.data || [];
-          console.log('📦 Movimientos encontrados (por variant):', movements.length);
-        } catch (error2) {
-          console.log('⚠️ Error con variant_id, obteniendo todos los movimientos y filtrando...');
           
-          // Opción 3: Obtener todos y filtrar localmente
-          const allMovementsResponse = await api.get('/inventory-movements/');
-          const allMovements = allMovementsResponse.data?.results || allMovementsResponse.data || [];
-          movements = allMovements.filter(movement => 
-            movement.product === product.id || 
-            movement.product_id === product.id ||
-            movement.variant === product.id ||
-            movement.variant_id === product.id
-          );
-          console.log('📦 Movimientos encontrados (filtrados):', movements.length);
+          const allMovementsData = allMovementsResponse.data;
+          const allMovements = Array.isArray(allMovementsData) ? allMovementsData : (allMovementsData?.results || []);
+          
+          movements = allMovements.filter(movement => {
+            const matches = movement.product === product.id || 
+                           movement.product_id === product.id ||
+                           (movement.variant && movement.variant === product.id) ||
+                           (movement.variant_id && movement.variant_id === product.id);
+            
+            if (matches) {
+              console.log('✅ Movimiento encontrado en búsqueda global:', movement.id, 'tipo:', movement.movement_type);
+            }
+            
+            return matches;
+          });
+          
+          console.log('📦 Movimientos encontrados en búsqueda global:', movements.length);
         }
+        
+      } catch (error) {
+        console.error('❌ Error obteniendo movimientos:', error);
+        movements = [];
       }
       
       setMovements(movements);
