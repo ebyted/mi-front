@@ -18,6 +18,7 @@ const menuItems = [
   { name: "Categorías", path: "/categories", icon: "bi-tags" },
   { name: "Marcas", path: "/brands", icon: "bi-star" },
   { name: "Tasas de Cambio", path: "/exchange-rates", icon: "bi-currency-exchange" },
+  { name: "Investigación de Producto", path: "/product-investigation", icon: "bi-search" },
   { name: "Tienda Tijuana", path: "/enhanced-store", icon: "bi-shop" },
 ];
 
