@@ -1,5 +1,5 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainMenu from './components/MainMenu';
 import Sidebar from './pages/Sidebar';
@@ -22,12 +22,12 @@ import TestCustomers from './pages/TestCustomers';
 import Suppliers from './pages/Suppliers';
 import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
 import ProductInvestigation from './pages/ProductInvestigation.jsx';
-import { AuthProvider, AuthContext } from './context/AuthContext.jsx';
+import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 
 function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { isAuthenticated, isLoading } = useContext(AuthContext);
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Mostrar loading mientras se verifica la autenticación
   if (isLoading) {

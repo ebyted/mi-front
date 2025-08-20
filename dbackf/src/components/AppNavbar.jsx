@@ -1,6 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard' },
@@ -18,7 +18,7 @@ const navItems = [
 ];
 
 export default function AppNavbar() {
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout } = useAuth();
   const location = useLocation();
 
   return (

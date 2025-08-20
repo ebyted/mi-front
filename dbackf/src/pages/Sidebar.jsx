@@ -1,6 +1,5 @@
-import { useContext } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
@@ -26,7 +25,7 @@ const menuItems = [
 export default function Sidebar({ onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout } = useAuth();
   const active = menuItems.find(item => item.path === location.pathname);
 
   return (
