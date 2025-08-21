@@ -11,6 +11,7 @@ const ProductCenter = () => {
 	const [kardex, setKardex] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
+	const [viewMode, setViewMode] = useState('grid'); // 'cards' o 'grid'
 
 	// Cargar historial de inventario (Kardex) al seleccionar producto
 	useEffect(() => {
@@ -44,24 +45,38 @@ const ProductCenter = () => {
 				placeholder="Buscar producto por nombre o SKU..."
 				required
 			/>
-			{/* Kardex */}
-			{selectedProductId && (
-				<div className="mt-4">
-					<h4>Historial de Inventario (Kardex)</h4>
-					{loading && (
-						<div className="text-center my-3">
-							<div className="spinner-border text-primary" role="status">
-								<span className="visually-hidden">Cargando...</span>
-							</div>
-						</div>
-					)}
-					{error && (
-						<div className="alert alert-danger">{error}</div>
-					)}
-					{!loading && !error && kardex.length === 0 && (
-						<div className="alert alert-warning">No hay movimientos para este producto.</div>
-					)}
-					{!loading && !error && kardex.length > 0 && (
+			   {/* Kardex */}
+			   {selectedProductId && (
+				   <div className="mt-4">
+					   <h4>Historial de Inventario (Kardex)</h4>
+					   <div className="mb-3">
+						   <button
+							   className={`btn btn-outline-primary btn-sm me-2 ${viewMode === 'cards' ? 'active' : ''}`}
+							   onClick={() => setViewMode('cards')}
+						   >
+							   <i className="bi bi-grid-3x3-gap-fill me-1"></i> Cartas
+						   </button>
+						   <button
+							   className={`btn btn-outline-secondary btn-sm ${viewMode === 'grid' ? 'active' : ''}`}
+							   onClick={() => setViewMode('grid')}
+						   >
+							   <i className="bi bi-table me-1"></i> Tabla
+						   </button>
+					   </div>
+					   {loading && (
+						   <div className="text-center my-3">
+							   <div className="spinner-border text-primary" role="status">
+								   <span className="visually-hidden">Cargando...</span>
+							   </div>
+						   </div>
+					   )}
+					   {error && (
+						   <div className="alert alert-danger">{error}</div>
+					   )}
+					   {!loading && !error && kardex.length === 0 && (
+						   <div className="alert alert-warning">No hay movimientos para este producto.</div>
+					   )}
+					   {!loading && !error && kardex.length > 0 && viewMode === 'cards' && (
 						   <div className="row">
 							   {kardex.map((mov, idx) => {
 								   const tipo = isVariant ? mov.variant_movement_type ?? mov.movement_type : mov.movement_type;
@@ -82,8 +97,8 @@ const ProductCenter = () => {
 												   <div className="mb-1 small text-muted">Almacén: {isVariant ? mov.variant_warehouse ?? mov.warehouse : mov.warehouse}</div>
 												   <div className="mb-1 small text-muted">Referencia: {isVariant ? mov.variant_reference ?? mov.reference : mov.reference}</div>
 												   <div className="mb-1 small text-muted">Saldo: {isVariant ? mov.variant_balance ?? mov.balance : mov.balance}</div>
-												   <div className="mb-1 small text-muted">Precio Unit.: ${(isVariant ? mov.variant_unit_cost ?? mov.unit_cost : mov.unit_cost)?.toFixed(2) ?? '0.00'}</div>
-												   <div className="mb-1 small text-muted">Valor Total: ${(isVariant ? mov.variant_total_value ?? mov.total_value : mov.total_value)?.toFixed(2) ?? '0.00'}</div>
+												   <div className="mb-1 small text-muted">Precio Unit.: {(isVariant ? mov.variant_unit_cost ?? mov.unit_cost : mov.unit_cost)?.toFixed(2) ?? '0.00'}</div>
+												   <div className="mb-1 small text-muted">Valor Total: {(isVariant ? mov.variant_total_value ?? mov.total_value : mov.total_value)?.toFixed(2) ?? '0.00'}</div>
 												   <div className="mb-1 small text-muted">Usuario: {isVariant ? mov.variant_user ?? mov.user : mov.user}</div>
 												   <div className="mb-1 small text-muted">Notas: {isVariant ? mov.variant_notes ?? mov.notes : mov.notes}</div>
 											   </div>
@@ -92,9 +107,54 @@ const ProductCenter = () => {
 								   );
 							   })}
 						   </div>
-					)}
-				</div>
-			)}
+					   )}
+					   {!loading && !error && kardex.length > 0 && viewMode === 'grid' && (
+						   <div className="table-responsive">
+							   <table className="table table-bordered table-sm align-middle">
+								   <thead className="table-light">
+									   <tr>
+										   <th>Fecha</th>
+										   <th>Tipo</th>
+										   <th>Entrada</th>
+										   <th>Salida</th>
+										   <th>Saldo</th>
+										   <th>Precio Unit.</th>
+										   <th>Valor Total</th>
+										   <th>Referencia</th>
+										   <th>Almacén</th>
+										   <th>Usuario</th>
+										   <th>Notas</th>
+									   </tr>
+								   </thead>
+								   <tbody>
+									   {kardex.map((mov, idx) => {
+										   const tipo = isVariant ? mov.variant_movement_type ?? mov.movement_type : mov.movement_type;
+										   const entrada = ((tipo === 'INGRESO') ? (isVariant ? mov.variant_quantity_in ?? mov.quantity_in : mov.quantity_in) : '');
+										   const salida = ((tipo === 'EGRESO') ? (isVariant ? mov.variant_quantity_out ?? mov.quantity_out : mov.quantity_out) : '');
+										   return (
+											   <tr key={idx}>
+												   <td>{isVariant ? mov.variant_date ?? mov.date : mov.date}</td>
+												   <td>
+													   <span className={`badge ${tipo === 'INGRESO' ? 'bg-success' : tipo === 'EGRESO' ? 'bg-danger' : 'bg-secondary'}`}>{tipo}</span>
+												   </td>
+												   <td className="text-success">{entrada}</td>
+												   <td className="text-danger">{salida}</td>
+												   <td>{isVariant ? mov.variant_balance ?? mov.balance : mov.balance}</td>
+												   <td>${(isVariant ? mov.variant_unit_cost ?? mov.unit_cost : mov.unit_cost)?.toFixed(2) ?? '0.00'}</td>
+												   <td>${(isVariant ? mov.variant_total_value ?? mov.total_value : mov.total_value)?.toFixed(2) ?? '0.00'}</td>
+												   <td>{isVariant ? mov.variant_reference ?? mov.reference : mov.reference}</td>
+												   <td>{isVariant ? mov.variant_warehouse ?? mov.warehouse : mov.warehouse}</td>
+												   <td>{isVariant ? mov.variant_user ?? mov.user : mov.user}</td>
+												   <td>{isVariant ? mov.variant_notes ?? mov.notes : mov.notes}</td>
+											   </tr>
+										   );
+									   })}
+								   </tbody>
+							   </table>
+						   </div>
+					   )}
+				   </div>
+			   )}
 		</div>
 	);
 };
