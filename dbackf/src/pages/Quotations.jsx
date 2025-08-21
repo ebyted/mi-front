@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ProductSelect from '../components/ProductSelect';
 import { api } from '../services/api';
 
 function Quotations() {
@@ -456,19 +457,12 @@ function Quotations() {
                     {details.map((detail, index) => (
                       <div key={index} className="row g-2 mb-2">
                         <div className="col-md-5">
-                          <select
-                            className="form-select"
+                          <ProductSelect
                             value={detail.product_id}
-                            onChange={(e) => handleDetailChange(index, 'product_id', e.target.value)}
+                            onChange={val => handleDetailChange(index, 'product_id', val)}
+                            placeholder="Buscar producto por nombre o SKU..."
                             required
-                          >
-                            <option value="">Seleccionar producto</option>
-                            {products.map(product => (
-                              <option key={product.id} value={product.id}>
-                                {product.name} - {product.sku || 'Sin SKU'}
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </div>
                         <div className="col-md-2">
                           <input

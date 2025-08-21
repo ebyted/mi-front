@@ -35,9 +35,11 @@ const InventoryMovements = () => {
 
   const [currentDetail, setCurrentDetail] = useState({
     product_id: '',
+    product_name: '',
+    product_code: '',
     quantity: '',
-    lote: '', // Campo opcional para el número de lote
-    expiration_date: '', // Este campo es opcional
+    lote: '',
+    expiration_date: '',
     notes: ''
   });
 
@@ -151,13 +153,11 @@ const InventoryMovements = () => {
       return;
     }
 
-    const product = products.find(p => p.id === parseInt(currentDetail.product_id));
+    // El nombre y código se guardan desde el autocomplete
     const newDetail = {
       ...currentDetail,
       product_id: parseInt(currentDetail.product_id),
-      quantity: parseFloat(currentDetail.quantity),
-      product_name: product?.name || 'Desconocido',
-      product_code: product?.code || 'N/A'
+      quantity: parseFloat(currentDetail.quantity)
     };
 
     setFormData(prev => ({
@@ -167,6 +167,8 @@ const InventoryMovements = () => {
 
     setCurrentDetail({
       product_id: '',
+      product_name: '',
+      product_code: '',
       quantity: '',
       lote: '',
       expiration_date: '',
@@ -581,6 +583,12 @@ const InventoryMovements = () => {
                     <ProductSelect
                       value={currentDetail.product_id}
                       onChange={(value) => setCurrentDetail(prev => ({...prev, product_id: value}))}
+                      onProductSelect={product => setCurrentDetail(prev => ({
+                        ...prev,
+                        product_id: product.id,
+                        product_name: product.name,
+                        product_code: product.sku || product.code || ''
+                      }))}
                       placeholder="Buscar producto por nombre o SKU..."
                       required
                       className="w-100"

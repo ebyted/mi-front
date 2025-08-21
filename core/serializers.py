@@ -42,7 +42,7 @@ class UserSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-    fields = ['id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff']
+        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_staff']
         
 class UserMenuOptionsSerializer(serializers.ModelSerializer):
     """Serializer específico para obtener las opciones de menú del usuario"""
@@ -286,22 +286,28 @@ class PurchaseOrderReceiptItemSerializer(serializers.ModelSerializer):
 
 class InventoryMovementDetailSerializer(serializers.ModelSerializer):
     # Campos de lectura para mostrar información del producto
+    product_variant_id = serializers.IntegerField(source='product_variant.id', read_only=True)
     product_variant_name = serializers.CharField(source='product_variant.name', read_only=True)
     product_name = serializers.CharField(source='product_variant.product.name', read_only=True)
     product_code = serializers.CharField(source='product_variant.sku', read_only=True)
-    
     # Campo para recibir product_id del frontend y convertirlo a product_variant
-    product_id = serializers.IntegerField(write_only=True, required=False)
+    product_id = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = InventoryMovementDetail
-        fields = ['id', 'movement', 'product_variant', 'product_variant_name', 'product_name', 
+        fields = ['id', 'movement', 'product_variant_id', 'product_variant_name', 'product_name', 
                  'product_code', 'product_id', 'quantity', 'price', 'total', 'lote', 
                  'expiration_date', 'notes']
         extra_kwargs = {
             'movement': {'required': False},
+            'product_variant_id': {'required': False},
             'product_variant': {'required': False}
         }
+    def get_product_id(self, obj):
+        # Devuelve el id del producto asociado a la variante
+        if obj.product_variant and obj.product_variant.product:
+            return obj.product_variant.product.id
+        return None
     
     def create(self, validated_data):
         # Si viene product_id, buscar o crear el product_variant correspondiente

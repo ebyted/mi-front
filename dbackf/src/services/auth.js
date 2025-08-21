@@ -4,8 +4,15 @@ export async function login(email, password) {
   try {
     console.log('🔐 Intentando login con:', { email, password: '***' });
     
-  // Login solo con email
-  const response = await api.post('token/', { email, password });
+    // Intentar con email primero
+    let response;
+    try {
+      response = await api.post('token/', { email, password });
+    } catch (emailError) {
+      console.log('❌ Login con email falló, intentando con username:', emailError.message);
+      // Si falla, intentar con username
+      response = await api.post('token/', { username: email, password });
+    }
     
     console.log('✅ Login exitoso, guardando tokens...');
     localStorage.setItem('token', response.data.access);

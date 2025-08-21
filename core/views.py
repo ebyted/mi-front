@@ -1,3 +1,128 @@
+from .models import Product, ProductVariant, ProductWarehouseStock, Supplier, PurchaseOrder, SalesOrder, Quotation, AuditLog, InventoryMovement, InventoryMovementDetail
+from .serializers import ProductSerializer, ProductVariantSerializer, ProductWarehouseStockSerializer, SupplierSerializer, PurchaseOrderSerializer, SalesOrderSerializer, QuotationSerializer, AuditLogSerializer
+from django.db.models import Q
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+
+# 1. Búsqueda avanzada de productos
+class PCProductSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        q = request.GET.get('q', '')
+        products = Product.objects.filter(
+            Q(name__icontains=q) |
+            Q(sku__icontains=q) |
+            Q(barcode__icontains=q) |
+            Q(category__name__icontains=q) |
+            Q(brand__name__icontains=q) |
+            Q(description__icontains=q)
+        ).order_by('name')[:50]
+        data = [
+            {
+                'id': p.id,
+                'name': p.name,
+                'sku': p.sku,
+                'category': p.category.name if p.category else '',
+                'brand': p.brand.name if p.brand else '',
+                'image_url': p.image_url,
+                'is_active': p.is_active,
+                'status': p.status,
+            } for p in products
+        ]
+        return Response(data)
+
+# 2. Detalles completos del producto
+class PCProductDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        serializer = ProductSerializer(product)
+        return Response(serializer.data)
+
+# 3. Variantes del producto
+class PCProductVariantsView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        variants = ProductVariant.objects.filter(product_id=pk)
+        serializer = ProductVariantSerializer(variants, many=True)
+        return Response(serializer.data)
+
+# 4. Kardex y movimientos
+class PCProductKardexView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        variants = ProductVariant.objects.filter(product=product)
+        variant_ids = list(variants.values_list('id', flat=True))
+        movements = InventoryMovement.objects.filter(details__product_variant__product_id=product.id).distinct().order_by('created_at')
+        balance = 0
+        kardex = []
+        for mov in movements:
+            details = mov.details.filter(product_variant__product_id=product.id)
+            for detail in details:
+                quantity = detail.quantity or 0
+                movement_type = mov.movement_type
+                is_inbound = movement_type in ['IN', 'PURCHASE'] or (movement_type == 'ADJUSTMENT' and quantity > 0)
+                if is_inbound:
+                    balance += abs(quantity)
+                else:
+                    balance -= abs(quantity)
+                kardex.append({
+                    'date': str(mov.created_at),
+                    'movement_type': movement_type,
+                    'quantity_in': abs(quantity) if is_inbound else None,
+                    'quantity_out': abs(quantity) if not is_inbound else None,
+                    'balance': balance,
+                    'unit_cost': detail.unit_cost if hasattr(detail, 'unit_cost') else 0,
+                    'total_value': balance * (detail.unit_cost if hasattr(detail, 'unit_cost') else 0),
+                    'reference': mov.reference_document or mov.id,
+                    'warehouse': mov.warehouse.name if hasattr(mov, 'warehouse') and mov.warehouse else None,
+                    'user': mov.user.email if hasattr(mov, 'user') and mov.user else None,
+                    'notes': getattr(mov, 'notes', None)
+                })
+        return Response(kardex)
+
+# 5. Stock en almacenes
+class PCProductStockView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        stocks = ProductWarehouseStock.objects.filter(product_variant__product_id=pk)
+        serializer = ProductWarehouseStockSerializer(stocks, many=True)
+        return Response(serializer.data)
+
+# 6. Proveedores relacionados
+class PCProductSuppliersView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        suppliers = Supplier.objects.filter(supplierproduct__product_variant__product_id=pk).distinct()
+        serializer = SupplierSerializer(suppliers, many=True)
+        return Response(serializer.data)
+
+# 7. Órdenes de compra/venta/cotizaciones
+class PCProductOrdersView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        purchase_orders = PurchaseOrder.objects.filter(purchaseorderitem__product_variant__product_id=pk).distinct()
+        sales_orders = SalesOrder.objects.filter(items__product_variant__product_id=pk).distinct()
+        quotations = Quotation.objects.filter(details__product__id=pk).distinct()
+        return Response({
+            'purchase_orders': PurchaseOrderSerializer(purchase_orders, many=True).data,
+            'sales_orders': SalesOrderSerializer(sales_orders, many=True).data,
+            'quotations': QuotationSerializer(quotations, many=True).data,
+        })
+
+# 8. Auditoría y log
+class PCProductAuditLogView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        logs = AuditLog.objects.filter(object_id=str(pk), model='Product').order_by('-timestamp')
+        serializer = AuditLogSerializer(logs, many=True)
+        return Response(serializer.data)
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 from .models import AuditLog, User
 from .serializers import AuditLogSerializer, UserSerializer
 
@@ -6,6 +131,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404
 
 # Permiso para importadores y vistas de edición
 class IsStaffOrReadOnly(IsAuthenticated):
@@ -144,6 +270,61 @@ from .serializers import (
     QuotationSerializer, QuotationItemSerializer, RoleSerializer, MenuOptionSerializer,
     InventoryMovementSerializer, InventoryMovementDetailSerializer
 )
+# Endpoint para obtener el kardex de un producto
+from rest_framework.views import APIView
+class ProductKardexView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, pk):
+        try:
+            product = get_object_or_404(Product, pk=pk)
+            variants = ProductVariant.objects.filter(product=product)
+            variant_ids = list(variants.values_list('id', flat=True))
+
+            # Obtener movimientos ligados al producto y variantes
+            movements = InventoryMovement.objects.filter(details__product_id=product.id).distinct()
+            if variant_ids:
+                movements = movements | InventoryMovement.objects.filter(details__product_variant_id__in=variant_ids).distinct()
+            movements = movements.order_by('created_at')
+
+            balance = 0
+            kardex = []
+            for mov in movements:
+                # Buscar el detalle correcto
+                detail = mov.details.filter(product_variant__product_id=product.id).first()
+                quantity = None
+                if detail:
+                    quantity = detail.quantity
+                else:
+                    # Si no hay detalle, usar el primer detalle disponible
+                    detail = mov.details.first()
+                    quantity = detail.quantity if detail else 0
+
+                # Si no hay cantidad, poner 0
+                if quantity is None:
+                    quantity = 0
+
+                movement_type = getattr(mov, 'movement_type', 'UNKNOWN')
+                is_inbound = movement_type in ['IN', 'PURCHASE'] or (movement_type == 'ADJUSTMENT' and quantity > 0)
+                if is_inbound:
+                    balance += abs(quantity)
+                else:
+                    balance -= abs(quantity)
+                kardex.append({
+                    'date': str(mov.created_at),
+                    'description': movement_type,
+                    'movement_type': movement_type,
+                    'quantity_in': abs(quantity) if is_inbound else None,
+                    'quantity_out': abs(quantity) if not is_inbound else None,
+                    'balance': balance,
+                    'unit_cost': getattr(detail, 'unit_cost', 0) if detail else 0,
+                    'total_value': balance * (getattr(detail, 'unit_cost', 0) if detail else 0),
+                    'reference': getattr(mov, 'reference', None) or mov.id
+                })
+            return Response(kardex)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'error': 'Error interno en el kardex', 'detail': str(e)}, status=500)
 
 # Permiso para importadores y vistas de edición
 class IsStaffOrReadOnly(IsAuthenticated):
@@ -374,13 +555,31 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
     queryset = InventoryMovement.objects.select_related('warehouse', 'user', 'authorized_by', 'cancelled_by').prefetch_related('details__product_variant__product').order_by('-created_at')
     serializer_class = InventoryMovementSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_serializer_context(self):
         """Incluir el request en el contexto del serializer"""
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
-    
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        product_id = self.request.query_params.get('product')
+        variant_id = self.request.query_params.get('variant')
+        sku = self.request.query_params.get('sku')
+        name = self.request.query_params.get('name')
+
+        # Filtrar por producto (por detalles)
+        if product_id:
+            queryset = queryset.filter(details__product_variant__product_id=product_id)
+        if variant_id:
+            queryset = queryset.filter(details__product_variant_id=variant_id)
+        if sku:
+            queryset = queryset.filter(details__product_variant__sku__icontains=sku)
+        if name:
+            queryset = queryset.filter(details__product_variant__name__icontains=name)
+        return queryset.distinct()
+
     def perform_create(self, serializer):
         """Asignar el usuario actual al crear un movimiento"""
         serializer.save(user=self.request.user)

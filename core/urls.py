@@ -3,7 +3,20 @@ from django.http import JsonResponse
 from .views_welcome import welcome
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
+from .views import CustomTokenObtainPairView
 from .views import (
+    PCProductSearchView,
+    PCProductDetailView,
+    PCProductVariantsView,
+    PCProductKardexView,
+    PCProductStockView,
+    PCProductSuppliersView,
+    PCProductOrdersView,
+    PCProductAuditLogView,
+)
+
+from .views import (
+    ProductKardexView,
     UserViewSet, BusinessViewSet, CategoryViewSet, BrandViewSet, UnitViewSet, ProductViewSet, ProductVariantViewSet,
     WarehouseViewSet, ProductWarehouseStockViewSet, SupplierViewSet, SupplierProductViewSet, PurchaseOrderViewSet,
     PurchaseOrderItemViewSet, PurchaseOrderReceiptViewSet, PurchaseOrderReceiptItemViewSet,
@@ -61,7 +74,16 @@ router.register(r'customer-payments', CustomerPaymentViewSet)
 router.register(r'supplier-payments', SupplierPaymentViewSet)
 
 urlpatterns = [
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # Endpoints nuevos para Product Center
+    path('pc/products/search/', PCProductSearchView.as_view(), name='pc_product_search'),
+    path('pc/products/<int:pk>/', PCProductDetailView.as_view(), name='pc_product_detail'),
+    path('pc/products/<int:pk>/variants/', PCProductVariantsView.as_view(), name='pc_product_variants'),
+    path('pc/products/<int:pk>/kardex/', PCProductKardexView.as_view(), name='pc_product_kardex'),
+    path('pc/products/<int:pk>/stock/', PCProductStockView.as_view(), name='pc_product_stock'),
+    path('pc/products/<int:pk>/suppliers/', PCProductSuppliersView.as_view(), name='pc_product_suppliers'),
+    path('pc/products/<int:pk>/orders/', PCProductOrdersView.as_view(), name='pc_product_orders'),
+    path('pc/products/<int:pk>/auditlog/', PCProductAuditLogView.as_view(), name='pc_product_auditlog'),
+    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('test-token/', lambda request: JsonResponse({'message': 'Token endpoint test working'}), name='test_token'),
     path('import-products/', ProductImportView.as_view(), name='import-products'),
@@ -80,6 +102,9 @@ urlpatterns = [
     # path('cancel-movement/<int:movement_id>/', CancelMovementView.as_view(), name='cancel-movement'),
     path('current-inventory/', CurrentInventoryView.as_view(), name='current-inventory'),
     path('user-menu-options/', user_menu_options, name='user-menu-options'),
+    path('products/<int:pk>/kardex/', ProductKardexView.as_view(), name='product-kardex'),
     path('', include(router.urls)),
-    path('', welcome, name='welcome'),
 ]
+
+
+

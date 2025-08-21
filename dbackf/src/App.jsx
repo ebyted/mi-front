@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainMenu from './components/MainMenu';
+import ProductCenter from './pages/ProductCenter';
 import Sidebar from './pages/Sidebar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -21,7 +22,7 @@ import Customers from './pages/Customers';
 import TestCustomers from './pages/TestCustomers';
 import Suppliers from './pages/Suppliers';
 import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
-import ProductInvestigation from './pages/ProductInvestigation.jsx';
+// ...existing code...
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 
@@ -75,8 +76,9 @@ function AppContent() {
         
         {/* Rutas protegidas */}
         <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
-        <Route path="/users" element={renderWithSidebar(Users)} />
-        <Route path="/products" element={renderWithSidebar(Products)} />
+  <Route path="/users" element={renderWithSidebar(Users)} />
+  <Route path="/product-center" element={renderWithSidebar(ProductCenter)} />
+  <Route path="/products" element={renderWithSidebar(Products)} />
         <Route path="/warehouses" element={renderWithSidebar(Warehouses)} />
         <Route path="/purchase-orders" element={renderWithSidebar(PurchaseOrders)} />
         <Route path="/quotations" element={renderWithSidebar(QuotationsNew)} />
@@ -90,7 +92,7 @@ function AppContent() {
         <Route path="/suppliers" element={renderWithSidebar(Suppliers)} />
         <Route path="/test-customers" element={renderWithSidebar(TestCustomers)} />
         <Route path="/enhanced-store" element={renderWithSidebar(() => <EnhancedTijuanaStore user={null} />)} />
-        <Route path="/product-investigation" element={renderWithSidebar(ProductInvestigation)} />
+  {/* <Route path="/product-investigation" element={renderWithSidebar(ProductInvestigation)} /> */}
         
         {/* Cualquier otra ruta redirige según autenticación */}
         <Route path="*" element={
