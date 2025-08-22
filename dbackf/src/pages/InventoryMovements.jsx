@@ -8,6 +8,7 @@ const InventoryMovements = () => {
   useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
   
   const [movements, setMovements] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingMovement, setEditingMovement] = useState(null);
@@ -372,23 +373,49 @@ const InventoryMovements = () => {
     );
   }
 
+  // Filtrar movimientos por producto seleccionado
+  const filteredMovements = selectedProductId
+    ? movements.filter(mov =>
+        mov.details && mov.details.some(detail => detail.product_id === selectedProductId)
+      )
+    : movements;
+
   return (
     <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="display-5 mb-0 text-primary">
-          📦 Movimientos de Inventario
-        </h1>
+        <div>
+          <h1 className="display-5 mb-0 text-primary">
+            📦 Movimientos de Inventario
+          </h1>
+          <div className="mt-2">
+            <ProductSelect
+              value={selectedProductId}
+              onChange={setSelectedProductId}
+              placeholder="Filtrar por producto..."
+              required={false}
+              className="w-100"
+            />
+            {selectedProductId && (
+              <button
+                className="btn btn-sm btn-outline-secondary mt-2"
+                onClick={() => setSelectedProductId(null)}
+              >
+                Limpiar filtro
+              </button>
+            )}
+          </div>
+        </div>
         <div className="d-flex gap-3">
           <div className="text-center">
-            <div className="h4 mb-0 text-primary">{movements.length}</div>
+            <div className="h4 mb-0 text-primary">{filteredMovements.length}</div>
             <small className="text-muted">Total</small>
           </div>
           <div className="text-center">
-            <div className="h4 mb-0 text-success">{movements.filter(m => m.type === 'IN' || m.movement_type === 'IN').length}</div>
+            <div className="h4 mb-0 text-success">{filteredMovements.filter(m => m.type === 'IN' || m.movement_type === 'IN').length}</div>
             <small className="text-muted">Entradas</small>
           </div>
           <div className="text-center">
-            <div className="h4 mb-0 text-warning">{movements.filter(m => m.type === 'OUT' || m.movement_type === 'OUT').length}</div>
+            <div className="h4 mb-0 text-warning">{filteredMovements.filter(m => m.type === 'OUT' || m.movement_type === 'OUT').length}</div>
             <small className="text-muted">Salidas</small>
           </div>
         </div>
@@ -435,7 +462,7 @@ const InventoryMovements = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {movements.length === 0 ? (
+                  {filteredMovements.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="text-center py-5">
                         <div className="text-muted">
@@ -446,7 +473,7 @@ const InventoryMovements = () => {
                       </td>
                     </tr>
                   ) : (
-                    movements.map((movement) => (
+                    filteredMovements.map((movement) => (
                       <tr key={movement.id}>
                         <td>
                           <span className="fw-bold">#{movement.id}</span>
