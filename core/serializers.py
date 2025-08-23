@@ -79,6 +79,7 @@ class UnitSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     price = serializers.SerializerMethodField(read_only=True)
+    variants = serializers.SerializerMethodField(read_only=True)
     current_stock = serializers.SerializerMethodField(read_only=True)
     image = serializers.CharField(source='image_url', read_only=True)  # Alias para compatibilidad con frontend
     category = CategorySerializer(read_only=True)
@@ -87,12 +88,16 @@ class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     
     class Meta:
-        model = Product
-        fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
-                 'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
-                 'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
-                 'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name']
+    model = Product
+    fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
+         'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
+         'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
+         'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name', 'variants']
     
+    def get_variants(self, obj):
+        variants = ProductVariant.objects.filter(product=obj)
+        return ProductVariantSerializer(variants, many=True).data
+
     def validate_cantidad_corrugado(self, value):
         if value < 0:
             raise serializers.ValidationError("La cantidad de corrugado no puede ser negativa")
