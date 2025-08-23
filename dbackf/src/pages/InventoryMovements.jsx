@@ -87,9 +87,11 @@ const InventoryMovements = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Permitir guardar aunque no haya productos, solo mostrar advertencia
     if (formData.details.length === 0) {
-      alert('Debes agregar al menos un producto al movimiento');
-      return;
+      if (!window.confirm('No has agregado productos al movimiento. ¿Deseas guardar de todos modos?')) {
+        return;
+      }
     }
 
     setSaving(true);
