@@ -1,0 +1,25 @@
+﻿
+
+StatusCode        : 200
+StatusDescription : OK
+Content           : [{"id":10485,"name":"ABRUNT 5MG C/10 TABS DESLORATADINA (BRULUART)","category":"ANTIHISTAMINICO","bran
+                    d":"BRULUART","status":"NORMAL"},{"id":10489,"name":"ACC 600MG C/20 TABS EFERVECENTES ACETILCISTEI...
+RawContent        : HTTP/1.1 200 OK
+                    Allow: GET, HEAD, OPTIONS
+                    Cross-Origin-Opener-Policy: same-origin
+                    Referrer-Policy: same-origin
+                    Vary: Accept, origin
+                    X-Content-Type-Options: nosniff
+                    X-Frame-Options: DENY
+                    Content...
+Forms             : {}
+Headers           : {[Allow, GET, HEAD, OPTIONS], [Cross-Origin-Opener-Policy, same-origin], [Referrer-Policy, 
+                    same-origin], [Vary, Accept, origin]...}
+Images            : {}
+InputFields       : {}
+Links             : {}
+ParsedHtml        : mshtml.HTMLDocumentClass
+RawContentLength  : 321016
+
+
+

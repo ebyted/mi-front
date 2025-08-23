@@ -34,8 +34,8 @@ function Products() {
     minimum_stock: '', 
     maximum_stock: '', 
     cantidad_corrugado: '', 
-    status: 'REGULAR', 
-    is_active: true, 
+  status: 'REGULAR',
+  is_active: false,
     group: '',
     image_url: ''
   });
@@ -335,7 +335,7 @@ function Products() {
     // Filtros específicos
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
-    const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active : !p.is_active);
+  const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.status === 'ACTIVO' : p.status !== 'ACTIVO');
     
     // Filtro por almacén - verificar si el producto tiene stock en el almacén seleccionado
     let matchesWarehouse = true;
@@ -1124,8 +1124,9 @@ function Products() {
         <div className="col-4">
           <div className="card bg-success text-white text-center">
             <div className="card-body py-2">
-              <div className={isMobile ? 'h5' : 'h4'}>{products.filter(p => p.is_active).length}</div>
+              <div className={isMobile ? 'h5' : 'h4'}>{products.filter(p => p.status === 'ACTIVO').length}</div>
               <small>Activos</small>
+              <span className={`badge ${p.status === 'ACTIVO' ? 'bg-success' : 'bg-secondary'}`}>{p.status === 'ACTIVO' ? 'ACTIVO' : (p.status || 'INACTIVO')}</span>
             </div>
           </div>
         </div>
