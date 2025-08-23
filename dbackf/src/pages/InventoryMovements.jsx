@@ -162,34 +162,49 @@ const InventoryMovements = () => {
     // El nombre y código se guardan desde el autocomplete
     // Si no se selecciona variante, asignar la principal si existe
     let variantId = currentDetail.product_variant_id;
-    if (!variantId && currentDetail.product_id) {
-      // Buscar variante principal del producto
-      if (currentDetail.product && Array.isArray(currentDetail.product.variants) && currentDetail.product.variants.length > 0) {
-        variantId = currentDetail.product.variants[0].id;
+    const ensureVariantsAndAdd = async () => {
+      let productObj = currentDetail.product;
+      // Si no hay variantes en el objeto, consultar
+      if (!productObj || !Array.isArray(productObj.variants)) {
+        try {
+          const resp = await api.get(`/products/${currentDetail.product_id}/`);
+          productObj = resp.data;
+        } catch (err) {
+          alert('No se pudo obtener la información de variantes del producto.');
+          return;
+        }
       }
-    }
-    const newDetail = {
-      ...currentDetail,
-      product_id: parseInt(currentDetail.product_id),
-      product_variant_id: variantId ?? null,
-      quantity: parseFloat(currentDetail.quantity)
+      // Si no tiene variantes, mostrar error y no agregar
+      if (!productObj.variants || productObj.variants.length === 0) {
+        alert('Este producto no tiene variantes y no puede ser agregado al movimiento.');
+        return;
+      }
+      // Si no se seleccionó variante, asignar la principal
+      if (!variantId) {
+        variantId = productObj.variants[0].id;
+      }
+      const newDetail = {
+        ...currentDetail,
+        product_id: parseInt(currentDetail.product_id),
+        product_variant_id: variantId,
+        quantity: parseFloat(currentDetail.quantity)
+      };
+      setFormData(prev => ({
+        ...prev,
+        details: [...prev.details, newDetail]
+      }));
+      setCurrentDetail({
+        product_id: '',
+        product_variant_id: '',
+        product_name: '',
+        product_code: '',
+        quantity: '',
+        lote: '',
+        expiration_date: '',
+        notes: ''
+      });
     };
-
-    setFormData(prev => ({
-      ...prev,
-      details: [...prev.details, newDetail]
-    }));
-
-    setCurrentDetail({
-      product_id: '',
-      product_variant_id: '',
-      product_name: '',
-      product_code: '',
-      quantity: '',
-      lote: '',
-      expiration_date: '',
-      notes: ''
-    });
+    ensureVariantsAndAdd();
   };
 
   const removeDetail = (index) => {
