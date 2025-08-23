@@ -646,13 +646,26 @@ const InventoryMovements = () => {
                     <ProductSelect
                       value={currentDetail.product_id}
                       onChange={(value) => setCurrentDetail(prev => ({...prev, product_id: value}))}
-                      onProductSelect={product => setCurrentDetail(prev => ({
-                        ...prev,
-                        product_id: product.id,
-                        product_name: product.name,
-                        product_code: product.sku || product.code || '',
-                        product: product // Store full product object for variant assignment
-                      }))}
+                      onProductSelect={async (product) => {
+                        let productObj = product;
+                        // Si no tiene variantes, consulta el producto completo
+                        if (!productObj.variants) {
+                          try {
+                            const resp = await api.get(`/products/${product.id}/`);
+                            productObj = resp.data;
+                          } catch (err) {
+                            alert('No se pudo obtener la información completa del producto.');
+                            return;
+                          }
+                        }
+                        setCurrentDetail(prev => ({
+                          ...prev,
+                          product_id: productObj.id,
+                          product_name: productObj.name,
+                          product_code: productObj.sku || productObj.code || '',
+                          product: productObj // Store full product object with variants
+                        }));
+                      }}
                       placeholder="Buscar producto por nombre o SKU..."
                       className="w-100"
                     />
