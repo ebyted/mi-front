@@ -88,11 +88,11 @@ class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     
     class Meta:
-    model = Product
-    fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
-         'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
-         'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
-         'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name', 'variants']
+        model = Product
+        fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
+                 'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
+                 'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
+                 'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name', 'variants']
     
     def get_variants(self, obj):
         variants = ProductVariant.objects.filter(product=obj)
