@@ -136,6 +136,8 @@ const InventoryMovements = () => {
     });
     setCurrentDetail({
       product_id: '',
+      product_name: '',
+      product_code: '',
       quantity: '',
       lote: '',
       expiration_date: '',
@@ -508,22 +510,33 @@ const InventoryMovements = () => {
                         </td>
                         <td>
                           <small className="text-muted">
-                            {movement.created_by_email || movement.user_email || 'N/A'}
+                            {movement.created_by_email ||
+                              movement.created_by?.email ||
+                              movement.user_email ||
+                              movement.user?.email ||
+                              movement.created_by_name ||
+                              movement.created_by ||
+                              'N/A'}
                           </small>
                         </td>
                         <td>
                           {getStatusBadge(movement)}
                         </td>
                         <td>
-                          {movement.authorized_by_email ? (
-                            <>
-                              <small className="text-muted d-block">{movement.authorized_by_email}</small>
-                              <small className="text-muted">
-                                {new Date(movement.authorized_at).toLocaleDateString('es-ES')}
-                              </small>
-                            </>
-                          ) : (
-                            <span className="text-muted">Pendiente</span>
+                          {movement.authorized_by_email ||
+                            movement.authorized_by?.email ||
+                            movement.authorized_by_name ||
+                            movement.authorized_by ||
+                            (movement.authorized
+                              ? 'Autorizado'
+                              : <span className="text-muted">Pendiente</span>)}
+                          {movement.authorized_at && (
+                            <br />
+                          )}
+                          {movement.authorized_at && (
+                            <small className="text-muted">
+                              {new Date(movement.authorized_at).toLocaleDateString('es-ES')}
+                            </small>
                           )}
                         </td>
                         <td>
