@@ -748,6 +748,26 @@ const EnhancedTijuanaStore = ({ user }) => {
       console.log('🎉 Respuesta del servidor:', response.data);
       console.log('📊 Status de respuesta:', response.status);
       
+      // Crear movimiento de inventario tipo EGRESO, sin autorizar, usuario referencia tienda@admin.com
+      try {
+        const movementData = {
+          movement_type: 'EGRESO',
+          authorized: false,
+          created_by_email: 'tienda@admin.com',
+          authorized_by_email: null,
+          reference: `Venta Tienda TIJUANA - Orden #${response.data.id || response.data.order_number || 'N/A'}`,
+          details: cart.map(item => ({
+            product: item.id,
+            quantity: item.quantity,
+            price: item.price
+          }))
+        };
+        await api.post('inventory-movements/', movementData);
+        console.log('✅ Movimiento de inventario creado exitosamente');
+      } catch (err) {
+        console.error('Error creando movimiento de inventario:', err);
+      }
+
       // Limpiar carrito y mostrar éxito
       console.log('🧹 Limpiando carrito después de venta exitosa');
       console.log('🛒 Cart antes de limpiar:', cart);
@@ -756,7 +776,6 @@ const EnhancedTijuanaStore = ({ user }) => {
       console.log('✅ Cart limpiado, cerrando modales');
       setShowCheckout(false);
       setShowCart(false);
-      
       showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id || response.data.order_number || 'N/A'} para ${customer.name}`, 'success');
       
       // Limpiar datos del formulario

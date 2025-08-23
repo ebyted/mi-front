@@ -132,57 +132,81 @@ function SalesOrders() {
       return;
     }
 
-      try {
-        // Preparar datos para enviar
-        const orderData = {
-          customer: parseInt(formData.customer),
-          order_date: formData.order_date,
-          status: formData.status,
-          total_amount: parseFloat(formData.total_amount),
-          items: details.map(detail => ({
-            product: parseInt(detail.product),
-            quantity: parseFloat(detail.quantity),
-            price: parseFloat(detail.price)
+    try {
+      // Preparar datos para enviar
+      const orderData = {
+        customer: parseInt(formData.customer),
+        order_date: formData.order_date,
+        status: formData.status,
+        total_amount: parseFloat(formData.total_amount),
+        items: details.map(detail => ({
+          product: parseInt(detail.product),
+          quantity: parseFloat(detail.quantity),
+          price: parseFloat(detail.price)
+        }))
+      };
+
+      let createdOrder = null;
+      if (editingOrder) {
+        // Actualizar pedido existente
+        await api.put(`sales-orders/${editingOrder.id}/`, orderData);
+        createdOrder = { id: editingOrder.id, ...orderData };
+      } else {
+        // Crear nuevo pedido
+        const res = await api.post('sales-orders/', orderData);
+        createdOrder = res.data;
+      }
+
+      // Si el estado es Procesado o Completado, crear movimiento de inventario
+      if (orderData.status === 'Procesado' || orderData.status === 'Completado') {
+        // Crear movimiento de inventario tipo EGRESO, sin autorizar, usuario referencia tienda@admin.com
+        const movementData = {
+          movement_type: 'EGRESO',
+          authorized: false,
+          created_by_email: 'tienda@admin.com',
+          authorized_by_email: null,
+          reference: `Venta Pedido #${createdOrder.id || ''}`,
+          details: orderData.items.map(item => ({
+            product: item.product,
+            quantity: item.quantity,
+            price: item.price
           }))
         };
-
-        if (editingOrder) {
-          // Actualizar pedido existente
-          await api.put(`sales-orders/${editingOrder.id}/`, orderData);
-        } else {
-          // Crear nuevo pedido
-          await api.post('sales-orders/', orderData);
+        try {
+          await api.post('inventory-movements/', movementData);
+        } catch (err) {
+          console.error('Error creando movimiento de inventario:', err);
         }
-        
-        // Refrescar lista de pedidos
-        const ordersRes = await api.get('sales-orders/');
-        const refreshedOrders = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data.results || []);
-        
-        // Enriquecer con datos de clientes
-        const enrichedOrders = refreshedOrders.map(order => {
-          if (order.customer && typeof order.customer === 'number') {
-            const customer = customers.find(c => c.id === order.customer);
-            order.customer = customer || { id: order.customer, name: 'Cliente desconocido' };
-          }
-          
-          // Usar items_detail si está disponible, sino mantener items como está
-          if (order.items_detail) {
-            order.items = order.items_detail;
-          } else if (!order.items) {
-            order.items = [];
-          }
-          
-          return order;
-        });
-        
-        console.log('Orders refreshed:', enrichedOrders); // Debug
-        setOrders(enrichedOrders);
-        
-        // Limpiar formulario
-        setShowForm(false);
-        setEditingOrder(null);
-        setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
-        setDetails([{ product: '', quantity: '', price: '' }]);    } catch (error) {
+      }
+
+      // Refrescar lista de pedidos
+      const ordersRes = await api.get('sales-orders/');
+      const refreshedOrders = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data.results || []);
+
+      // Enriquecer con datos de clientes
+      const enrichedOrders = refreshedOrders.map(order => {
+        if (order.customer && typeof order.customer === 'number') {
+          const customer = customers.find(c => c.id === order.customer);
+          order.customer = customer || { id: order.customer, name: 'Cliente desconocido' };
+        }
+        // Usar items_detail si está disponible, sino mantener items como está
+        if (order.items_detail) {
+          order.items = order.items_detail;
+        } else if (!order.items) {
+          order.items = [];
+        }
+        return order;
+      });
+
+      console.log('Orders refreshed:', enrichedOrders); // Debug
+      setOrders(enrichedOrders);
+
+      // Limpiar formulario
+      setShowForm(false);
+      setEditingOrder(null);
+      setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
+      setDetails([{ product: '', quantity: '', price: '' }]);
+    } catch (error) {
       console.error('Error creating order:', error);
       if (error.response?.data) {
         const errorMsg = typeof error.response.data === 'string' 
