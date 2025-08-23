@@ -461,21 +461,21 @@ function Products() {
   const handleEdit = product => {
     setFormError('');
     setEditId(product.id);
-    const editFormData = {
-      name: product.name || '',
-      sku: product.sku || '',
-      description: product.description || '',
-      brand: typeof product.brand === 'object' && product.brand !== null ? product.brand.id : product.brand || '',
-      category: typeof product.category === 'object' && product.category !== null ? product.category.id : product.category || '',
-      barcode: product.barcode || '',
-      minimum_stock: product.minimum_stock || '',
-      maximum_stock: product.maximum_stock || '',
-      cantidad_corrugado: product.cantidad_corrugado || '',
-      status: product.status || 'NORMAL',
-      is_active: product.is_active ?? true,
-      group: product.group || '',
-      image_url: product.image_url || ''
-    };
+        const editFormData = {
+          name: product.name || '',
+          sku: product.sku || '',
+          description: product.description || '',
+          brand: product.brand && typeof product.brand === 'object' ? product.brand.id : product.brand || '',
+          category: product.category && typeof product.category === 'object' ? product.category.id : product.category || '',
+          barcode: product.barcode || '',
+          minimum_stock: product.minimum_stock || '',
+          maximum_stock: product.maximum_stock || '',
+          cantidad_corrugado: product.cantidad_corrugado || '',
+          status: product.status || 'NORMAL',
+          is_active: product.is_active ?? true,
+          group: product.group || '',
+          image_url: product.image_url || ''
+        };
     setFormData(editFormData);
     setShowForm(true);
     setTimeout(() => {
