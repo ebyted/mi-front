@@ -616,7 +616,7 @@ const InventoryMovements = () => {
               <div className="card-body">
                 <div className="row">
                   <div className="col-md-4 mb-3">
-                    <label className="form-label">Producto *</label>
+                    <label className="form-label">Producto</label>
                     <ProductSelect
                       value={currentDetail.product_id}
                       onChange={(value) => setCurrentDetail(prev => ({...prev, product_id: value}))}
@@ -627,7 +627,6 @@ const InventoryMovements = () => {
                         product_code: product.sku || product.code || ''
                       }))}
                       placeholder="Buscar producto por nombre o SKU..."
-                      required
                       className="w-100"
                     />
                   </div>
