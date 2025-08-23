@@ -2,7 +2,7 @@
 # Ubica este archivo en tu proyecto Django y ejecútalo con: python manage.py shell < create_missing_variants.py
 
 from django.db import transaction
-from dbackf.models import Product, ProductVariant
+from core.models import Product, ProductVariant
 
 import random
 import string
