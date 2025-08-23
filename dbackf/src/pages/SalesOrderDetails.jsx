@@ -9,7 +9,8 @@ function SalesOrderDetails() {
   const [orderFilter, setOrderFilter] = useState('');
   const [productFilter, setProductFilter] = useState('');
   const [salesOrders, setSalesOrders] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [productVariants, setProductVariants] = useState([]);
+  const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -19,32 +20,45 @@ function SalesOrderDetails() {
     setLoading(true);
     try {
       // Cargar datos en paralelo
-      const [detailsRes, ordersRes, productsRes] = await Promise.all([
+      const [detailsRes, ordersRes, productVariantsRes, customersRes] = await Promise.all([
         api.get('sales-order-items/'),
         api.get('sales-orders/'),
-        api.get('products/')
+        api.get('product-variants/'),
+        api.get('customers/')
       ]);
 
       // Procesar datos
       const detailsData = Array.isArray(detailsRes.data) ? detailsRes.data : (detailsRes.data.results || []);
       const ordersData = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data.results || []);
-      const productsData = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.results || []);
+      const productVariantsData = Array.isArray(productVariantsRes.data) ? productVariantsRes.data : (productVariantsRes.data.results || []);
+      const customersData = Array.isArray(customersRes.data) ? customersRes.data : (customersRes.data.results || []);
 
-      // Enriquecer detalles con información de pedidos y productos
+      // Enriquecer detalles con información de pedidos, clientes y variantes de producto
       const enrichedDetails = detailsData.map(detail => {
         const order = ordersData.find(o => o.id === detail.sales_order);
-        const product = productsData.find(p => p.id === detail.product_variant);
-        
+        const customer = order ? customersData.find(c => c.id === order.customer) : null;
+        const productVariant = productVariantsData.find(pv => pv.id === detail.product_variant);
+
         return {
           ...detail,
-          order_info: order || { id: detail.sales_order, customer: { name: 'Desconocido' } },
-          product_info: product || { id: detail.product_variant, name: 'Producto desconocido' }
+          order_info: {
+            ...order,
+            customer: customer || { name: 'Desconocido', email: '' }
+          },
+          product_info: productVariant ? {
+            id: productVariant.id,
+            name: productVariant.name,
+            sku: productVariant.sku,
+            brand: productVariant.product?.brand?.name || '',
+            category: productVariant.product?.category?.name || '',
+          } : { id: detail.product_variant, name: 'Producto desconocido' }
         };
       });
 
       setOrderDetails(enrichedDetails);
       setSalesOrders(ordersData);
-      setProducts(productsData);
+      setProductVariants(productVariantsData);
+      setCustomers(customersData);
 
     } catch (err) {
       console.error('Error loading data:', err);
@@ -158,7 +172,7 @@ function SalesOrderDetails() {
                 onChange={(e) => setProductFilter(e.target.value)}
               >
                 <option value="">Todos los productos</option>
-                {products.map(product => (
+                {productVariants.map(product => (
                   <option key={product.id} value={product.id}>
                     {product.name}
                   </option>
