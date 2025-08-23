@@ -1126,7 +1126,7 @@ function Products() {
             <div className="card-body py-2">
               <div className={isMobile ? 'h5' : 'h4'}>{products.filter(p => p.status === 'ACTIVO').length}</div>
               <small>Activos</small>
-              <span className={`badge ${p.status === 'ACTIVO' ? 'bg-success' : 'bg-secondary'}`}>{p.status === 'ACTIVO' ? 'ACTIVO' : (p.status || 'INACTIVO')}</span>
+              <span className="badge bg-success">ACTIVO</span>
             </div>
           </div>
         </div>
