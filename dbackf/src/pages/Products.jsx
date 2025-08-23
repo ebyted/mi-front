@@ -335,7 +335,8 @@ function Products() {
     // Filtros específicos
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
-  const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.status === 'ACTIVO' : p.status !== 'ACTIVO');
+  // Usar is_active para el filtro de activos/inactivos
+  const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
     
     // Filtro por almacén - verificar si el producto tiene stock en el almacén seleccionado
     let matchesWarehouse = true;
@@ -1651,33 +1652,33 @@ function Products() {
                 </tr>
               ) : (
                 paginatedProducts.map(p => {
-                // Buscar descripción de marca y categoría por ID
-                let brandDesc = p.brand;
-                let categoryDesc = p.category;
-                if (typeof p.brand === 'number' || typeof p.brand === 'string') {
-                  const b = brands.find(br => String(br.id) === String(p.brand));
-                  brandDesc = b && typeof b === 'object' ? (b.description || b.name || b.id) : p.brand;
-                } else if (typeof p.brand === 'object' && p.brand !== null) {
-                  brandDesc = p.brand.description || p.brand.name || p.brand;
-                }
-                if (typeof p.category === 'number' || typeof p.category === 'string') {
-                  const c = categories.find(cat => String(cat.id) === String(p.category));
-                  categoryDesc = c && typeof c === 'object' ? (c.description || c.name || c.id) : p.category;
-                } else if (typeof p.category === 'object' && p.category !== null) {
-                  categoryDesc = p.category.description || p.category.name || p.category;
-                }
-                const stockStatus = getStockStatus(p);
-                const warehouseInfo = getProductWarehouseInfo(p.id);
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <span>{p.name}</span>
-                        {!p.is_active && (
-                          <span className="badge bg-secondary ms-2">Inactivo</span>
-                        )}
-                      </div>
-                    </td>
+                  // Buscar descripción de marca y categoría por ID
+                  let brandDesc = p.brand;
+                  let categoryDesc = p.category;
+                  if (typeof p.brand === 'number' || typeof p.brand === 'string') {
+                    const b = brands.find(br => String(br.id) === String(p.brand));
+                    brandDesc = b && typeof b === 'object' ? (b.description || b.name || b.id) : p.brand;
+                  } else if (typeof p.brand === 'object' && p.brand !== null) {
+                    brandDesc = p.brand.description || p.brand.name || p.brand;
+                  }
+                  if (typeof p.category === 'number' || typeof p.category === 'string') {
+                    const c = categories.find(cat => String(cat.id) === String(p.category));
+                    categoryDesc = c && typeof c === 'object' ? (c.description || c.name || c.id) : p.category;
+                  } else if (typeof p.category === 'object' && p.category !== null) {
+                    categoryDesc = p.category.description || p.category.name || p.category;
+                  }
+                  const stockStatus = getStockStatus(p);
+                  const warehouseInfo = getProductWarehouseInfo(p.id);
+                  return (
+                    <tr key={p.id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <span>{p.name}</span>
+                          {p.is_active === false && (
+                            <span className="badge bg-secondary ms-2">Inactivo</span>
+                          )}
+                        </div>
+                      </td>
                     <td>
                       <code className="bg-light px-2 py-1 rounded">{p.sku}</code>
                     </td>
@@ -1746,8 +1747,8 @@ function Products() {
                       </div>
                     </td>
                     <td>
-                      <span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>
-                        {p.is_active ? 'Activo' : 'Inactivo'}
+                      <span className={`badge ${p.is_active === true ? 'bg-success' : 'bg-danger'}`}>
+                        {p.is_active === true ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
                     <td>{p.group || '-'}</td>
