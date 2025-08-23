@@ -102,6 +102,7 @@ const InventoryMovements = () => {
         notes: formData.notes,
         details: formData.details.map(detail => ({
           product_id: detail.product_id,
+          product_variant_id: detail.product_variant_id ?? null,
           quantity: parseFloat(detail.quantity),
           lote: detail.lote || '',
           expiration_date: detail.expiration_date || null,
@@ -159,9 +160,18 @@ const InventoryMovements = () => {
     }
 
     // El nombre y código se guardan desde el autocomplete
+    // Si no se selecciona variante, asignar la principal si existe
+    let variantId = currentDetail.product_variant_id;
+    if (!variantId && currentDetail.product_id) {
+      // Buscar variante principal del producto
+      if (currentDetail.product && Array.isArray(currentDetail.product.variants) && currentDetail.product.variants.length > 0) {
+        variantId = currentDetail.product.variants[0].id;
+      }
+    }
     const newDetail = {
       ...currentDetail,
       product_id: parseInt(currentDetail.product_id),
+      product_variant_id: variantId ?? null,
       quantity: parseFloat(currentDetail.quantity)
     };
 
@@ -172,6 +182,7 @@ const InventoryMovements = () => {
 
     setCurrentDetail({
       product_id: '',
+      product_variant_id: '',
       product_name: '',
       product_code: '',
       quantity: '',
