@@ -635,7 +635,8 @@ const InventoryMovements = () => {
                         ...prev,
                         product_id: product.id,
                         product_name: product.name,
-                        product_code: product.sku || product.code || ''
+                        product_code: product.sku || product.code || '',
+                        product: product // Store full product object for variant assignment
                       }))}
                       placeholder="Buscar producto por nombre o SKU..."
                       className="w-100"
