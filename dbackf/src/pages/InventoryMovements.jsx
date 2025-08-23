@@ -510,33 +510,28 @@ const InventoryMovements = () => {
                         </td>
                         <td>
                           <small className="text-muted">
-                            {movement.created_by_email ||
-                              movement.created_by?.email ||
-                              movement.user_email ||
-                              movement.user?.email ||
-                              movement.created_by_name ||
-                              movement.created_by ||
-                              'N/A'}
+                            {/* Email */}
+                            {movement.created_by?.email || movement.created_by_email || movement.user_email || movement.user?.email || movement.created_by || 'N/A'}
+                            {/* Nombre */}
+                            {movement.created_by?.name || movement.created_by_name ? (
+                              <span className="ms-2">({movement.created_by?.name || movement.created_by_name})</span>
+                            ) : null}
                           </small>
                         </td>
                         <td>
                           {getStatusBadge(movement)}
                         </td>
                         <td>
-                          {movement.authorized_by_email ||
-                            movement.authorized_by?.email ||
-                            movement.authorized_by_name ||
-                            movement.authorized_by ||
-                            (movement.authorized
-                              ? 'Autorizado'
-                              : <span className="text-muted">Pendiente</span>)}
+                          <small className="text-muted">
+                            {/* Email */}
+                            {movement.authorized_by?.email || movement.authorized_by_email || movement.authorized_by || (movement.authorized ? 'Autorizado' : <span className="text-muted">Pendiente</span>)}
+                            {/* Nombre */}
+                            {movement.authorized_by?.name || movement.authorized_by_name ? (
+                              <span className="ms-2">({movement.authorized_by?.name || movement.authorized_by_name})</span>
+                            ) : null}
+                          </small>
                           {movement.authorized_at && (
-                            <br />
-                          )}
-                          {movement.authorized_at && (
-                            <small className="text-muted">
-                              {new Date(movement.authorized_at).toLocaleDateString('es-ES')}
-                            </small>
+                            <><br /><small className="text-muted">{new Date(movement.authorized_at).toLocaleDateString('es-ES')}</small></>
                           )}
                         </td>
                         <td>
@@ -932,7 +927,11 @@ const InventoryMovements = () => {
                         </div>
                         <div className="col-md-6">
                           <p><strong>Fecha:</strong> {new Date(movementDetails.created_at).toLocaleString('es-ES')}</p>
-                          <p><strong>Creado por:</strong> {movementDetails.created_by_email || movementDetails.user_email || 'N/A'}</p>
+                          <p><strong>Creado por:</strong> {movementDetails.created_by?.email || movementDetails.created_by_email || movementDetails.user_email || movementDetails.created_by || 'N/A'}
+                            {movementDetails.created_by?.name || movementDetails.created_by_name ? (
+                              <span className="ms-2">({movementDetails.created_by?.name || movementDetails.created_by_name})</span>
+                            ) : null}
+                          </p>
                           <p><strong>Estado:</strong>
                             {movementDetails.is_cancelled ? (
                               <span className="badge bg-danger ms-2">❌ Cancelado</span>
@@ -968,7 +967,10 @@ const InventoryMovements = () => {
                         <h6 className="text-success mb-3">✅ Autorización</h6>
                         <div className="bg-light p-3 rounded">
                           <p className="mb-1">
-                            <strong>Autorizado por:</strong> {movementDetails.authorized_by_email || 'N/A'}
+                            <strong>Autorizado por:</strong> {movementDetails.authorized_by?.email || movementDetails.authorized_by_email || movementDetails.authorized_by || 'N/A'}
+                            {movementDetails.authorized_by?.name || movementDetails.authorized_by_name ? (
+                              <span className="ms-2">({movementDetails.authorized_by?.name || movementDetails.authorized_by_name})</span>
+                            ) : null}
                           </p>
                           <p className="mb-0">
                             <strong>Fecha de autorización:</strong> {new Date(movementDetails.authorized_at).toLocaleString('es-ES')}
