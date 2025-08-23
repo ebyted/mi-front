@@ -633,15 +633,33 @@ function SalesOrders() {
                         <div className="row g-2">
                           <div className="col-md-5">
                             <label className="form-label">Producto *</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="Buscar producto por nombre o SKU..."
+                              value={d.productSearch || ''}
+                              onChange={e => {
+                                const value = e.target.value;
+                                const newDetails = [...details];
+                                newDetails[idx].productSearch = value;
+                                // Filtrar productos por nombre o SKU
+                                newDetails[idx].filteredProducts = products.filter(p => {
+                                  const search = value.toLowerCase();
+                                  return (p.name && p.name.toLowerCase().includes(search)) ||
+                                         (p.sku && p.sku.toLowerCase().includes(search));
+                                });
+                                setDetails(newDetails);
+                              }}
+                            />
                             <select
                               name="product"
-                              className="form-select"
+                              className="form-select mt-2"
                               value={d.product}
                               onChange={e => handleDetailChange(idx, e)}
                               required
                             >
                               <option value="">Seleccionar producto...</option>
-                              {products
+                              {(d.filteredProducts || products)
                                 .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
                                 .map(p => (
                                   <option key={p.id} value={p.id}>
