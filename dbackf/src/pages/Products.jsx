@@ -186,9 +186,16 @@ function Products() {
 
   const fetchProducts = () => {
     setLoading(true);
-    api.get('products/simple_list/')
+    // Usar el endpoint completo y manejar paginación
+    api.get('products/?expand=brand,category,variants,warehouse_stocks')
       .then(res => {
-        const data = Array.isArray(res.data) ? res.data : [];
+        // Si la respuesta tiene paginación, usar results
+        let data = [];
+        if (Array.isArray(res.data)) {
+          data = res.data;
+        } else if (res.data && Array.isArray(res.data.results)) {
+          data = res.data.results;
+        }
         setProducts(data);
       })
       .catch(() => {
