@@ -24,7 +24,8 @@ from .views import (
     QuotationViewSet, QuotationItemViewSet, RoleViewSet, MenuOptionViewSet,
     ProductImportView, BrandImportView,
     AuditLogViewSet, CurrentInventoryView, user_menu_options,
-    WarehouseListView, InventoryMovementViewSet, InventoryMovementDetailViewSet, CustomerPaymentViewSet, SupplierPaymentViewSet
+    WarehouseListView, InventoryMovementViewSet, InventoryMovementDetailViewSet, CustomerPaymentViewSet, SupplierPaymentViewSet,
+    UserProfileView
 )
 
 
