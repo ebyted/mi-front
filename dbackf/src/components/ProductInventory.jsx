@@ -55,16 +55,10 @@ const ProductInventory = () => {
 
   // Efecto para obtener productos filtrados desde la API (Inventario General)
   useEffect(() => {
-    api.get('/inventory-general/', {
-      params: {
-        warehouse_id: selectedWarehouse,
-        product: filterProduct,
-        brand: filterBrand,
-        category: filterCategory
-      }
-    }).then(res => {
-      setProducts(res.data.results || res.data);
-    });
+  // Si tienes un endpoint oficial para inventario general, úsalo aquí. Si no, solo usa mockProducts.
+  // Ejemplo: api.get('/inventory-general/', { params: { ... } })
+  // Si no existe, comentar la llamada y dejar los mocks.
+  // setProducts(mockProducts);
   }, [selectedWarehouse, filterProduct, filterBrand, filterCategory]);
 
   return (
