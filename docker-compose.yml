@@ -20,7 +20,7 @@ services:
     restart: always
     environment:
       - DEBUG=False
-      - DATABASE_HOST=sanchobd-2y0ssb.1.xjngxaq8kjrzwsnuq6i97cwep
+      - DATABASE_HOST=168.231.74.214
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
