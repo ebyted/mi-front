@@ -20,6 +20,7 @@ const ProductSelect = ({
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [searchTimeout, setSearchTimeout] = useState(null);
+  const [criticalError, setCriticalError] = useState('');
   
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -63,7 +64,10 @@ const ProductSelect = ({
    * Selección de producto
    */
   const handleSelect = async (product) => {
-    onChange(product.id);
+    setCriticalError('');
+    if (typeof onChange === 'function') {
+      onChange(product.id);
+    }
     setInputValue(product.name);
     setIsOpen(false);
 
@@ -104,7 +108,8 @@ const ProductSelect = ({
     // Devuelve el objeto extendido con product_variant_id
     const productWithVariantId = { ...fullProduct, product_variant_id };
 
-    if (onProductSelect) {
+    // Solo llamar si hay variante válida
+    if (!errorFetching && typeof onProductSelect === 'function') {
       onProductSelect(productWithVariantId);
     }
 
@@ -115,9 +120,7 @@ const ProductSelect = ({
 
     // Mostrar advertencia si falta información crítica
     if (errorFetching && errorMessage) {
-      window.setTimeout(() => {
-        alert(errorMessage);
-      }, 100);
+      setCriticalError(errorMessage);
     }
   };
 
@@ -194,7 +197,7 @@ const ProductSelect = ({
   }, [searchTimeout]);
 
   return (
-  <div className={`position-relative ${className}`}>
+    <div className={`position-relative ${className}`}>
       <h5 className="mb-2 text-primary fw-bold">Información de producto</h5>
       {/* Input principal */}
       <div className="input-group">
@@ -219,7 +222,6 @@ const ProductSelect = ({
           disabled={disabled}
           autoComplete="off"
         />
-        
         {/* Botón limpiar */}
         {value && (
           <button
@@ -232,14 +234,18 @@ const ProductSelect = ({
           </button>
         )}
       </div>
-      
+      {/* Mensaje de error crítico */}
+      {criticalError && (
+        <div className="alert alert-danger mt-2">
+          {criticalError}
+        </div>
+      )}
       {/* Mensaje de error */}
       {error && (
         <div className="invalid-feedback d-block">
           {error}
         </div>
       )}
-      
       {/* Dropdown de productos */}
       {isOpen && (
         <div 
