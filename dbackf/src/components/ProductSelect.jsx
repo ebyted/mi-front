@@ -14,7 +14,8 @@ const ProductSelect = ({
   disabled = false,
   className = "",
   error = null,
-  onProductSelect = null
+  onProductSelect = null,
+  handleNew = null
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -197,6 +198,15 @@ const ProductSelect = ({
       <h5 className="mb-2 text-primary fw-bold">Información de producto</h5>
       {/* Input principal */}
       <div className="input-group">
+        {handleNew && (
+          <button
+            type="button"
+            className="btn btn-primary me-2"
+            onClick={handleNew}
+          >
+            ➕ Nuevo producto
+          </button>
+        )}
         <input
           ref={inputRef}
           type="text"
