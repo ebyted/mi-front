@@ -968,11 +968,7 @@ const InventoryMovements = () => {
                         </div>
                         <div className="col-md-6">
                           <p><strong>Fecha:</strong> {new Date(movementDetails.created_at).toLocaleString('es-ES')}</p>
-                          <p><strong>Creado por:</strong> {movementDetails.created_by?.email || movementDetails.created_by_email || movementDetails.user_email || movementDetails.created_by || 'N/A'}
-                            {movementDetails.created_by?.name || movementDetails.created_by_name ? (
-                              <span className="ms-2">({movementDetails.created_by?.name || movementDetails.created_by_name})</span>
-                            ) : null}
-                          </p>
+                          <p><strong>Creado por:</strong> {movementDetails.created_by_email || movementDetails.user_email || 'N/A'}</p>
                           <p><strong>Estado:</strong>
                             {movementDetails.is_cancelled ? (
                               <span className="badge bg-danger ms-2">❌ Cancelado</span>
@@ -1008,10 +1004,7 @@ const InventoryMovements = () => {
                         <h6 className="text-success mb-3">✅ Autorización</h6>
                         <div className="bg-light p-3 rounded">
                           <p className="mb-1">
-                            <strong>Autorizado por:</strong> {movementDetails.authorized_by?.email || movementDetails.authorized_by_email || movementDetails.authorized_by || 'N/A'}
-                            {movementDetails.authorized_by?.name || movementDetails.authorized_by_name ? (
-                              <span className="ms-2">({movementDetails.authorized_by?.name || movementDetails.authorized_by_name})</span>
-                            ) : null}
+                            <strong>Autorizado por:</strong> {movementDetails.authorized_by_email || 'N/A'}
                           </p>
                           <p className="mb-0">
                             <strong>Fecha de autorización:</strong> {new Date(movementDetails.authorized_at).toLocaleString('es-ES')}
@@ -1109,7 +1102,6 @@ const InventoryMovements = () => {
                               ))}
                             </tbody>
                           </table>
-                          
                           {/* Totales */}
                           <div className="mt-3 p-3 bg-light rounded">
                             <div className="row">

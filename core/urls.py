@@ -103,6 +103,8 @@ urlpatterns = [
     path('current-inventory/', CurrentInventoryView.as_view(), name='current-inventory'),
     path('user-menu-options/', user_menu_options, name='user-menu-options'),
     path('products/<int:pk>/kardex/', ProductKardexView.as_view(), name='product-kardex'),
+    # Endpoint de perfil de usuario
+    path('user/profile/', UserProfileView.as_view(), name='user-profile'),
     path('', include(router.urls)),
 ]
 
