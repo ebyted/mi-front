@@ -23,6 +23,7 @@ import TestCustomers from './pages/TestCustomers';
 import Suppliers from './pages/Suppliers';
 import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
 // ...existing code...
+import InventoryGeneral from './pages/InventoryGeneral';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 
@@ -92,6 +93,7 @@ function AppContent() {
         <Route path="/suppliers" element={renderWithSidebar(Suppliers)} />
         <Route path="/test-customers" element={renderWithSidebar(TestCustomers)} />
         <Route path="/enhanced-store" element={renderWithSidebar(() => <EnhancedTijuanaStore user={null} />)} />
+  <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
   {/* <Route path="/product-investigation" element={renderWithSidebar(ProductInvestigation)} /> */}
         
         {/* Cualquier otra ruta redirige según autenticación */}

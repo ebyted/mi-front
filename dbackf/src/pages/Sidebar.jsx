@@ -7,7 +7,7 @@ const menuItems = [
   { name: "Centro de Productos", path: "/product-center", icon: "bi-box-seam" },
   { name: "Productos", path: "/products", icon: "bi-box-seam" }, // Eliminado del sidebar
   { name: "Almacenes", path: "/warehouses", icon: "bi-building" },
-  //{ name: "Inventario General", path: "/inventory-overview", icon: "bi-clipboard-data" },
+  { name: "Inventario General", path: "/inventory-general", icon: "bi-clipboard-data" },
   { name: "Órdenes de Compra", path: "/purchase-orders", icon: "bi-cart-plus" },
   { name: "Cotizaciones", path: "/quotations", icon: "bi-calculator" },
   { name: "Ventas", path: "/sales-orders", icon: "bi-receipt" },
