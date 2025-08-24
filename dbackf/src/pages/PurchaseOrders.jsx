@@ -160,7 +160,7 @@ function PurchaseOrders() {
     }
     setProductLoading(prev => ({ ...prev, [index]: true }));
     try {
-      const res = await api.get(`/products/simple_list/?search=${encodeURIComponent(searchValue)}`);
+  const res = await api.get(`/products/`, { params: { search: searchValue } });
       setProductOptions(prev => ({ ...prev, [index]: res.data || [] }));
     } catch (err) {
       setProductOptions(prev => ({ ...prev, [index]: [] }));
