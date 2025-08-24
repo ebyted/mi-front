@@ -134,11 +134,13 @@ class ProductSerializer(serializers.ModelSerializer):
             return 0
 
 class ProductVariantSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+    product_id = serializers.IntegerField(source='product.id', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_sku = serializers.CharField(source='product.sku', read_only=True)
     
     class Meta:
         model = ProductVariant
-        fields = '__all__'
+        fields = ['id', 'name', 'sku', 'is_main', 'price', 'stock', 'product_id', 'product_name', 'product_sku']
 
 class WarehouseSerializer(serializers.ModelSerializer):
     business = serializers.PrimaryKeyRelatedField(queryset=Business.objects.all(), required=False, allow_null=True)
