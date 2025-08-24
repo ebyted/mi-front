@@ -1,10 +1,10 @@
 
 
 import React from 'react';
-import ProductInventory from '../components/ProductInventory';
+import ProductSelect from '../components/ProductSelect';
 
 const ProductCenter = () => {
-	return <ProductInventory />;
+	return <ProductSelect />;
 };
 
 export default ProductCenter;
