@@ -816,72 +816,87 @@ function Products() {
         group: formData.group ? Number(formData.group) : null,
         brand: Number(formData.brand),
         category: Number(formData.category),
-        business: currentBusiness
-      };
-      
-      console.log('Enviando datos del producto:', dataToSend);
-      
-      let response;
-      if (editId) {
-        response = await api.put(`products/${editId}/`, dataToSend);
-      } else {
-        response = await api.post('products/', dataToSend);
-      }
-      setShowForm(false);
-      setEditId(null);
-      setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', description: '', image_url: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '' });
-      fetchProducts();
-    } catch (err) {
-      let errorMessage = 'Error al guardar producto.';
-      if (err.response) {
-        if (err.response.status === 400) {
-          if (err.response.data) {
-            if (typeof err.response.data === 'string') {
-              errorMessage = err.response.data;
-            } else if (typeof err.response.data === 'object') {
-              const errors = [];
-              Object.entries(err.response.data).forEach(([field, messages]) => {
-                if (Array.isArray(messages)) {
-                  errors.push(`${field}: ${messages.join(', ')}`);
-                } else {
-                  errors.push(`${field}: ${messages}`);
-                }
-              });
-              errorMessage = errors.join(' | ');
-              
-              // Si el error menciona business, agregar contexto
-              if (errorMessage.toLowerCase().includes('business')) {
-                errorMessage += ' (Nota: Se asignó business automáticamente)';
-              }
-            }
+        e.preventDefault();
+        setFormError('');
+        if (!validateForm()) return;
+        setIsSubmitting(true);
+        try {
+          // Preparar datos para envío (incluir business dinámico)
+          const dataToSend = {
+            ...formData,
+            minimum_stock: formData.minimum_stock ? Number(formData.minimum_stock) : null,
+            maximum_stock: formData.maximum_stock ? Number(formData.maximum_stock) : null,
+            cantidad_corrugado: formData.cantidad_corrugado ? Number(formData.cantidad_corrugado) : 0,
+            status: formData.status || 'REGULAR',
+            group: formData.group ? Number(formData.group) : null,
+            brand: Number(formData.brand),
+            category: Number(formData.category),
+            business: currentBusiness
+          };
+          console.log('Enviando datos del producto:', dataToSend);
+          let response;
+          if (editId) {
+            response = await api.put(`products/${editId}/`, dataToSend);
+          } else {
+            response = await api.post('products/', dataToSend);
           }
-        } else if (err.response.status === 404) {
-          errorMessage = 'Producto no encontrado.';
-        } else if (err.response.status === 500) {
-          errorMessage = 'Error interno del servidor.';
+          setShowForm(false);
+          setEditId(null);
+          setFormData({ name: '', sku: '', brand: '', category: '', barcode: '', description: '', image_url: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '' });
+          // Verificar variantes del producto recién creado
+          const productId = response?.data?.id;
+          if (productId) {
+            setTimeout(async () => {
+              try {
+                const productResp = await api.get(`products/${productId}/?expand=variants`);
+                const variants = productResp.data?.variants || [];
+                if (variants.length === 0) {
+                  alert('⚠️ El producto fue creado pero no tiene ninguna variante asociada. Esto puede causar errores en inventario y ventas. Verifica en el backend.');
+                }
+              } catch (err) {
+                // Silenciar error de consulta
+              }
+            }, 1200);
+          }
+          fetchProducts();
+        } catch (err) {
+          let errorMessage = 'Error al guardar producto.';
+          if (err.response) {
+            if (err.response.status === 400) {
+              if (err.response.data) {
+                if (typeof err.response.data === 'string') {
+                  errorMessage = err.response.data;
+                } else if (typeof err.response.data === 'object') {
+                  const errors = [];
+                  Object.entries(err.response.data).forEach(([field, messages]) => {
+                    if (Array.isArray(messages)) {
+                      errors.push(`${field}: ${messages.join(', ')}`);
+                    } else {
+                      errors.push(`${field}: ${messages}`);
+                    }
+                  });
+                  errorMessage = errors.join(' | ');
+                  // Si el error menciona business, agregar contexto
+                  if (errorMessage.toLowerCase().includes('business')) {
+                    errorMessage += ' (Nota: Se asignó business automáticamente)';
+                  }
+                }
+              }
+            } else if (err.response.status === 404) {
+              errorMessage = 'Producto no encontrado.';
+            } else if (err.response.status === 500) {
+              errorMessage = 'Error interno del servidor.';
+            }
+          } else if (err.message) {
+            errorMessage = err.message;
+          }
+          console.error('Error al guardar producto:', err);
+          console.error('Datos enviados:', dataToSend);
+          setFormError(errorMessage);
+        } finally {
+          setIsSubmitting(false);
         }
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      console.error('Error al guardar producto:', err);
-      console.error('Datos enviados:', dataToSend);
-      setFormError(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getStockStatus = (product) => {
-    if (!product.minimum_stock && !product.maximum_stock) return null;
-    
-    // Por ahora usamos minimum_stock como referencia de stock actual
-    const currentStock = product.minimum_stock || 0;
-    const minStock = product.minimum_stock || 0;
-    
-    if (currentStock === 0) {
-      return { status: 'empty', color: 'danger', text: 'Sin stock', icon: '⚠️' };
-    } else if (currentStock <= minStock) {
+      };
       return { status: 'low', color: 'warning', text: 'Stock bajo', icon: '⚠️' };
     } else {
       return { status: 'ok', color: 'success', text: 'Stock OK', icon: '✅' };
