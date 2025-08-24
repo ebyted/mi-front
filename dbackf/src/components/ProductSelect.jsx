@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useProducts } from '../hooks/useProducts';
+import { api } from '../services/api';
 
 /**
  * Selector de productos optimizado con búsqueda y lazy loading
@@ -60,14 +61,33 @@ const ProductSelect = ({
   /**
    * Selección de producto
    */
-  const handleSelect = (product) => {
+  const handleSelect = async (product) => {
     onChange(product.id);
     setInputValue(product.name);
     setIsOpen(false);
-    
-    // Callback adicional si se proporciona
+
+
+    let fullProduct = product;
+    // Si el producto no tiene variantes o detalles completos, consulta el endpoint
+    if (!product.variants || !Array.isArray(product.variants)) {
+      try {
+        const resp = await api.get(`/products/${product.id}/`);
+        fullProduct = resp.data;
+      } catch (err) {
+        fullProduct = product;
+      }
+    }
+
+    // Asegurar que el objeto tenga product_variant_id
+    let product_variant_id = null;
+    if (fullProduct.variants && Array.isArray(fullProduct.variants) && fullProduct.variants.length > 0) {
+      product_variant_id = fullProduct.variants[0].id;
+    }
+    // Devuelve el objeto extendido con product_variant_id
+    const productWithVariantId = { ...fullProduct, product_variant_id };
+
     if (onProductSelect) {
-      onProductSelect(product);
+      onProductSelect(productWithVariantId);
     }
 
     // Blur input para cerrar teclado móvil

@@ -1,6 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { api } from '../services/api';
+
 
 const ProductShow = ({ product }) => {
+  const [inventory, setInventory] = useState(null);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+
+  useEffect(() => {
+    if (product && product.product_variant_id) {
+      setLoadingInventory(true);
+      api.get(`/inventory/?variant_id=${product.product_variant_id}`)
+        .then(resp => {
+          setInventory(resp.data);
+        })
+        .catch(() => {
+          setInventory(null);
+        })
+        .finally(() => {
+          setLoadingInventory(false);
+        });
+    } else {
+      setInventory(null);
+    }
+  }, [product]);
+
   if (!product) return null;
 
   return (
@@ -40,6 +63,25 @@ const ProductShow = ({ product }) => {
               <p className="text-muted">{product.description}</p>
             </div>
           )}
+
+          {/* Inventario relacionado */}
+          <div className="mt-3">
+            <h5 className="text-primary">Inventario relacionado</h5>
+            {loadingInventory ? (
+              <div className="text-muted">Cargando inventario...</div>
+            ) : inventory && Array.isArray(inventory) && inventory.length > 0 ? (
+              <ul className="list-group">
+                {inventory.map((inv, idx) => (
+                  <li key={idx} className="list-group-item">
+                    <strong>Almacén:</strong> {inv.warehouse_name || inv.warehouse}
+                    {' | '}<strong>Stock:</strong> {inv.stock}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-muted">No hay inventario para este producto/variante.</div>
+            )}
+          </div>
         </div>
       </div>
       <style jsx>{`

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ProductShow from './ProductShow';
-import { api } from '../services/api'; // Importa la instancia de API desde la ruta correcta
+import ProductSelect from './ProductSelect';
+import { api } from '../services/api';
 
 const mockWarehouses = [
   { id: 1, name: 'Almacén Central' },
@@ -12,8 +13,13 @@ const mockProducts = [
   { sku: 'B002', name: 'Producto B', status: 'OFERTA', stock: 80, minimum_stock: 5, maximum_stock: 150, brand_name: 'MarcaY', category_name: 'Cat2' },
 ];
 
-const ProductInventory = ({ product, inventoryMovements = [] }) => {
+const ProductInventory = () => {
   const [activeTab, setActiveTab] = useState('product');
+  const [selectedProductObj, setSelectedProductObj] = useState(null); // full product object from ProductSelect
+  const [selectedProductId, setSelectedProductId] = useState(''); // product id
+  const [selectedVariantId, setSelectedVariantId] = useState(''); // product_variant_id
+  const [productInfo, setProductInfo] = useState(null); // product details from API
+  const [inventoryMovements, setInventoryMovements] = useState([]); // movements for selected variant
   // Estado para filtros de Inventario General
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
   const [filterProduct, setFilterProduct] = useState('');
@@ -21,7 +27,33 @@ const ProductInventory = ({ product, inventoryMovements = [] }) => {
   const [filterCategory, setFilterCategory] = useState('');
   const [filteredProducts, setProducts] = useState(mockProducts);
 
-  // Efecto para obtener productos filtrados desde la API
+  // Cuando selecciona producto en ProductSelect
+  const handleProductSelect = (productObj) => {
+    setSelectedProductObj(productObj);
+    setSelectedProductId(productObj.id);
+    setSelectedVariantId(productObj.product_variant_id);
+  };
+
+  // Consultar info del producto y movimientos del inventario por variant
+  useEffect(() => {
+    if (selectedProductId && selectedVariantId) {
+      // Obtener info del producto
+      api.get(`/products/${selectedProductId}/`).then(res => {
+        setProductInfo(res.data);
+      });
+      // Obtener movimientos de inventario para el variant
+      api.get('/inventory-movements/', {
+        params: { product_variant_id: selectedVariantId }
+      }).then(res => {
+        setInventoryMovements(res.data.results || res.data);
+      });
+    } else {
+      setProductInfo(null);
+      setInventoryMovements([]);
+    }
+  }, [selectedProductId, selectedVariantId]);
+
+  // Efecto para obtener productos filtrados desde la API (Inventario General)
   useEffect(() => {
     api.get('/inventory-general/', {
       params: {
@@ -37,6 +69,16 @@ const ProductInventory = ({ product, inventoryMovements = [] }) => {
 
   return (
     <div className="product-inventory-container">
+      {/* Selector de producto y variante */}
+      <div className="mb-4">
+        <ProductSelect
+          value={selectedProductId}
+          onChange={setSelectedProductId}
+          onProductSelect={handleProductSelect}
+          placeholder="Buscar producto por nombre o SKU..."
+          className="w-100"
+        />
+      </div>
       <div className="tabs mb-4">
         <button
           className={`tab-btn ${activeTab === 'product' ? 'active' : ''}`}
@@ -59,13 +101,15 @@ const ProductInventory = ({ product, inventoryMovements = [] }) => {
       </div>
       <div className="tab-content">
         {activeTab === 'product' && (
-          <ProductShow product={product} />
+          selectedProductObj ? <ProductShow product={productInfo || selectedProductObj} /> : <div className="alert alert-info">Selecciona un producto para ver la información.</div>
         )}
         {activeTab === 'inventory' && (
           <div className="inventory-tab">
             <h3 className="mb-3 text-primary fw-bold">Movimientos de Inventario</h3>
-            {inventoryMovements.length === 0 ? (
-              <div className="alert alert-info">No hay movimientos registrados para este producto.</div>
+            {selectedProductObj && inventoryMovements.length === 0 ? (
+              <div className="alert alert-info">No hay movimientos registrados para este producto/variante.</div>
+            ) : !selectedProductObj ? (
+              <div className="alert alert-info">Selecciona un producto para ver los movimientos.</div>
             ) : (
               <div className="inventory-grid">
                 {inventoryMovements.map((mov, idx) => (
