@@ -397,15 +397,14 @@ class ProductViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         search = self.request.query_params.get('search', None)
-        
-        if search:
+        # Solo aplicar filtro si search no es None y no está vacío o solo espacios
+        if search and search.strip():
             queryset = queryset.filter(
                 Q(name__icontains=search) |
                 Q(sku__icontains=search) |
                 Q(code__icontains=search) |
                 Q(brand__name__icontains=search)
             ).distinct()
-        
         return queryset.order_by('name')
     
     @action(detail=False, methods=['get'])
