@@ -24,7 +24,7 @@ services:
       - DATABASE_NAME=maestro_inventario
       - DATABASE_USER=maestro
       - DATABASE_PASSWORD=maestro
-      - DATABASE_PORT=5432
+      - DATABASE_PORT=5455
       - ALLOWED_HOSTS=www.sanchodistribuidora.com,sanchodistribuidora.com,localhost,127.0.0.1
       - SECRET_KEY=inventario-maestro-inventario-secret-key-123456789abcdef
       - DJANGO_SETTINGS_MODULE=maestro_inventario_backend.settings
