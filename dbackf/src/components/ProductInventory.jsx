@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ProductShow from './ProductShow';
-import api from './api'; // Asegúrate de importar tu instancia de API
+import { api } from '../services/api'; // Importa la instancia de API desde la ruta correcta
 
 const mockWarehouses = [
   { id: 1, name: 'Almacén Central' },
