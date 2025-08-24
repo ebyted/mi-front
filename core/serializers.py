@@ -338,15 +338,21 @@ class InventoryMovementDetailSerializer(serializers.ModelSerializer):
             except Product.DoesNotExist:
                 raise serializers.ValidationError(f"Product with id {product_id} does not exist")
         
-        # Asegurar que price y total tengan valores por defecto
-        if 'price' not in validated_data or validated_data['price'] is None:
-            validated_data['price'] = 0.00
-        
-        # Calcular total si no viene especificado
-        if 'total' not in validated_data or validated_data['total'] is None:
-            validated_data['total'] = validated_data['price'] * validated_data.get('quantity', 0)
-        
-        return super().create(validated_data)
+            # Validar que siempre venga product_variant
+            if not validated_data.get('product_variant'):
+                raise serializers.ValidationError({
+                    'product_variant': 'Debes especificar la variante de producto (product_variant_id) para movimientos de inventario.'
+                })
+
+            # Asegurar que price y total tengan valores por defecto
+            if 'price' not in validated_data or validated_data['price'] is None:
+                validated_data['price'] = 0.00
+
+            # Calcular total si no viene especificado
+            if 'total' not in validated_data or validated_data['total'] is None:
+                validated_data['total'] = validated_data['price'] * validated_data.get('quantity', 0)
+
+            return super().create(validated_data)
         
 class InventoryMovementSerializer(serializers.ModelSerializer):
     warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
