@@ -66,23 +66,30 @@ const ProductSelect = ({
     setInputValue(product.name);
     setIsOpen(false);
 
-
     let fullProduct = product;
+    let errorFetching = false;
+    let errorMessage = '';
     // Si el producto no tiene variantes o detalles completos, consulta el endpoint
     if (!product.variants || !Array.isArray(product.variants)) {
       try {
         const resp = await api.get(`/products/${product.id}/`);
         fullProduct = resp.data;
       } catch (err) {
+        errorFetching = true;
+        errorMessage = 'No se pudo obtener la información completa del producto.';
         fullProduct = product;
       }
     }
 
-    // Asegurar que el objeto tenga product_variant_id
+    // Validar variantes
     let product_variant_id = null;
     if (fullProduct.variants && Array.isArray(fullProduct.variants) && fullProduct.variants.length > 0) {
       product_variant_id = fullProduct.variants[0].id;
+    } else {
+      errorFetching = true;
+      errorMessage = 'El producto seleccionado no tiene variantes disponibles.';
     }
+
     // Devuelve el objeto extendido con product_variant_id
     const productWithVariantId = { ...fullProduct, product_variant_id };
 
@@ -93,6 +100,13 @@ const ProductSelect = ({
     // Blur input para cerrar teclado móvil
     if (inputRef.current) {
       inputRef.current.blur();
+    }
+
+    // Mostrar advertencia si falta información crítica
+    if (errorFetching && errorMessage) {
+      window.setTimeout(() => {
+        alert(errorMessage);
+      }, 100);
     }
   };
 
@@ -169,7 +183,7 @@ const ProductSelect = ({
   }, [searchTimeout]);
 
   return (
-    <div className={`position-relative ${className}`}>
+  <div className={`position-relative ${className}`}>
       {/* Input principal */}
       <div className="input-group">
         <input
@@ -226,7 +240,6 @@ const ProductSelect = ({
               <span className="text-muted">Buscando productos...</span>
             </div>
           )}
-          
           {/* Lista de productos */}
           {!loading && products.length > 0 && products.map(product => (
             <button
@@ -257,21 +270,18 @@ const ProductSelect = ({
               </div>
             </button>
           ))}
-          
           {/* Estado vacío */}
           {!loading && products.length === 0 && inputValue.length >= 2 && (
             <div className="dropdown-item text-center py-3 text-muted">
               🔍 No se encontraron productos para "{inputValue}"
             </div>
           )}
-          
           {/* Instrucciones de búsqueda */}
           {!loading && inputValue.length < 2 && (
             <div className="dropdown-item text-center py-3 text-muted">
               ℹ️ Escriba al menos 2 caracteres para buscar
             </div>
           )}
-          
           {/* Footer con contador */}
           {!loading && products.length > 0 && (
             <>
