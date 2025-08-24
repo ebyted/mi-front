@@ -194,6 +194,7 @@ const ProductSelect = ({
 
   return (
   <div className={`position-relative ${className}`}>
+      <h5 className="mb-2 text-primary fw-bold">Información de producto</h5>
       {/* Input principal */}
       <div className="input-group">
         <input
