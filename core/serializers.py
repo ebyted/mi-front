@@ -84,8 +84,8 @@ class ProductSerializer(serializers.ModelSerializer):
     image = serializers.CharField(source='image_url', read_only=True)  # Alias para compatibilidad con frontend
     category = CategorySerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
-    brand_name = serializers.CharField(source='brand.name', read_only=True)
-    category_name = serializers.CharField(source='category.name', read_only=True)
+    brand_name = serializers.SerializerMethodField(read_only=True)
+    category_name = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Product
@@ -93,6 +93,15 @@ class ProductSerializer(serializers.ModelSerializer):
                  'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
                  'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
                  'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name', 'variants']
+    def get_brand_name(self, obj):
+        if obj.brand and hasattr(obj.brand, 'name'):
+            return obj.brand.name
+        return ''
+
+    def get_category_name(self, obj):
+        if obj.category and hasattr(obj.category, 'name'):
+            return obj.category.name
+        return ''
     
     def get_variants(self, obj):
         variants = ProductVariant.objects.filter(product=obj)
