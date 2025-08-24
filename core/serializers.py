@@ -94,52 +94,43 @@ class ProductSerializer(serializers.ModelSerializer):
                  'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
                  'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name', 'variants']
     def get_brand_name(self, obj):
-        if obj.brand and hasattr(obj.brand, 'name'):
-            return obj.brand.name
-        return ''
+        try:
+            return obj.brand.name if obj.brand and hasattr(obj.brand, 'name') else ''
+        except Exception:
+            return ''
 
     def get_category_name(self, obj):
-        if obj.category and hasattr(obj.category, 'name'):
-            return obj.category.name
-        return ''
-    
-    def get_variants(self, obj):
-        variants = ProductVariant.objects.filter(product=obj)
-        return ProductVariantSerializer(variants, many=True).data
-
-    def validate_cantidad_corrugado(self, value):
-        if value < 0:
-            raise serializers.ValidationError("La cantidad de corrugado no puede ser negativa")
-        return value
-    
-    def get_price(self, obj):
-        """Obtener el precio del primer ProductVariant asociado"""
         try:
-            # Buscar el primer ProductVariant asociado a este Product
+            return obj.category.name if obj.category and hasattr(obj.category, 'name') else ''
+        except Exception:
+            return ''
+
+    def get_variants(self, obj):
+        try:
+            variants = ProductVariant.objects.filter(product=obj)
+            return ProductVariantSerializer(variants, many=True).data
+        except Exception:
+            return []
+
+    def get_price(self, obj):
+        try:
             product_variant = ProductVariant.objects.filter(product=obj).first()
-            if product_variant and product_variant.sale_price:
+            if product_variant and hasattr(product_variant, 'sale_price') and product_variant.sale_price is not None:
                 return float(product_variant.sale_price)
             return 0.0
-        except Exception as e:
+        except Exception:
             return 0.0
-    
+
     def get_current_stock(self, obj):
-        """Calcular el stock total disponible sumando todos los almacenes"""
         try:
             from django.db.models import Sum
-            # Obtener todas las variantes del producto
             product_variants = ProductVariant.objects.filter(product=obj)
-            
             total_stock = 0
             for variant in product_variants:
-                # Sumar el stock de todos los almacenes para esta variante
-                stock_sum = ProductWarehouseStock.objects.filter(
-                    product_variant=variant
-                ).aggregate(total=Sum('quantity'))['total'] or 0
-                total_stock += stock_sum
-            
-            return max(0, total_stock)  # No devolver stock negativo
-        except Exception as e:
+                if hasattr(variant, 'stock') and variant.stock is not None:
+                    total_stock += float(variant.stock)
+            return max(0, total_stock)
+        except Exception:
             return 0
 
 class ProductVariantSerializer(serializers.ModelSerializer):
