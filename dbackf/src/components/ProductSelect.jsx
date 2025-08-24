@@ -69,15 +69,25 @@ const ProductSelect = ({
     let fullProduct = product;
     let errorFetching = false;
     let errorMessage = '';
-    // Si el producto no tiene variantes o detalles completos, consulta el endpoint
+    // Validar que el producto tenga id antes de consultar el endpoint
     if (!product.variants || !Array.isArray(product.variants)) {
-      try {
-        const resp = await api.get(`/products/${product.id}/`);
-        fullProduct = resp.data;
-      } catch (err) {
+      if (!product.id) {
         errorFetching = true;
-        errorMessage = 'No se pudo obtener la información completa del producto.';
-        fullProduct = product;
+        errorMessage = 'El producto seleccionado no tiene un ID válido.';
+      } else {
+        try {
+          const endpoint = `/products/${product.id}/`;
+          const resp = await api.get(endpoint);
+          fullProduct = resp.data;
+        } catch (err) {
+          errorFetching = true;
+          if (err.response && err.response.status === 404) {
+            errorMessage = `No se encontró el producto en el endpoint /products/${product.id}/ (404).`;
+          } else {
+            errorMessage = 'No se pudo obtener la información completa del producto.';
+          }
+          fullProduct = product;
+        }
       }
     }
 
