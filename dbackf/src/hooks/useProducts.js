@@ -71,8 +71,8 @@ export const useProducts = (options = {}) => {
       if (search.length >= 2) {
         setLoading(true);
         try {
-          // Usar el endpoint estándar de productos
-          const response = await api.get('/products/', { params: { search: searchTerm } });
+          // Usar el endpoint estándar de productos, solo si search tiene 2+ caracteres
+          const response = await api.get('/products/', { params: { search: search.trim() } });
           const allProducts = Array.isArray(response.data) ? response.data : [];
           // Filtrar por nombre o SKU
           const normalizedSearch = search.trim().toLowerCase();
@@ -91,16 +91,16 @@ export const useProducts = (options = {}) => {
         } finally {
           setLoading(false);
         }
-      } else if (search.length === 0) {
-        // No hacer petición si el search está vacío
+      } else {
+        // Nunca hacer petición si <2 caracteres
         setProducts([]);
         setHasMore(true);
         setPage(1);
-        if (autoLoad) {
+        if (autoLoad && search.length === 0) {
           await loadProducts('', true);
         }
       }
-    }, [autoLoad]);
+    }, [autoLoad, loadProducts]);
 
   /**
    * Cargar más productos (para infinite scroll)
