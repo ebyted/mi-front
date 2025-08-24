@@ -164,19 +164,29 @@ const InventoryMovements = () => {
     let variantId = currentDetail.product_variant_id;
     const ensureVariantsAndAdd = async () => {
       let productObj = currentDetail.product;
+      let errorFetchingVariant = false;
       // Si no hay variantes en el objeto, consultar
       if (!productObj || !Array.isArray(productObj.variants)) {
         try {
           const resp = await api.get(`/products/${currentDetail.product_id}/`);
           productObj = resp.data;
         } catch (err) {
-          alert('No se pudo obtener la información de variantes del producto.');
-          return;
+          console.error('No se pudo obtener la información de variantes del producto:', err);
+          errorFetchingVariant = true;
         }
       }
       // Si no tiene variantes, mostrar error y no agregar
-      if (!productObj.variants || productObj.variants.length === 0) {
-        alert('Este producto no tiene variantes y no puede ser agregado al movimiento.');
+      if (errorFetchingVariant || !productObj.variants || productObj.variants.length === 0) {
+        setCurrentDetail(prev => ({
+          ...prev,
+          errorVariant: true
+        }));
+        window.setTimeout(() => {
+          setCurrentDetail(prev => ({
+            ...prev,
+            errorVariant: false
+          }));
+        }, 4000);
         return;
       }
       // Si no se seleccionó variante, asignar la principal
@@ -201,7 +211,8 @@ const InventoryMovements = () => {
         quantity: '',
         lote: '',
         expiration_date: '',
-        notes: ''
+        notes: '',
+        errorVariant: false
       });
     };
     ensureVariantsAndAdd();
@@ -715,6 +726,18 @@ const InventoryMovements = () => {
                     >
                       ➕ Agregar
                     </button>
+                    {currentDetail.errorVariant && (
+                      <div className="alert alert-danger mt-2">
+                        No se pudo obtener la información de variantes del producto.<br />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-primary mt-2"
+                          onClick={addDetail}
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
