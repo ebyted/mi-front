@@ -51,7 +51,8 @@ const ProductSelect = ({
       if (searchTerm.length >= 2) {
         searchProducts(searchTerm);
         setIsOpen(true);
-      } else if (searchTerm.length === 0) {
+      } else {
+        // Nunca hacer petición si <2 caracteres
         resetProducts();
         setIsOpen(false);
       }

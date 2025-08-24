@@ -55,10 +55,16 @@ const ProductInventory = () => {
 
   // Efecto para obtener productos filtrados desde la API (Inventario General)
   useEffect(() => {
-  // Si tienes un endpoint oficial para inventario general, úsalo aquí. Si no, solo usa mockProducts.
-  // Ejemplo: api.get('/inventory-general/', { params: { ... } })
-  // Si no existe, comentar la llamada y dejar los mocks.
-  // setProducts(mockProducts);
+    // Solo buscar si el filtro de producto tiene al menos 2 caracteres
+    if (filterProduct.length >= 2 || filterBrand.length >= 2 || filterCategory.length >= 2) {
+      // Si tienes un endpoint oficial para inventario general, úsalo aquí
+      // api.get('/inventory-general/', { params: { warehouse: selectedWarehouse, product: filterProduct, brand: filterBrand, category: filterCategory } })
+      //   .then(res => setProducts(res.data.results || res.data))
+      //   .catch(() => setProducts([]));
+    } else {
+      // Si no hay filtro suficiente, mostrar los mocks o vaciar
+      setProducts(mockProducts);
+    }
   }, [selectedWarehouse, filterProduct, filterBrand, filterCategory]);
 
   return (
