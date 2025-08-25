@@ -62,6 +62,7 @@ function Products() {
     api.get('warehouses/').then(res => setWarehouses(res.data)).catch(() => setWarehouses([]));
   }, []);
 
+  // Filtro adicional por categoría y marca
   const filteredProducts = products.filter(p => {
     let matchesSearch = true;
     if (search && search.trim()) {
@@ -79,8 +80,8 @@ function Products() {
         || normalized(brandText).includes(s)
         || normalized(categoryText).includes(s);
     }
-    const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
-    const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
+  const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
+  const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
     const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
     let matchesStock = true;
     if (filters.stockStatus) {
@@ -90,8 +91,9 @@ function Products() {
     return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
   });
 
-  // Si el backend maneja paginación, products ya está paginado
-  const paginatedProducts = products;
+  // Paginación local sobre los productos filtrados
+  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+  const paginatedProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize);
 
   const handleEdit = (product) => {
     setEditId(product.id);
@@ -227,7 +229,7 @@ function Products() {
         </div>
       </div>
       <div className="row g-2 mb-3">
-        <div className="col">
+        <div className="col-md-4 mb-2 mb-md-0">
           <div className="input-group">
             <span className="input-group-text">
               <i className="bi bi-search"></i>
@@ -240,10 +242,37 @@ function Products() {
             )}
           </div>
         </div>
-        <div className="col-auto">
+        <div className="col-md-3 mb-2 mb-md-0">
+          <select className="form-select" value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value }))}>
+            <option value="">Todas las categorías</option>
+            {categories.filter(c => c && c.id != null).map(c => (
+              <option key={c.id} value={c.id}>{c.description || c.name || `Categoría ${c.id}`}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-3 mb-2 mb-md-0">
+          <select className="form-select" value={filters.brand} onChange={e => setFilters(f => ({ ...f, brand: e.target.value }))}>
+            <option value="">Todas las marcas</option>
+            {brands.filter(b => b && b.id != null).map(b => (
+              <option key={b.id} value={b.id}>{b.description || b.name || `Marca ${b.id}`}</option>
+            ))}
+          </select>
+        </div>
+        <div className="col-md-2 text-end">
           <button className="btn btn-outline-secondary" onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}>
             <i className={`bi ${viewMode === 'table' ? 'bi-grid-3x3-gap' : 'bi-table'}`}></i>
           </button>
+        </div>
+      </div>
+      {/* Controles de paginación */}
+      <div className="row mb-3">
+        <div className="col d-flex justify-content-end align-items-center gap-2">
+          <span>Página {page} de {totalPages}</span>
+          <button className="btn btn-outline-primary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>&lt; Anterior</button>
+          <button className="btn btn-outline-primary btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Siguiente &gt;</button>
+          <select className="form-select form-select-sm w-auto" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}>
+            {[10, 20, 50, 100].map(size => <option key={size} value={size}>{size} por página</option>)}
+          </select>
         </div>
       </div>
       <div className="table-responsive">
