@@ -25,6 +25,7 @@ class ProductWithMainVariantSerializer(serializers.ModelSerializer):
     def get_variants(self, obj):
         try:
             variants = ProductVariant.objects.filter(product=obj)
+            print(f'[DEBUG ProductSearch] Producto {obj.id} tiene {variants.count()} variantes')
             return [
                 {
                     'id': v.id,
