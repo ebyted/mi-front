@@ -47,7 +47,9 @@ function Products() {
   }, []);
 
   useEffect(() => {
-    api.get('products/?expand=brand,category,variants,warehouse_stocks').then(res => setProducts(res.data)).catch(() => setProducts([]));
+    api.get('products/?expand=brand,category,variants,warehouse_stocks')
+      .then(res => setProducts(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setProducts([]));
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
     api.get('warehouses/').then(res => setWarehouses(res.data)).catch(() => setWarehouses([]));
@@ -269,7 +271,7 @@ function Products() {
                     <div className="col-12">
                       <label className="form-label fw-bold">Producto *</label>
                       <ProductSelect
-                        products={products}
+                        products={Array.isArray(products) ? products : []}
                         value={formData.productId}
                         onChange={handleProductSelect}
                         isMobile={isMobile}
