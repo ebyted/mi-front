@@ -421,6 +421,26 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
         return (obj.authorized and not obj.is_cancelled)
     
     def create(self, validated_data):
+        # Extraer detalles si vienen anidados
+        details_data = self.initial_data.get('details', [])
+        # Crear el movimiento principal
+        movement = InventoryMovement.objects.create(
+            warehouse_id=validated_data.get('warehouse_id'),
+            type=validated_data.get('type', 'IN'),
+            notes=validated_data.get('notes', ''),
+            user=self.context['request'].user if 'request' in self.context else None
+        )
+        # Crear los detalles
+        for detail in details_data:
+            InventoryMovementDetail.objects.create(
+                movement=movement,
+                product_variant_id=detail.get('product_variant_id'),
+                quantity=detail.get('quantity'),
+                lote=detail.get('lote', ''),
+                expiration_date=detail.get('expiration_date'),
+                notes=detail.get('notes', '')
+            )
+        return movement
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"🔧 InventoryMovementSerializer.create - validated_data inicial: {validated_data}")
