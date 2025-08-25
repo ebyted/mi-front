@@ -49,6 +49,11 @@ const ProductSelect = ({
 
     const timeout = setTimeout(() => {
       if (searchTerm.length >= 2) {
+        console.log('[ProductSelect] Enviando búsqueda al backend:', {
+          endpoint: '/products-search/',
+          params: { search: searchTerm.trim() },
+          rawSearch: searchTerm
+        });
         searchProducts(searchTerm);
         setIsOpen(true);
       } else {
