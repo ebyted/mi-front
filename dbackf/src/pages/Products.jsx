@@ -52,17 +52,18 @@ function Products() {
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
     api.get('warehouses/').then(res => setWarehouses(res.data)).catch(() => setWarehouses([]));
-    api.get('product-warehouse-stocks/')
-      .then(res => {
-        let stocks = [];
-        if (Array.isArray(res.data)) {
-          stocks = res.data;
-        } else if (res.data && Array.isArray(res.data.results)) {
-          stocks = res.data.results;
-        }
-        setProductWarehouseStocks(stocks);
-      })
-      .catch(() => setProductWarehouseStocks([]));
+    // Eliminamos el fetch de product-warehouse-stocks para evitar el error
+    // api.get('product-warehouse-stocks/')
+    //   .then(res => {
+    //     let stocks = [];
+    //     if (Array.isArray(res.data)) {
+    //       stocks = res.data;
+    //     } else if (res.data && Array.isArray(res.data.results)) {
+    //       stocks = res.data.results;
+    //     }
+    //     setProductWarehouseStocks(stocks);
+    //   })
+    //   .catch(() => setProductWarehouseStocks([]));
   }, []);
 
   const filteredProducts = products.filter(p => {
@@ -75,8 +76,9 @@ function Products() {
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
     const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
+    // Además, aseguramos que el filtro por almacén no rompa si no hay stocks
     let matchesWarehouse = true;
-    if (filters.warehouse) {
+    if (filters.warehouse && Array.isArray(productWarehouseStocks) && productWarehouseStocks.length > 0) {
       const stocks = productWarehouseStocks.filter(stock => stock.product === p.id || stock.product_id === p.id);
       matchesWarehouse = stocks.some(stock => String(stock.warehouse?.id || stock.warehouse) === filters.warehouse && (stock.quantity || 0) > 0);
     }
