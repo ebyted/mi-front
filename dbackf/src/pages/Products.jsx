@@ -1,76 +1,30 @@
 
 
 import React, { useEffect, useState } from 'react';
+import ProductSelect from '../components/ProductSelect';
 import api from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import DiscountManager from '../components/DiscountManager';
 
-function Products() {
-  // Hook para cambiar el título de la pestaña
-  useDocumentTitle('Productos - Maestro Inventario');
-  
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const formRef = React.useRef(null);
-  const [products, setProducts] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
-  const [currentBusiness, setCurrentBusiness] = useState(1); // Business por defecto
-  // Eliminado manejo de múltiples negocios
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ 
-    name: '', 
-    sku: '', 
-    description: '',
-    brand: '', 
-    category: '', 
-    barcode: '', 
-    minimum_stock: '', 
-    maximum_stock: '', 
-    cantidad_corrugado: '', 
-  status: 'REGULAR',
-  is_active: false,
-    group: '',
-    image_url: ''
-  });
-  const [formError, setFormError] = useState('');
-  const [editId, setEditId] = useState(null);
-  
-  // Estados para gestión de descuentos
-  const [showDiscountManager, setShowDiscountManager] = useState(false);
-  const [selectedProductForDiscount, setSelectedProductForDiscount] = useState(null);
-  const [showDiscountModal, setShowDiscountModal] = useState({show: false, productId: null, productName: ''});
-  
-  // Estados para modal de inventario
-  const [showInventoryModal, setShowInventoryModal] = useState(false);
-  const [inventoryProduct, setInventoryProduct] = useState(null);
-  const [productInventory, setProductInventory] = useState([]);
-  const [loadingInventory, setLoadingInventory] = useState(false);
-  const [inventoryWarehouseFilter, setInventoryWarehouseFilter] = useState(''); // Filtro por almacén en modal
-  const [productMovements, setProductMovements] = useState([]);
-  const [loadingMovements, setLoadingMovements] = useState(false);
-  
-  // Estado para stock por almacén de todos los productos
-  const [productWarehouseStocks, setProductWarehouseStocks] = useState([]);
-  
-  // Estados para filtros avanzados
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    brand: '',
-    category: '',
-    warehouse: '',
-    isActive: '',
-    stockStatus: ''
-  });
-
-  // Estado para vista móvil
-  const [viewMode, setViewMode] = useState('auto'); // 'cards', 'table', 'auto'
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Producto *</label>
+                      <ProductSelect
+                        products={products}
+                        value={formData.productId || ''}
+                        onChange={product => {
+                          setFormData({
+                            ...formData,
+                            productId: product.id,
+                            name: product.name,
+                            sku: product.sku,
+                            brand: product.brand?.id || product.brand,
+                            category: product.category?.id || product.category
+                          });
+                        }}
+                        isMobile={isMobile}
+                        required
+                      />
+                    </div>
   const [isMobile, setIsMobile] = useState(false);
 
   // Detectar si es móvil
@@ -254,29 +208,30 @@ function Products() {
         return String(text).toLowerCase()
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '') // quitar acentos
-          .trim();
-      };
-      
-      // Obtener todos los textos del producto
-      const productName = normalize(p.name || '');
-      const productSku = normalize(p.sku || '');
-      const productBarcode = normalize(p.barcode || '');
-      
-      // Obtener marca
-      let brandText = '';
-      if (p.brand) {
-        if (typeof p.brand === 'object') {
-          brandText = normalize(p.brand.name || p.brand.description || '');
-        } else {
-          brandText = normalize(p.brand);
-        }
-      }
-      
-      // Obtener categoría
-      let categoryText = '';
-      if (p.category) {
-        if (typeof p.category === 'object') {
-          categoryText = normalize(p.category.name || p.category.description || '');
+          return (
+            <div className="container-fluid py-3">
+              {/* Header responsivo */}
+              <div className="row align-items-center mb-4">
+                <div className="col">
+                  <h1 className={`mb-0 text-primary ${isMobile ? 'h4' : 'display-6'}`}> 
+                    <i className="bi bi-box-seam me-2"></i>
+                    Productos
+                  </h1>
+                </div>
+                <div className="col-auto">
+                  {/* handleNew está definido en el scope principal, accesible aquí */}
+                  <button 
+                    className={`btn btn-primary ${isMobile ? 'btn-lg px-3' : ''}`} 
+                    onClick={handleNew}
+                  >
+                    <i className="bi bi-plus-circle me-1"></i>
+                    {isMobile ? 'Nuevo' : 'Nuevo Producto'}
+                  </button>
+                </div>
+              </div>
+              {/* ...existing code... */}
+            </div>
+          );
         } else {
           categoryText = normalize(p.category);
         }
@@ -1103,30 +1058,13 @@ function Products() {
       </div>
 
       {/* Stats cards responsivos */}
+      {/* Resumen compacto de productos */}
       <div className="row g-2 mb-4">
-        <div className="col-4">
-          <div className="card bg-primary text-white text-center">
-            <div className="card-body py-2">
-              <div className={isMobile ? 'h5' : 'h4'}>{products.length}</div>
-              <small>Total</small>
-            </div>
-          </div>
-        </div>
-        <div className="col-4">
-          <div className="card bg-success text-white text-center">
-            <div className="card-body py-2">
-              <div className={isMobile ? 'h5' : 'h4'}>{products.filter(p => p.status === 'ACTIVO').length}</div>
-              <small>Activos</small>
-              <span className="badge bg-success">ACTIVO</span>
-            </div>
-          </div>
-        </div>
-        <div className="col-4">
-          <div className="card bg-info text-white text-center">
-            <div className="card-body py-2">
-              <div className={isMobile ? 'h5' : 'h4'}>{filteredProducts.length}</div>
-              <small>Filtrados</small>
-            </div>
+        <div className="col">
+          <div className="d-flex gap-3">
+            <span className="badge bg-primary">Total: {products.length}</span>
+            <span className="badge bg-success">Activos: {products.filter(p => p.is_active).length}</span>
+            <span className="badge bg-info">Filtrados: {filteredProducts.length}</span>
           </div>
         </div>
       </div>
@@ -1166,50 +1104,7 @@ function Products() {
             )}
           </button>
         </div>
-        {search && (
-          <div className="col-auto">
-            <button 
-              className="btn btn-outline-info btn-sm"
-              onClick={() => {
-                console.log('=== DEBUG MANUAL DE BÚSQUEDA ===');
-                console.log('Búsqueda actual:', search);
-                console.log('Productos totales:', products.length);
-                console.log('Productos filtrados:', filteredProducts.length);
-                
-                // Verificar si existen productos con el término
-                const searchLower = search.toLowerCase();
-                const directMatches = products.filter(p => 
-                  (p.name || '').toLowerCase().includes(searchLower)
-                );
-                
-                console.log('Coincidencias directas en nombre:', directMatches.length);
-                directMatches.forEach((p, i) => {
-                  if (i < 10) console.log(`${i+1}. ${p.name} (ID: ${p.id})`);
-                });
-                
-                // Verificar productos que no pasaron el filtro pero deberían
-                const shouldMatch = products.filter(p => {
-                  const name = (p.name || '').toLowerCase();
-                  return name.includes(searchLower);
-                });
-                
-                const actualFiltered = filteredProducts.map(p => p.id);
-                const notFiltered = shouldMatch.filter(p => !actualFiltered.includes(p.id));
-                
-                console.log('Productos que deberían aparecer pero no aparecen:', notFiltered.length);
-                notFiltered.forEach(p => {
-                  console.log('- FALTANTE:', p.name);
-                });
-                
-                alert(`Debug: ${directMatches.length} productos encontrados con "${search}". Ver consola para detalles.`);
-              }}
-              title="Debug de búsqueda"
-            >
-              <i className="bi bi-bug me-1"></i>
-              Debug
-            </button>
-          </div>
-        )}
+  {/* Botón de debug de búsqueda eliminado para producción */}
         {!isMobile && (
           <div className="col-auto">
             <div className="btn-group" role="group">
@@ -1307,73 +1202,25 @@ function Products() {
               <div className="modal-body">
                 <form ref={formRef} onSubmit={handleSubmit}>
                   <div className={`row ${isMobile ? 'g-3' : 'g-2'}`}>
+                    {/* Selector único de producto */}
                     <div className="col-12">
-                      <label className="form-label fw-bold">Nombre del Producto *</label>
-                      <input
-                        type="text"
-                        name="name"
-                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
-                        placeholder="Ingrese el nombre del producto"
-                        value={formData.name}
-                        onChange={handleChange}
+                      <label className="form-label fw-bold">Producto *</label>
+                      <ProductSelect
+                        products={products}
+                        value={formData.productId || ''}
+                        onChange={product => {
+                          setFormData({
+                            ...formData,
+                            productId: product.id,
+                            name: product.name,
+                            sku: product.sku,
+                            brand: product.brand?.id || product.brand,
+                            category: product.category?.id || product.category
+                          });
+                        }}
+                        isMobile={isMobile}
                         required
                       />
-                    </div>
-                    
-                    <div className="col-12">
-                      <label className="form-label fw-bold">Código SKU *</label>
-                      <input
-                        type="text"
-                        name="sku"
-                        className={`form-control ${isMobile ? 'form-control-lg' : ''}`}
-                        placeholder="Código único del producto"
-                        value={formData.sku}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="col-12">
-                      <label className="form-label fw-bold">Marca *</label>
-                      <select
-                        name="brand"
-                        className={`form-select ${isMobile ? 'form-select-lg' : ''}`}
-                        value={formData.brand}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="">Selecciona marca</option>
-                        {brands
-                          .sort((a, b) => {
-                            const nameA = (a.description || a.name || a.id).toString().toLowerCase();
-                            const nameB = (b.description || b.name || b.id).toString().toLowerCase();
-                            return nameA.localeCompare(nameB);
-                          })
-                          .map(b => (
-                            <option key={b.id} value={b.id}>{b.description || b.name || b.id}</option>
-                          ))}
-                      </select>
-                    </div>
-                    <div className="col-12">
-                      <label className="form-label fw-bold">Categoría *</label>
-                      <select
-                        name="category"
-                        className={`form-select ${isMobile ? 'form-select-lg' : ''}`}
-                        value={formData.category}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="">Selecciona categoría</option>
-                        {categories
-                          .sort((a, b) => {
-                            const nameA = (a.description || a.name || a.id).toString().toLowerCase();
-                            const nameB = (b.description || b.name || b.id).toString().toLowerCase();
-                            return nameA.localeCompare(nameB);
-                          })
-                          .map(c => (
-                            <option key={c.id} value={c.id}>{c.description || c.name || c.id}</option>
-                          ))}
-                      </select>
                     </div>
                     
                     <div className="col-12">
@@ -1571,31 +1418,6 @@ function Products() {
                     <i className="bi bi-x-circle me-1"></i>
                     Limpiar filtros
                   </button>
-                  {search && (
-                    <button 
-                      className="btn btn-outline-info" 
-                      onClick={() => {
-                        console.log('=== INFORMACIÓN DE DEBUG ===');
-                        console.log('Productos totales:', products.length);
-                        console.log('Búsqueda actual:', search);
-                        console.log('Productos que contienen partes del término:');
-                        
-                        const debugMatches = products.filter(p => {
-                          const name = (p.name || '').toLowerCase();
-                          const searchLower = search.toLowerCase();
-                          return name.includes(searchLower.substring(0, 5)) || 
-                                 searchLower.includes(name.substring(0, 5));
-                        });
-                        
-                        debugMatches.slice(0, 10).forEach(p => {
-                          console.log(`- ${p.name} (SKU: ${p.sku})`);
-                        });
-                      }}
-                    >
-                      <i className="bi bi-info-circle me-1"></i>
-                      Debug búsqueda
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -1620,59 +1442,60 @@ function Products() {
                 <th>SKU</th>
                 <th>Marca</th>
                 <th>Categoría</th>
-                {/* <th>Negocio</th> */}
-                <th>Código de barras</th>
-                <th>Stock mínimo</th>
-                <th>Stock máximo</th>
-                <th>Corrugado</th>
-                <th>Estado</th>
-                <th>Stock por Almacén</th>
-                <th>Activo</th>
-                <th>Grupo</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedProducts.length === 0 ? (
-                <tr>
-                  <td colSpan="13" className="text-center py-4">
-                    📪 <p className="text-muted mb-0">No hay productos en esta página</p>
-                    <small className="text-muted">Intenta navegar a una página anterior</small>
-                  </td>
-                </tr>
-              ) : (
-                paginatedProducts.map(p => {
-                  // Buscar descripción de marca y categoría por ID
-                  let brandDesc = p.brand;
-                  let categoryDesc = p.category;
-                  if (typeof p.brand === 'number' || typeof p.brand === 'string') {
-                    const b = brands.find(br => String(br.id) === String(p.brand));
-                    brandDesc = b && typeof b === 'object' ? (b.description || b.name || b.id) : p.brand;
-                  } else if (typeof p.brand === 'object' && p.brand !== null) {
-                    brandDesc = p.brand.description || p.brand.name || p.brand;
-                  }
-                  if (typeof p.category === 'number' || typeof p.category === 'string') {
-                    const c = categories.find(cat => String(cat.id) === String(p.category));
-                    categoryDesc = c && typeof c === 'object' ? (c.description || c.name || c.id) : p.category;
-                  } else if (typeof p.category === 'object' && p.category !== null) {
-                    categoryDesc = p.category.description || p.category.name || p.category;
-                  }
-                  const stockStatus = getStockStatus(p);
-                  const warehouseInfo = getProductWarehouseInfo(p.id);
-                  return (
-                    <tr key={p.id}>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          <span>{p.name}</span>
-                          {p.is_active === false && (
-                            <span className="badge bg-secondary ms-2">Inactivo</span>
-                          )}
-                        </div>
-                      </td>
-                    <td>
-                      <code className="bg-light px-2 py-1 rounded">{p.sku}</code>
-                    </td>
-                    <td>{brandDesc}</td>
+                {/* Vista Cards (móvil) */}
+                {getCurrentView() === 'cards' && (
+                  <div>
+                    {paginatedProducts.map(product => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Vista Tabla (desktop) */}
+                {getCurrentView() === 'table' && (
+                  <div className="table-responsive">
+                    <table className="table table-hover">
+                      <thead className="table-primary">
+                        <tr>
+                          <th>Nombre</th>
+                          <th>SKU</th>
+                          <th>Marca</th>
+                          <th>Categoría</th>
+                          {/* Negocio */}
+                          <th>Código de barras</th>
+                          <th>Stock mínimo</th>
+                          <th>Stock máximo</th>
+                          <th>Corrugado</th>
+                          <th>Estado</th>
+                          <th>Stock por Almacén</th>
+                          <th>Activo</th>
+                          <th>Grupo</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedProducts.length === 0 ? (
+                          <tr>
+                            <td colSpan="13" className="text-center py-4">
+                              📪 <p className="text-muted mb-0">No hay productos en esta página</p>
+                              <small className="text-muted">Intenta navegar a una página anterior</small>
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedProducts.map(p => {
+                            // Buscar descripción de marca y categoría por ID
+                            let brandDesc = p.brand;
+                            let categoryDesc = p.category;
+                            // ...existing code...
+                            const stockStatus = getStockStatus(p);
+                            const warehouseInfo = getProductWarehouseInfo(p.id);
+                            // ...existing code...
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
                     <td>{categoryDesc}</td>
                     {/* <td><span className="badge bg-info">{businessDesc}</span></td> */}
                     <td>
