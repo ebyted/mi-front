@@ -247,16 +247,24 @@ function Products() {
           </thead>
           <tbody>
             {paginatedProducts.map(p => (
-              <tr key={p.id}>
-                <td>{p.name}</td>
-                <td>{p.sku}</td>
-                <td>{typeof p.brand === 'object' ? p.brand.description || p.brand.name : p.brand}</td>
-                <td>{typeof p.category === 'object' ? p.category.description || p.category.name : p.category}</td>
-                <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
-                <td>
-                  <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(p)}>✏️</button>
-                </td>
-              </tr>
+                <tr key={p.id}>
+                  <td>{p.name}</td>
+                  <td>{p.sku}</td>
+                  <td>{
+                    p.brand && typeof p.brand === 'object'
+                      ? (p.brand.description ?? p.brand.name ?? `Marca ${p.brand.id}`)
+                      : (p.brand ?? '')
+                  }</td>
+                  <td>{
+                    p.category && typeof p.category === 'object'
+                      ? (p.category.description ?? p.category.name ?? `Categoría ${p.category.id}`)
+                      : (p.category ?? '')
+                  }</td>
+                  <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
+                  <td>
+                    <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(p)}>✏️</button>
+                  </td>
+                </tr>
             ))}
           </tbody>
         </table>
