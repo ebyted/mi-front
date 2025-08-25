@@ -64,7 +64,17 @@ function Products() {
     if (search && search.trim()) {
       const normalized = (txt) => String(txt || '').toLowerCase();
       const s = normalized(search);
-      matchesSearch = normalized(p.name).includes(s) || normalized(p.sku).includes(s) || normalized(p.barcode).includes(s) || normalized(p.brand?.description || p.brand?.name || p.brand) .includes(s) || normalized(p.category?.description || p.category?.name || p.category).includes(s);
+      const brandText = p.brand && typeof p.brand === 'object'
+        ? (p.brand.description ?? p.brand.name ?? '')
+        : (p.brand ?? '');
+      const categoryText = p.category && typeof p.category === 'object'
+        ? (p.category.description ?? p.category.name ?? '')
+        : (p.category ?? '');
+      matchesSearch = normalized(p.name).includes(s)
+        || normalized(p.sku).includes(s)
+        || normalized(p.barcode).includes(s)
+        || normalized(brandText).includes(s)
+        || normalized(categoryText).includes(s);
     }
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
