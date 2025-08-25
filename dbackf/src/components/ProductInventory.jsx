@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ProductShow from './ProductShow';
-import ProductSelect from './ProductSelect';
+// import ProductSelect from './ProductSelect';
 import { api } from '../services/api';
 
 const mockWarehouses = [
@@ -13,7 +13,7 @@ const mockProducts = [
   { sku: 'B002', name: 'Producto B', status: 'OFERTA', stock: 80, minimum_stock: 5, maximum_stock: 150, brand_name: 'MarcaY', category_name: 'Cat2' },
 ];
 
-const ProductInventory = () => {
+const ProductInventory = ({ selectedProductObj }) => {
   const [activeTab, setActiveTab] = useState('product');
   const [productInfo, setProductInfo] = useState(null); // product details from API
   const [inventoryMovements, setInventoryMovements] = useState([]); // movements for selected variant
