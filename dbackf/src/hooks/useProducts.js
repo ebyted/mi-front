@@ -37,22 +37,17 @@ export const useProducts = (options = {}) => {
         ...(search && { search: search.trim() })
       });
       
-      const response = await api.get(`/products/?${params}`);
-      
-      // Manejar tanto respuesta paginada como array directo
-      const newProducts = response.data.results || response.data || [];
-      const totalPages = response.data.total_pages || 1;
-      const currentPageNum = response.data.current_page || currentPage;
-      
+      const response = await api.get('/products-search/', { params: { search: search.trim() } });
+      const newProducts = Array.isArray(response.data) ? response.data : [];
       if (reset) {
         setProducts(newProducts);
         setPage(1);
       } else {
         setProducts(prev => [...prev, ...newProducts]);
       }
+      setHasMore(false);
       
-      setPage(currentPageNum + 1);
-      setHasMore(currentPageNum < totalPages);
+  // ...el resto del código permanece igual...
       
     } catch (err) {
       console.error('Error loading products:', err);
