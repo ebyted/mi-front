@@ -337,8 +337,8 @@ class InventoryMovementDetailSerializer(serializers.ModelSerializer):
                 validated_data['product_variant'] = product_variant
             except Product.DoesNotExist:
                 raise serializers.ValidationError(f"Product with id {product_id} does not exist")
-        # Validar que siempre venga product_variant si se requiere
-        if product_id and not validated_data.get('product_variant'):
+        # Validar que siempre venga product_variant
+        if not validated_data.get('product_variant'):
             raise serializers.ValidationError({
                 'product_variant': 'Debes especificar la variante de producto (product_variant_id) para movimientos de inventario.'
             })
