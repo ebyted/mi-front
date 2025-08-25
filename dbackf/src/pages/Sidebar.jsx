@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import logoSancho from '../assets/logo_sancho.png';
 
 const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
@@ -85,7 +86,7 @@ export default function Sidebar({ onClose }) {
       </nav>
       {/* Logo pequeño al pie del sidebar */}
       <div className="text-center mt-4 mb-2">
-        <img src={require('../assets/logo_sancho.png')} alt="Logo Sancho" style={{ height: 32, opacity: 0.7 }} />
+        <img src={logoSancho} alt="Logo Sancho" style={{ height: 32, opacity: 0.7 }} />
       </div>
     </aside>
   );
