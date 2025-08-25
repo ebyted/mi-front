@@ -33,8 +33,8 @@ const ProductCenter = () => {
 						<span className="fw-bold">SKU:</span> {selectedProduct.sku}<br/>
 						<span className="fw-bold">ID:</span> {selectedProduct.id}<br/>
 						<span className="fw-bold">Variante principal:</span> {selectedProduct.product_variant_id || 'N/A'}<br/>
-						<span className="fw-bold">Categoría:</span> {selectedProduct.category_name || selectedProduct.category || 'N/A'}<br/>
-						<span className="fw-bold">Marca:</span> {selectedProduct.brand_name || selectedProduct.brand || 'N/A'}<br/>
+						<span className="fw-bold">Categoría:</span> {selectedProduct.category_name || selectedProduct.category_name === '' ? selectedProduct.category_name : (selectedProduct.category && typeof selectedProduct.category === 'object' ? selectedProduct.category.name : selectedProduct.category) || 'N/A'}<br/>
+						<span className="fw-bold">Marca:</span> {selectedProduct.brand_name || selectedProduct.brand_name === '' ? selectedProduct.brand_name : (selectedProduct.brand && typeof selectedProduct.brand === 'object' ? selectedProduct.brand.name : selectedProduct.brand) || 'N/A'}<br/>
 						<span className="fw-bold">Descripción:</span> {selectedProduct.description || 'Sin descripción'}<br/>
 					</div>
 					{/* JSON oculto, solo datos elegantes */}
