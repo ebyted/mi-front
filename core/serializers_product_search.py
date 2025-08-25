@@ -14,9 +14,7 @@ class ProductWithMainVariantSerializer(serializers.ModelSerializer):
 
     def get_product_variant_id(self, obj):
         try:
-            variant = ProductVariant.objects.filter(product=obj, is_main=True).first()
-            if not variant:
-                variant = ProductVariant.objects.filter(product=obj).first()
+            variant = ProductVariant.objects.filter(product=obj).first()
             return variant.id if variant else None
         except Exception as e:
             logger.error(f"Error obteniendo product_variant_id para producto {getattr(obj, 'id', None)}: {e}")
@@ -32,7 +30,6 @@ class ProductWithMainVariantSerializer(serializers.ModelSerializer):
                     'name': v.name,
                     'sku': v.sku,
                     'price': v.sale_price,
-                    'stock': v.stock,
                 }
                 for v in variants
             ]
