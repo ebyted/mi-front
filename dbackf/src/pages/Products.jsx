@@ -37,6 +37,7 @@ function Products() {
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formSuccess, setFormSuccess] = useState('');
   const [showDiscountModal, setShowDiscountModal] = useState({ show: false, productId: null, productName: '' });
   const formRef = useRef();
 
@@ -186,14 +187,17 @@ function Products() {
   const handleSubmit = async e => {
     e.preventDefault();
     setFormError('');
+    setFormSuccess('');
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
       const payload = { ...formData };
       if (editId) {
         await api.patch(`products/${editId}/`, payload);
+        setFormSuccess('¡Producto editado correctamente!');
       } else {
         await api.post('products/', payload);
+        setFormSuccess('¡Producto creado correctamente!');
       }
       setShowForm(false);
       setEditId(null);
@@ -212,8 +216,16 @@ function Products() {
         .catch(() => setProducts([]));
     } catch (err) {
       setFormError('Error al guardar');
+      setFormSuccess('');
     } finally {
       setIsSubmitting(false);
+      // Mostrar mensaje de éxito/falla por unos segundos
+      if (formSuccess || formError) {
+        setTimeout(() => {
+          setFormSuccess('');
+          setFormError('');
+        }, 3000);
+      }
     }
   };
 
@@ -421,7 +433,8 @@ function Products() {
                       <input type="url" name="image_url" className="form-control" value={formData.image_url} onChange={handleChange} />
                     </div>
                   </div>
-                  {formError && <div className="alert alert-danger mt-3">{formError}</div>}
+              {formError && <div className="alert alert-danger mt-3">{formError}</div>}
+              {formSuccess && <div className="alert alert-success mt-3">{formSuccess}</div>}
                 </form>
               </div>
               <div className="modal-footer">
