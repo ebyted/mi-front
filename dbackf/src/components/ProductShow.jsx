@@ -7,7 +7,8 @@ const ProductShow = ({ product }) => {
   const [loadingInventory, setLoadingInventory] = useState(false);
 
   useEffect(() => {
-    if (product && product.product_variant_id) {
+    // Validar que el product_variant_id sea válido y mayor a 0
+    if (product && product.product_variant_id && Number(product.product_variant_id) > 0) {
       setLoadingInventory(true);
       api.get(`/inventory/?variant_id=${product.product_variant_id}`)
         .then(resp => {
@@ -29,12 +30,13 @@ const ProductShow = ({ product }) => {
   return (
     <div className="product-show-container">
       <div className="product-card grid-card">
-        {/* Imagen */}
-        <div className="product-image">
+        {/* Imagen elegante */}
+        <div className="product-image d-flex justify-content-center align-items-center" style={{ minHeight: '160px', background: 'linear-gradient(135deg, #e3f2fd 0%, #fff 100%)', borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
           <img
-            src={product.image_url || 'https://via.placeholder.com/150'}
+            src={product.image_url || 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=300&q=80'}
             alt={product.name}
             className="img-fluid rounded shadow"
+            style={{ maxHeight: '120px', objectFit: 'contain', background: '#fff', padding: '8px' }}
           />
         </div>
         {/* Info principal */}
