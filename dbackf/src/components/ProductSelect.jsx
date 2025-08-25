@@ -114,6 +114,15 @@ const ProductSelect = ({
     // Devuelve el objeto extendido con product_variant_id
     const productWithVariantId = { ...fullProduct, product_variant_id };
 
+    // Guardar en localStorage la información del producto con product_variant_id
+    if (!errorFetching && productWithVariantId.product_variant_id) {
+      try {
+        localStorage.setItem('selected_product', JSON.stringify(productWithVariantId));
+        console.log('[ProductSelect] Guardado en localStorage:', productWithVariantId);
+      } catch (e) {
+        console.error('Error guardando producto en localStorage:', e);
+      }
+    }
     // Solo llamar si hay variante válida
     if (!errorFetching && typeof onProductSelect === 'function') {
       onProductSelect(productWithVariantId);
