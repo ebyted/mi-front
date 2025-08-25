@@ -3,15 +3,7 @@ import ProductShow from './ProductShow';
 // import ProductSelect from './ProductSelect';
 import { api } from '../services/api';
 
-const mockWarehouses = [
-  { id: 1, name: 'Almacén Central' },
-  { id: 2, name: 'Sucursal Norte' },
-];
 
-const mockProducts = [
-  { sku: 'A001', name: 'Producto A', status: 'REGULAR', stock: 120, minimum_stock: 10, maximum_stock: 200, brand_name: 'MarcaX', category_name: 'Cat1' },
-  { sku: 'B002', name: 'Producto B', status: 'OFERTA', stock: 80, minimum_stock: 5, maximum_stock: 150, brand_name: 'MarcaY', category_name: 'Cat2' },
-];
 
 const ProductInventory = ({ selectedProductObj }) => {
   const [activeTab, setActiveTab] = useState('product');
@@ -22,7 +14,8 @@ const ProductInventory = ({ selectedProductObj }) => {
   const [filterProduct, setFilterProduct] = useState('');
   const [filterBrand, setFilterBrand] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
-  const [filteredProducts, setProducts] = useState(mockProducts);
+  const [filteredProducts, setProducts] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
 
   // Consultar info del producto y movimientos del inventario por variant
   useEffect(() => {
@@ -53,15 +46,27 @@ const ProductInventory = ({ selectedProductObj }) => {
 
   // Efecto para obtener productos filtrados desde la API (Inventario General)
   useEffect(() => {
-    // Solo buscar si el filtro de producto tiene al menos 2 caracteres
-    if (filterProduct.length >= 2 || filterBrand.length >= 2 || filterCategory.length >= 2) {
-      // Si tienes un endpoint oficial para inventario general, úsalo aquí
-      // api.get('/inventory-general/', { params: { warehouse: selectedWarehouse, product: filterProduct, brand: filterBrand, category: filterCategory } })
-      //   .then(res => setProducts(res.data.results || res.data))
-      //   .catch(() => setProducts([]));
+    // Obtener lista de almacenes al montar
+    api.get('/warehouses/').then(res => {
+      setWarehouses(res.data.results || res.data);
+    });
+  }, []);
+
+  useEffect(() => {
+    // Buscar productos reales desde el backend
+    if (filterProduct.length >= 2 || filterBrand.length >= 2 || filterCategory.length >= 2 || selectedWarehouse) {
+      api.get('/inventory-general/', {
+        params: {
+          warehouse: selectedWarehouse,
+          product: filterProduct,
+          brand: filterBrand,
+          category: filterCategory
+        }
+      })
+        .then(res => setProducts(res.data.results || res.data))
+        .catch(() => setProducts([]));
     } else {
-      // Si no hay filtro suficiente, mostrar los mocks o vaciar
-      setProducts(mockProducts);
+      setProducts([]);
     }
   }, [selectedWarehouse, filterProduct, filterBrand, filterCategory]);
 
@@ -134,7 +139,7 @@ const ProductInventory = ({ selectedProductObj }) => {
                 <label className="form-label">Almacén</label>
                 <select className="form-select" value={selectedWarehouse} onChange={e => setSelectedWarehouse(e.target.value)}>
                   <option value="">Todos</option>
-                  {mockWarehouses.map(w => (
+                  {warehouses.map(w => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </select>
