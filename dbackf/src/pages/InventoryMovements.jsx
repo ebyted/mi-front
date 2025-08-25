@@ -330,7 +330,7 @@ const InventoryMovements = () => {
     return (
       <div className="d-flex gap-1 flex-wrap">
         {/* Botón Autorizar */}
-        {movement.can_authorize && (
+        {movement.can_authorize && !movement.is_cancelled && !movement.authorized && (
           <button
             className="btn btn-success btn-sm"
             onClick={() => handleAuthorize(movement)}
