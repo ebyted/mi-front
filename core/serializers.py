@@ -432,6 +432,8 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
         movement_type = validated_data.pop('type', None)
         if movement_type:
             validated_data['movement_type'] = movement_type
+        # Evitar pasar 'user' dos veces
+        validated_data.pop('user', None)
         # Crear el movimiento principal
         movement = InventoryMovement.objects.create(
             **validated_data,
