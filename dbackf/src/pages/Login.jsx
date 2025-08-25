@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logoSancho from '../assets/logo_sancho.png';
 import { useNavigate } from 'react-router-dom';
 import { login as apiLogin } from '../services/auth';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -59,7 +60,7 @@ function Login() {
         onSubmit={handleSubmit}
       >
         <div className="text-center mb-4">
-          <img src={require('../assets/logo_sancho.png')} alt="Logo Sancho" style={{ height: 64, marginBottom: 12 }} />
+          <img src={logoSancho} alt="Logo Sancho" style={{ height: 64, marginBottom: 12 }} />
         </div>
         <h2 className="mb-4 text-center">Iniciar sesión</h2>
         <div className="mb-3">
