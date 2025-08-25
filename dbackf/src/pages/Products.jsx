@@ -6,69 +6,41 @@ import api from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import DiscountManager from '../components/DiscountManager';
 
-                    <div className="col-12">
-                      <label className="form-label fw-bold">Producto *</label>
-                      <ProductSelect
-                        products={products}
-                        value={formData.productId || ''}
-                        onChange={product => {
-                          setFormData({
-                            ...formData,
-                            productId: product.id,
-                            name: product.name,
-                            sku: product.sku,
-                            brand: product.brand?.id || product.brand,
-                            category: product.category?.id || product.category
-                          });
-                        }}
-                        isMobile={isMobile}
-                        required
-                      />
-                    </div>
-  const [isMobile, setIsMobile] = useState(false);
+// ...existing imports...
 
-  // Detectar si es móvil
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-    
-    return () => window.removeEventListener('resize', checkIfMobile);
-  }, []);
+                    // Filtro por almacén - verificar si el producto tiene stock en el almacén seleccionado
+                    let matchesWarehouse = true;
+                    if (filters.warehouse) {
+                      const productStocks = productWarehouseStocks.filter(stock => stock.product === p.id || stock.product_id === p.id);
+                      if (productStocks.length > 0) {
+                        matchesWarehouse = productStocks.some(stock => {
+                          const warehouseId = typeof stock.warehouse === 'object' ? stock.warehouse.id : stock.warehouse;
+                          return String(warehouseId) === String(filters.warehouse) && (stock.quantity || 0) > 0;
+                        });
+                      } else {
+                        matchesWarehouse = false; // Si no hay stock registrado, no mostrar en filtro de almacén
+                      }
+                    }
 
-  // Determinar vista actual
-  const getCurrentView = () => {
-    if (viewMode === 'auto') {
-      return isMobile ? 'cards' : 'table';
-    return viewMode;
-  };
+                    // Filtro de estado de stock
+                    let matchesStock = true;
+                    if (filters.stockStatus) {
+                      if (filters.stockStatus === 'low' && p.minimum_stock) {
+                        matchesStock = (p.minimum_stock || 0) < 10;
+                      } else if (filters.stockStatus === 'ok') {
+                        matchesStock = (p.minimum_stock || 0) >= 10;
+                      }
+                    }
 
-  useEffect(() => {
-    fetchProducts();
-    fetchCurrentBusiness();
-    fetchProductWarehouseStocks();
-    // Cargar marcas, categorías y almacenes
-    api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
-    api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
-    api.get('warehouses/').then(res => {
-      const data = Array.isArray(res.data) ? res.data : (res.data.results || []);
-      setWarehouses(data);
-    }).catch(() => setWarehouses([]));
-  }, []);
+                    // Debug final para productos específicos
+                    const finalResult = matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesWarehouse && matchesStock;
 
-  // Debug effect para el search - MEJORADO
-  useEffect(() => {
-    if (search && search.trim()) {
-      console.log('=== ANÁLISIS DE BÚSQUEDA ===');
-      console.log('Término:', search);
-      console.log('Total productos cargados:', products.length);
-      
-      // Mostrar algunos productos para verificar estructura de datos
-      if (products.length > 0) {
-        console.log('Estructura del primer producto:', {
+                    if (isAmpicilina || isSearchingAmpicilina) {
+                      // ...debug code...
+                    }
+
+                    return finalResult;
+                  });
           name: products[0].name,
           sku: products[0].sku,
           brand: products[0].brand,
@@ -205,67 +177,7 @@ import DiscountManager from '../components/DiscountManager';
       // Función simple de normalización
       const normalize = (text) => {
         if (!text) return '';
-        return String(text).toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // quitar acentos
-          return (
-            <div className="container-fluid py-3">
-              {/* Header responsivo */}
-              <div className="row align-items-center mb-4">
-                <div className="col">
-                  <h1 className={`mb-0 text-primary ${isMobile ? 'h4' : 'display-6'}`}> 
-                    <i className="bi bi-box-seam me-2"></i>
-                    Productos
-                  </h1>
-                </div>
-                <div className="col-auto">
-                  {/* handleNew está definido en el scope principal, accesible aquí */}
-                  <button 
-                    className={`btn btn-primary ${isMobile ? 'btn-lg px-3' : ''}`} 
-                    onClick={handleNew}
-                  >
-                    <i className="bi bi-plus-circle me-1"></i>
-                    {isMobile ? 'Nuevo' : 'Nuevo Producto'}
-                  </button>
-                </div>
-              </div>
-              {/* ...existing code... */}
-            </div>
-          );
-        } else {
-          categoryText = normalize(p.category);
-        }
-      }
-      
-      // Normalizar término de búsqueda
-      const searchNormalized = normalize(searchTerm);
-      
-      // BÚSQUEDA SIMPLE Y DIRECTA
-      const nameMatch = productName.includes(searchNormalized);
-      const skuMatch = productSku.includes(searchNormalized);
-      const barcodeMatch = productBarcode.includes(searchNormalized);
-      const brandMatch = brandText.includes(searchNormalized);
-      const categoryMatch = categoryText.includes(searchNormalized);
-      
-      // BÚSQUEDA POR PALABRAS INDIVIDUALES
-      const searchWords = searchNormalized.split(/\s+/).filter(w => w.length > 0);
-      const wordMatches = searchWords.map(word => {
-        return productName.includes(word) || 
-               productSku.includes(word) || 
-               brandText.includes(word) || 
-               categoryText.includes(word) ||
-               productBarcode.includes(word);
-      });
-      
-      const wordMatch = searchWords.length > 0 && wordMatches.some(match => match);
-      
-      // Debug específico para productos problemáticos
-      if (productName.includes('ampicilina') || productName.includes('loferon') || 
-          searchNormalized.includes('ampicilina') || searchNormalized.includes('loferon')) {
-        console.log('=== PRODUCTO ESPECÍFICO ENCONTRADO ===');
-        console.log('Producto:', p.name);
-        console.log('Búsqueda normalizada:', searchNormalized);
-        console.log('Nombre normalizado:', productName);
+// ...existing code...
         console.log('Name match:', nameMatch);
         console.log('SKU match:', skuMatch);
         console.log('Brand match:', brandMatch);
