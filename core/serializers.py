@@ -438,9 +438,28 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
         )
         # Crear los detalles
         for detail in details_data:
+            product_variant_id = detail.get('product_variant_id')
+            product_id = detail.get('product_id')
+            # Si no viene product_variant_id, intentar buscar por product_id
+            if not product_variant_id and product_id:
+                from core.models import ProductVariant, Product
+                try:
+                    product = Product.objects.get(id=product_id)
+                    product_variant = ProductVariant.objects.filter(product=product).first()
+                    if not product_variant:
+                        raise Exception(f"No existe variante para el producto {product_id}")
+                    product_variant_id = product_variant.id
+                except Exception as e:
+                    raise serializers.ValidationError({
+                        'product_variant_id': f'No se pudo determinar la variante para el producto {product_id}: {str(e)}'
+                    })
+            if not product_variant_id:
+                raise serializers.ValidationError({
+                    'product_variant_id': 'Debes especificar la variante de producto (product_variant_id) para movimientos de inventario.'
+                })
             InventoryMovementDetail.objects.create(
                 movement=movement,
-                product_variant_id=detail.get('product_variant_id'),
+                product_variant_id=product_variant_id,
                 quantity=detail.get('quantity'),
                 lote=detail.get('lote', ''),
                 expiration_date=detail.get('expiration_date'),
