@@ -72,7 +72,7 @@ export const useProducts = (options = {}) => {
         setLoading(true);
         try {
           // Usar el endpoint estándar de productos, solo si search tiene 2+ caracteres
-          const response = await api.get('/products/', { params: { search: search.trim() } });
+      const response = await api.get('/products-search/', { params: { search: search.trim() } });
           const allProducts = Array.isArray(response.data) ? response.data : [];
           // Filtrar por nombre o SKU
           const normalizedSearch = search.trim().toLowerCase();

@@ -67,6 +67,7 @@ from .new_views import (
     SaleViewSet,
     SalePaymentViewSet
 )
+from .views_product_search import ProductSearchWithVariantView
 router.register(r'customer-product-discounts', CustomerProductDiscountViewSet)
 router.register(r'purchase-order-payments', PurchaseOrderPaymentViewSet)
 router.register(r'sales', SaleViewSet)
@@ -106,6 +107,7 @@ urlpatterns = [
     path('products/<int:pk>/kardex/', ProductKardexView.as_view(), name='product-kardex'),
     # Endpoint de perfil de usuario
     path('user/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('products-search/', ProductSearchWithVariantView.as_view(), name='products-search'),
     path('', include(router.urls)),
 ]
 
