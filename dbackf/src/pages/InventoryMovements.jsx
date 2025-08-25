@@ -650,12 +650,14 @@ const InventoryMovements = () => {
                             return;
                           }
                         }
+                        // Asegura que el id de variante se conserve
                         setCurrentDetail(prev => ({
                           ...prev,
                           product_id: productObj.id,
                           product_name: productObj.name,
                           product_code: productObj.sku || productObj.code || '',
-                          product: productObj // Store full product object with variants
+                          product: productObj,
+                          product_variant_id: productObj.product_variant_id || (productObj.variants && productObj.variants[0] ? productObj.variants[0].id : null)
                         }));
                       }}
                       placeholder="Buscar producto por nombre o SKU..."
