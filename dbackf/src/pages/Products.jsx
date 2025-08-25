@@ -200,7 +200,16 @@ function Products() {
       setFormData({
         productId: '', productVariantId: '', name: '', sku: '', description: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '', image_url: ''
       });
-      api.get('products/?expand=brand,category,variants,warehouse_stocks').then(res => setProducts(res.data)).catch(() => setProducts([]));
+      // Refrescar productos usando el endpoint correcto tras guardar
+      api.get('products/search_all/')
+        .then(res => {
+          if (Array.isArray(res.data)) {
+            setProducts(res.data);
+          } else {
+            setProducts([]);
+          }
+        })
+        .catch(() => setProducts([]));
     } catch (err) {
       setFormError('Error al guardar');
     } finally {
