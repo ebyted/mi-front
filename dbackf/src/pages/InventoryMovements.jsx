@@ -1157,6 +1157,20 @@ const InventoryMovements = () => {
                 )}
               </div>
               <div className="modal-footer">
+                {/* Botón Autorizar en modal de detalles */}
+                {movementDetails && movementDetails.can_authorize && !movementDetails.is_cancelled && !movementDetails.authorized && (
+                  <button
+                    type="button"
+                    className="btn btn-success me-2"
+                    onClick={() => {
+                      setSelectedMovement(movementDetails);
+                      setShowDetailsModal(false);
+                      setShowAuthorizeModal(true);
+                    }}
+                  >
+                    ✅ Autorizar
+                  </button>
+                )}
                 <button 
                   type="button" 
                   className="btn btn-secondary"
