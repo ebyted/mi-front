@@ -116,6 +116,11 @@ function Products() {
       image_url: product.image_url || ''
     });
     setShowForm(true);
+    setTimeout(() => {
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   };
 
   const handleNew = () => {
@@ -281,8 +286,8 @@ function Products() {
             <tr>
               <th>Nombre</th>
               <th>SKU</th>
-              <th>Marca</th>
-              <th>Categoría</th>
+              <th style={{background:'#e3f2fd'}}>Marca</th>
+              <th style={{background:'#e8f5e9'}}>Categoría</th>
               <th>Activo</th>
               <th>Acciones</th>
             </tr>
@@ -292,8 +297,8 @@ function Products() {
                 <tr key={p.id}>
                   <td>{p.name}</td>
                   <td>{p.sku}</td>
-                  <td>{p.brand ? (typeof p.brand === 'object' ? (p.brand.name ?? p.brand.description ?? `Marca ${p.brand.id}`) : p.brand) : ''}</td>
-                  <td>{p.category ? (typeof p.category === 'object' ? (p.category.name ?? p.category.description ?? `Categoría ${p.category.id}`) : p.category) : ''}</td>
+                  <td style={{background:'#e3f2fd', fontWeight:'bold'}}>{p.brand ? (typeof p.brand === 'object' ? (p.brand.name ?? p.brand.description ?? `Marca ${p.brand.id}`) : p.brand) : ''}</td>
+                  <td style={{background:'#e8f5e9', fontWeight:'bold'}}>{p.category ? (typeof p.category === 'object' ? (p.category.name ?? p.category.description ?? `Categoría ${p.category.id}`) : p.category) : ''}</td>
                   <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
                   <td>
                     <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(p)}>✏️</button>
