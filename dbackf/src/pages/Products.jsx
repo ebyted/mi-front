@@ -47,12 +47,10 @@ function Products() {
   }, []);
 
   useEffect(() => {
-    api.get(`products/?expand=brand,category,variants,warehouse_stocks&page=${page}&page_size=${pageSize}`)
+    // Usar endpoint sin paginación para mostrar todos los productos
+    api.get('products/search_all/')
       .then(res => {
-        // Si la respuesta tiene paginación, usar 'results' y 'count'
-        if (res.data && Array.isArray(res.data.results)) {
-          setProducts(res.data.results);
-        } else if (Array.isArray(res.data)) {
+        if (Array.isArray(res.data)) {
           setProducts(res.data);
         } else {
           setProducts([]);
@@ -62,7 +60,7 @@ function Products() {
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
     api.get('warehouses/').then(res => setWarehouses(res.data)).catch(() => setWarehouses([]));
-  }, [page, pageSize]);
+  }, []);
 
   const filteredProducts = products.filter(p => {
     let matchesSearch = true;
@@ -265,16 +263,8 @@ function Products() {
                 <tr key={p.id}>
                   <td>{p.name}</td>
                   <td>{p.sku}</td>
-                  <td>{
-                    p.brand && typeof p.brand === 'object'
-                      ? (p.brand.description ?? p.brand.name ?? `Marca ${p.brand.id}`)
-                      : (p.brand ?? '')
-                  }</td>
-                  <td>{
-                    p.category && typeof p.category === 'object'
-                      ? (p.category.description ?? p.category.name ?? `Categoría ${p.category.id}`)
-                      : (p.category ?? '')
-                  }</td>
+                  <td>{p.brand ? (typeof p.brand === 'object' ? (p.brand.name ?? p.brand.description ?? `Marca ${p.brand.id}`) : p.brand) : ''}</td>
+                  <td>{p.category ? (typeof p.category === 'object' ? (p.category.name ?? p.category.description ?? `Categoría ${p.category.id}`) : p.category) : ''}</td>
                   <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
                   <td>
                     <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(p)}>✏️</button>
