@@ -52,7 +52,17 @@ function Products() {
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
     api.get('warehouses/').then(res => setWarehouses(res.data)).catch(() => setWarehouses([]));
-    api.get('product-warehouse-stocks/').then(res => setProductWarehouseStocks(res.data)).catch(() => setProductWarehouseStocks([]));
+    api.get('product-warehouse-stocks/')
+      .then(res => {
+        let stocks = [];
+        if (Array.isArray(res.data)) {
+          stocks = res.data;
+        } else if (res.data && Array.isArray(res.data.results)) {
+          stocks = res.data.results;
+        }
+        setProductWarehouseStocks(stocks);
+      })
+      .catch(() => setProductWarehouseStocks([]));
   }, []);
 
   const filteredProducts = products.filter(p => {
