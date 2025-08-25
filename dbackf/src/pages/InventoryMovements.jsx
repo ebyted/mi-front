@@ -159,63 +159,44 @@ const InventoryMovements = () => {
       return;
     }
 
-    // El nombre y código se guardan desde el autocomplete
-    // Si no se selecciona variante, asignar la principal si existe
+    // Validar que venga product_variant_id desde ProductSelect
     let variantId = currentDetail.product_variant_id;
-    const ensureVariantsAndAdd = async () => {
-      let productObj = currentDetail.product;
-      let errorFetchingVariant = false;
-      // Si no hay variantes en el objeto, consultar
-      if (!productObj || !Array.isArray(productObj.variants)) {
-        try {
-          const resp = await api.get(`/products/${currentDetail.product_id}/`);
-          productObj = resp.data;
-        } catch (err) {
-          console.error('No se pudo obtener la información de variantes del producto:', err);
-          errorFetchingVariant = true;
-        }
-      }
-      // Si no tiene variantes, mostrar error y no agregar
-      if (errorFetchingVariant || !productObj.variants || productObj.variants.length === 0) {
-        setCurrentDetail(prev => ({
-          ...prev,
-          errorVariant: true
-        }));
-        window.setTimeout(() => {
-          setCurrentDetail(prev => ({
-            ...prev,
-            errorVariant: false
-          }));
-        }, 4000);
+    let productObj = currentDetail.product;
+    if (!variantId) {
+      // Si no se seleccionó variante, intentar obtener la principal del objeto
+      if (productObj && Array.isArray(productObj.variants) && productObj.variants.length > 0) {
+        variantId = productObj.variants[0].id;
+      } else {
+        alert('El producto seleccionado no tiene variantes válidas. Selecciona un producto desde el buscador.');
         return;
       }
-      // Si no se seleccionó variante, asignar la principal
-      if (!variantId) {
-        variantId = productObj.variants[0].id;
-      }
-      const newDetail = {
-        ...currentDetail,
-        product_id: parseInt(currentDetail.product_id),
-        product_variant_id: variantId,
-        quantity: parseFloat(currentDetail.quantity)
-      };
-      setFormData(prev => ({
-        ...prev,
-        details: [...prev.details, newDetail]
-      }));
-      setCurrentDetail({
-        product_id: '',
-        product_variant_id: '',
-        product_name: '',
-        product_code: '',
-        quantity: '',
-        lote: '',
-        expiration_date: '',
-        notes: '',
-        errorVariant: false
-      });
+    }
+    // Validar que el variantId es válido
+    if (!variantId) {
+      alert('No se pudo determinar la variante del producto. Selecciona un producto válido.');
+      return;
+    }
+    const newDetail = {
+      ...currentDetail,
+      product_id: parseInt(currentDetail.product_id),
+      product_variant_id: variantId,
+      quantity: parseFloat(currentDetail.quantity)
     };
-    ensureVariantsAndAdd();
+    setFormData(prev => ({
+      ...prev,
+      details: [...prev.details, newDetail]
+    }));
+    setCurrentDetail({
+      product_id: '',
+      product_variant_id: '',
+      product_name: '',
+      product_code: '',
+      quantity: '',
+      lote: '',
+      expiration_date: '',
+      notes: '',
+      errorVariant: false
+    });
   };
 
   const removeDetail = (index) => {
