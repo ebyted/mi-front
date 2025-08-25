@@ -423,11 +423,18 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Extraer detalles si vienen anidados
         details_data = self.initial_data.get('details', [])
+        # Manejar warehouse_id
+        warehouse_id = validated_data.pop('warehouse_id', None)
+        if warehouse_id:
+            warehouse = Warehouse.objects.get(id=warehouse_id)
+            validated_data['warehouse'] = warehouse
+        # Manejar type -> movement_type
+        movement_type = validated_data.pop('type', None)
+        if movement_type:
+            validated_data['movement_type'] = movement_type
         # Crear el movimiento principal
         movement = InventoryMovement.objects.create(
-            warehouse_id=validated_data.get('warehouse_id'),
-            type=validated_data.get('type', 'IN'),
-            notes=validated_data.get('notes', ''),
+            **validated_data,
             user=self.context['request'].user if 'request' in self.context else None
         )
         # Crear los detalles
@@ -441,33 +448,6 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
                 notes=detail.get('notes', '')
             )
         return movement
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"🔧 InventoryMovementSerializer.create - validated_data inicial: {validated_data}")
-        
-        # Manejar warehouse_id
-        warehouse_id = validated_data.pop('warehouse_id', None)
-        logger.info(f"🔧 warehouse_id extraído: {warehouse_id}")
-        
-        if warehouse_id:
-            try:
-                warehouse = Warehouse.objects.get(id=warehouse_id)
-                validated_data['warehouse'] = warehouse
-                logger.info(f"🔧 Warehouse asignado: {warehouse.name}")
-            except Warehouse.DoesNotExist:
-                raise serializers.ValidationError(f"Warehouse with id {warehouse_id} does not exist")
-        
-        # Manejar type -> movement_type
-        movement_type = validated_data.pop('type', None)
-        logger.info(f"🔧 movement_type extraído: {movement_type}")
-        
-        if movement_type:
-            validated_data['movement_type'] = movement_type
-            logger.info(f"🔧 movement_type asignado: {movement_type}")
-        
-        logger.info(f"🔧 validated_data final: {validated_data}")
-        
-        return super().create(validated_data)
 
 class ExchangeRateSerializer(serializers.ModelSerializer):
     class Meta:
