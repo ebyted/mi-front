@@ -10,7 +10,6 @@ function Products() {
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
-  const [productWarehouseStocks, setProductWarehouseStocks] = useState([]);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ brand: '', category: '', warehouse: '', isActive: '', stockStatus: '' });
   const [page, setPage] = useState(1);
@@ -52,18 +51,6 @@ function Products() {
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
     api.get('warehouses/').then(res => setWarehouses(res.data)).catch(() => setWarehouses([]));
-    // Eliminamos el fetch de product-warehouse-stocks para evitar el error
-    // api.get('product-warehouse-stocks/')
-    //   .then(res => {
-    //     let stocks = [];
-    //     if (Array.isArray(res.data)) {
-    //       stocks = res.data;
-    //     } else if (res.data && Array.isArray(res.data.results)) {
-    //       stocks = res.data.results;
-    //     }
-    //     setProductWarehouseStocks(stocks);
-    //   })
-    //   .catch(() => setProductWarehouseStocks([]));
   }, []);
 
   const filteredProducts = products.filter(p => {
@@ -76,18 +63,12 @@ function Products() {
     const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
     const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
     const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
-    // Además, aseguramos que el filtro por almacén no rompa si no hay stocks
-    let matchesWarehouse = true;
-    if (filters.warehouse && Array.isArray(productWarehouseStocks) && productWarehouseStocks.length > 0) {
-      const stocks = productWarehouseStocks.filter(stock => stock.product === p.id || stock.product_id === p.id);
-      matchesWarehouse = stocks.some(stock => String(stock.warehouse?.id || stock.warehouse) === filters.warehouse && (stock.quantity || 0) > 0);
-    }
     let matchesStock = true;
     if (filters.stockStatus) {
       if (filters.stockStatus === 'low' && p.minimum_stock) matchesStock = (p.minimum_stock || 0) < 10;
       else if (filters.stockStatus === 'ok') matchesStock = (p.minimum_stock || 0) >= 10;
     }
-    return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesWarehouse && matchesStock;
+    return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
   });
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
