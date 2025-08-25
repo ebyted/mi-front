@@ -58,6 +58,9 @@ function Login() {
         style={{ maxWidth: 600 }}
         onSubmit={handleSubmit}
       >
+        <div className="text-center mb-4">
+          <img src={require('../assets/logo_sancho.png')} alt="Logo Sancho" style={{ height: 64, marginBottom: 12 }} />
+        </div>
         <h2 className="mb-4 text-center">Iniciar sesión</h2>
         <div className="mb-3">
           <input type="email" className="form-control" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />

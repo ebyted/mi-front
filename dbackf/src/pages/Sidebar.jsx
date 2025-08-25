@@ -80,45 +80,15 @@ export default function Sidebar({ onClose }) {
             onMouseEnter={e => e.currentTarget.classList.add('shadow-sm')}
             onMouseLeave={e => e.currentTarget.classList.remove('shadow-sm')}
           >
-            <i className={`bi ${item.icon}`} style={{ fontSize: '1.1rem', minWidth: '1.2rem' }}></i>
-            <span>{item.name}</span>
+            {item.icon && <i className={`bi ${item.icon} me-2`}></i>}
+            {item.name}
           </button>
         ))}
       </nav>
-      <div className="mt-auto">
-        <button
-          className="btn btn-info btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
-          style={{
-            borderRadius: '0.7rem',
-            fontWeight: 600,
-            fontSize: '1.05rem',
-            letterSpacing: 1,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
-            marginBottom: '8px',
-          }}
-          onClick={() => {
-            logout();
-            navigate('/login');
-          }}
-        >
-          <span className="bi bi-box-arrow-right"></span>
-          <span>Cerrar sesión</span>
-        </button>
+      {/* Logo pequeño al pie del sidebar */}
+      <div className="text-center mt-4 mb-2">
+        <img src={require('../assets/logo_sancho.png')} alt="Logo Sancho" style={{ height: 32, opacity: 0.7 }} />
       </div>
-      {/* Responsive: ocultar en pantallas pequeñas si es necesario */}
-      <style>{`
-        @media (max-width: 600px) {
-          aside.position-fixed {
-            width: 100vw !important;
-            min-width: 0;
-            max-width: 100vw;
-            left: 0;
-            top: 0;
-            border-radius: 0;
-            box-shadow: none;
-          }
-        }
-      `}</style>
     </aside>
   );
 }
