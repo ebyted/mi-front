@@ -291,14 +291,14 @@ function Products() {
                       <label className="form-label fw-bold">Marca</label>
                       <select name="brand" className="form-select" value={formData.brand} onChange={handleChange} required>
                         <option value="">Selecciona marca</option>
-                        {brands.filter(b => b).map(b => <option key={b.id} value={b.id}>{b.description || b.name}</option>)}
+                        {brands.filter(b => b && b.id != null).map(b => <option key={b.id} value={b.id}>{b.description || b.name || `Marca ${b.id}`}</option>)}
                       </select>
                     </div>
                     <div className="col-12">
                       <label className="form-label fw-bold">Categoría</label>
                       <select name="category" className="form-select" value={formData.category} onChange={handleChange} required>
                         <option value="">Selecciona categoría</option>
-                        {categories.filter(c => c).map(c => <option key={c.id} value={c.id}>{c.description || c.name}</option>)}
+                        {categories.filter(c => c && c.id != null).map(c => <option key={c.id} value={c.id}>{c.description || c.name || `Categoría ${c.id}`}</option>)}
                       </select>
                     </div>
                     <div className="col-12">
