@@ -40,6 +40,10 @@ const ProductInventory = ({ selectedProductObj }) => {
         params: { product_variant_id: selectedProductObj.product_variant_id }
       }).then(res => {
         setInventoryMovements(res.data.results || res.data);
+      }).catch(err => {
+        if (err.response && err.response.status === 404) {
+          setInventoryMovements([]);
+        }
       });
     } else {
       setProductInfo(null);
@@ -95,62 +99,29 @@ const ProductInventory = ({ selectedProductObj }) => {
             ) : !selectedProductObj ? (
               <div className="alert alert-info">Selecciona un producto para ver los movimientos.</div>
             ) : (
-              <div className="inventory-grid">
-                {inventoryMovements.map((mov, idx) => (
-                  <div key={mov.id || idx} className="inventory-card">
-                    <div className="card-header d-flex justify-content-between align-items-center">
-                      <span className={`badge ${mov.type === 'IN' ? 'bg-success' : 'bg-danger'} fs-6`}>{mov.type === 'IN' ? 'Entrada' : 'Salida'}</span>
-                      <span className="badge bg-info">#{mov.id}</span>
-                      <span className="badge bg-secondary">{mov.warehouse_name}</span>
-                      <span className="badge bg-light text-dark">{new Date(mov.created_at).toLocaleString('es-ES')}</span>
-                    </div>
-                    <div className="card-body">
-                      <div className="mb-2">
-                        <strong>Notas:</strong> <span className="text-muted">{mov.notes || '-'}</span>
-                      </div>
-                      <div className="mb-2">
-                        <strong>Estado:</strong> {mov.is_cancelled ? <span className="badge bg-danger">Cancelado</span> : mov.authorized ? <span className="badge bg-success">Autorizado</span> : <span className="badge bg-warning text-dark">Pendiente</span>}
-                      </div>
-                      <div className="mb-2">
-                        <strong>Creado por:</strong> <span className="text-muted">{mov.created_by_email || mov.user_email || 'N/A'}</span>
-                      </div>
-                      <div className="mb-2">
-                        <strong>Saldo después del movimiento:</strong> <span className="badge bg-primary fs-5">{mov.saldo !== undefined ? mov.saldo : '-'}</span>
-                      </div>
-                      <div className="mb-2">
-                        <strong>Detalles:</strong>
-                        <div className="details-grid mt-2">
-                          {mov.details && mov.details.length > 0 ? (
-                            <table className="table table-striped table-hover">
-                              <thead className="table-dark">
-                                <tr>
-                                  <th>Producto</th>
-                                  <th>Cantidad</th>
-                                  <th>Lote</th>
-                                  <th>Fecha Exp.</th>
-                                  <th>Notas</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {mov.details.map((detail, i) => (
-                                  <tr key={i}>
-                                    <td>{detail.product_name || detail.product_variant_name || '-'}</td>
-                                    <td><span className={`badge ${mov.type === 'IN' ? 'bg-success' : 'bg-danger'} fs-6`}>{detail.quantity}</span></td>
-                                    <td>{detail.lote || '-'}</td>
-                                    <td>{detail.expiration_date ? new Date(detail.expiration_date).toLocaleDateString('es-ES') : '-'}</td>
-                                    <td>{detail.notes || '-'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          ) : (
-                            <div className="alert alert-secondary">Sin detalles</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="table-responsive">
+                <table className="table table-bordered table-hover">
+                  <thead className="table-dark">
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Tipo</th>
+                      <th>SKU</th>
+                      <th>Cantidad</th>
+                      <th>Stock después</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventoryMovements.map((mov, idx) => (
+                      <tr key={mov.id || idx}>
+                        <td>{mov.created_at ? new Date(mov.created_at).toLocaleString('es-ES') : '-'}</td>
+                        <td><span className={`badge ${mov.type === 'IN' ? 'bg-success' : 'bg-danger'}`}>{mov.type === 'IN' ? 'Entrada' : 'Salida'}</span></td>
+                        <td>{mov.sku || (mov.details && mov.details[0] && mov.details[0].sku) || '-'}</td>
+                        <td>{mov.details && mov.details[0] ? mov.details[0].quantity : '-'}</td>
+                        <td>{mov.saldo !== undefined ? mov.saldo : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
