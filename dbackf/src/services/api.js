@@ -2,7 +2,13 @@
 import axios from 'axios';
 
 // Usar variable de entorno para la URL del API
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8030/api/';
+// El API root muestra que los endpoints no llevan /api/ en producción
+// Usar variable de entorno tal cual, sin agregar /api/ si ya está presente
+let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8030/';
+if (API_URL.endsWith('/api/')) {
+  API_URL = API_URL.replace(/\/api\/?$/, '/');
+}
+console.log('API URL configurada:', API_URL); // Para debug
 
 console.log('API URL configurada:', API_URL); // Para debug
 

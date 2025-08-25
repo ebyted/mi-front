@@ -49,8 +49,8 @@ function Products() {
   }, []);
 
   useEffect(() => {
-    // Usar endpoint sin paginación para mostrar todos los productos
-    api.get('products/search_all/')
+    // Usar endpoint correcto según API root
+    api.get('products/')
       .then(res => {
         if (Array.isArray(res.data)) {
           setProducts(res.data);
@@ -207,7 +207,7 @@ function Products() {
         productId: '', productVariantId: '', name: '', sku: '', description: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '', image_url: ''
       });
       // Refrescar productos usando el endpoint correcto tras guardar
-      api.get('products/search_all/')
+      api.get('products/')
         .then(res => {
           if (Array.isArray(res.data)) {
             setProducts(res.data);
