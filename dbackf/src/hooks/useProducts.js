@@ -37,6 +37,11 @@ export const useProducts = (options = {}) => {
         ...(search && { search: search.trim() })
       });
       
+      console.log('[ProductSearch] Frontend está enviando:', {
+        endpoint: '/products-search/',
+        params: { search: search.trim() },
+        rawSearch: search
+      });
       const response = await api.get('/products-search/', { params: { search: search.trim() } });
       const newProducts = Array.isArray(response.data) ? response.data : [];
       if (reset) {
