@@ -15,9 +15,6 @@ const mockProducts = [
 
 const ProductInventory = () => {
   const [activeTab, setActiveTab] = useState('product');
-  const [selectedProductObj, setSelectedProductObj] = useState(null); // full product object from ProductSelect
-  const [selectedProductId, setSelectedProductId] = useState(''); // product id
-  const [selectedVariantId, setSelectedVariantId] = useState(''); // product_variant_id
   const [productInfo, setProductInfo] = useState(null); // product details from API
   const [inventoryMovements, setInventoryMovements] = useState([]); // movements for selected variant
   // Estado para filtros de Inventario General
@@ -27,23 +24,20 @@ const ProductInventory = () => {
   const [filterCategory, setFilterCategory] = useState('');
   const [filteredProducts, setProducts] = useState(mockProducts);
 
-  // Cuando selecciona producto en ProductSelect
-  const handleProductSelect = (productObj) => {
-    setSelectedProductObj(productObj);
-    setSelectedProductId(productObj.id);
-    setSelectedVariantId(productObj.product_variant_id);
-  };
-
   // Consultar info del producto y movimientos del inventario por variant
   useEffect(() => {
-    if (selectedProductId && selectedVariantId) {
-      // Obtener info del producto
-      api.get(`/products/${selectedProductId}/`).then(res => {
-        setProductInfo(res.data);
-      });
+    if (selectedProductObj && selectedProductObj.product_variant_id) {
+      // Si el objeto ya tiene los campos clave, úsalo directamente
+      if (selectedProductObj.brand_name && selectedProductObj.category_name) {
+        setProductInfo(selectedProductObj);
+      } else if (selectedProductObj.id) {
+        api.get(`/products/${selectedProductObj.id}/`).then(res => {
+          setProductInfo(res.data);
+        });
+      }
       // Obtener movimientos de inventario para el variant
       api.get('/inventory-movements/', {
-        params: { product_variant_id: selectedVariantId }
+        params: { product_variant_id: selectedProductObj.product_variant_id }
       }).then(res => {
         setInventoryMovements(res.data.results || res.data);
       });
@@ -51,7 +45,7 @@ const ProductInventory = () => {
       setProductInfo(null);
       setInventoryMovements([]);
     }
-  }, [selectedProductId, selectedVariantId]);
+  }, [selectedProductObj]);
 
   // Efecto para obtener productos filtrados desde la API (Inventario General)
   useEffect(() => {
@@ -69,16 +63,6 @@ const ProductInventory = () => {
 
   return (
     <div className="product-inventory-container">
-      {/* Selector de producto y variante */}
-      <div className="mb-4">
-        <ProductSelect
-          value={selectedProductId}
-          onChange={setSelectedProductId}
-          onProductSelect={handleProductSelect}
-          placeholder="Buscar producto por nombre o SKU..."
-          className="w-100"
-        />
-      </div>
       <div className="tabs mb-4">
         <button
           className={`tab-btn ${activeTab === 'product' ? 'active' : ''}`}
