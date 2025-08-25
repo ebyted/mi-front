@@ -56,7 +56,7 @@ function Categories() {
     
     try {
       if (editingCategory) {
-        await api.put(`categories/${editingCategory.id}/`, formData);
+        await api.patch(`categories/${editingCategory.id}/`, formData);
       } else {
         await api.post('categories/', formData);
       }

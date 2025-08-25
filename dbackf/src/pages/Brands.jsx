@@ -56,7 +56,7 @@ function Brands() {
     
     try {
       if (editingBrand) {
-        await api.put(`brands/${editingBrand.id}/`, formData);
+        await api.patch(`brands/${editingBrand.id}/`, formData);
       } else {
         await api.post('brands/', formData);
       }
