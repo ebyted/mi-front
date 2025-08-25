@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import ProductSelect from '../components/ProductSelect';
+// import ProductSelect from '../components/ProductSelect';
 import api from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
 import DiscountManager from '../components/DiscountManager';
@@ -333,16 +333,7 @@ function Products() {
               <div className="modal-body">
                 <form ref={formRef} onSubmit={handleSubmit}>
                   <div className="row g-2">
-                    <div className="col-12">
-                      <label className="form-label fw-bold">Producto *</label>
-                      <ProductSelect
-                        products={Array.isArray(products) ? products : []}
-                        value={formData.productId}
-                        onChange={handleProductSelect}
-                        isMobile={isMobile}
-                        required
-                      />
-                    </div>
+                    {/* Eliminado ProductSelect. Si necesitas otro campo aquí, agrégalo debajo. */}
                     {/* Aquí podrías agregar un select para variantes si ProductSelect no lo maneja */}
                     <div className="col-12">
                       <label className="form-label fw-bold">SKU</label>
@@ -352,14 +343,28 @@ function Products() {
                       <label className="form-label fw-bold">Marca</label>
                       <select name="brand" className="form-select" value={formData.brand} onChange={handleChange} required>
                         <option value="">Selecciona marca</option>
-                        {brands.filter(b => b && b.id != null).map(b => <option key={b.id} value={b.id}>{b.description || b.name || `Marca ${b.id}`}</option>)}
+                        {brands
+                          .filter(b => b && b.id != null)
+                          .sort((a, b) => {
+                            const nameA = (a.description || a.name || '').toLowerCase();
+                            const nameB = (b.description || b.name || '').toLowerCase();
+                            return nameA.localeCompare(nameB);
+                          })
+                          .map(b => <option key={b.id} value={b.id}>{b.description || b.name || `Marca ${b.id}`}</option>)}
                       </select>
                     </div>
                     <div className="col-12">
                       <label className="form-label fw-bold">Categoría</label>
                       <select name="category" className="form-select" value={formData.category} onChange={handleChange} required>
                         <option value="">Selecciona categoría</option>
-                        {categories.filter(c => c && c.id != null).map(c => <option key={c.id} value={c.id}>{c.description || c.name || `Categoría ${c.id}`}</option>)}
+                        {categories
+                          .filter(c => c && c.id != null)
+                          .sort((a, b) => {
+                            const nameA = (a.description || a.name || '').toLowerCase();
+                            const nameB = (b.description || b.name || '').toLowerCase();
+                            return nameA.localeCompare(nameB);
+                          })
+                          .map(c => <option key={c.id} value={c.id}>{c.description || c.name || `Categoría ${c.id}`}</option>)}
                       </select>
                     </div>
                     <div className="col-12">
