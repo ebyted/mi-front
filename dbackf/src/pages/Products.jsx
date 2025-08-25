@@ -48,7 +48,11 @@ function Products() {
 
   useEffect(() => {
     api.get('products/?expand=brand,category,variants,warehouse_stocks')
-      .then(res => setProducts(Array.isArray(res.data) ? res.data : []))
+      .then(res => {
+        // Si la respuesta tiene 'results', úsala; si no, usa el array directo
+        const data = Array.isArray(res.data) ? res.data : (Array.isArray(res.data.results) ? res.data.results : []);
+        setProducts(data);
+      })
       .catch(() => setProducts([]));
     api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
     api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
