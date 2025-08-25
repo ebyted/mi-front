@@ -28,9 +28,16 @@ const ProductCenter = () => {
 			{selectedProduct && (
 				<div className="mt-4 p-3 border rounded bg-light">
 					<h6 className="fw-bold text-success">Producto seleccionado:</h6>
-					<pre style={{ fontSize: '0.95em', background: '#f8f9fa', padding: '8px', borderRadius: '4px' }}>
-						{JSON.stringify(selectedProduct, null, 2)}
-					</pre>
+					<div className="mb-2">
+						<span className="fw-bold">Nombre:</span> {selectedProduct.name}<br/>
+						<span className="fw-bold">SKU:</span> {selectedProduct.sku}<br/>
+						<span className="fw-bold">ID:</span> {selectedProduct.id}<br/>
+						<span className="fw-bold">Variante principal:</span> {selectedProduct.product_variant_id || 'N/A'}<br/>
+						<span className="fw-bold">Categoría:</span> {selectedProduct.category_name || selectedProduct.category || 'N/A'}<br/>
+						<span className="fw-bold">Marca:</span> {selectedProduct.brand_name || selectedProduct.brand || 'N/A'}<br/>
+						<span className="fw-bold">Descripción:</span> {selectedProduct.description || 'Sin descripción'}<br/>
+					</div>
+					{/* JSON oculto, solo datos elegantes */}
 				</div>
 			)}
 		</div>
