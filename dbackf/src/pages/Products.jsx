@@ -38,6 +38,7 @@ function Products() {
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formSuccess, setFormSuccess] = useState('');
+  const [mainMessage, setMainMessage] = useState({ type: '', text: '' });
   const [showDiscountModal, setShowDiscountModal] = useState({ show: false, productId: null, productName: '' });
   const formRef = useRef();
 
@@ -192,12 +193,13 @@ function Products() {
     setIsSubmitting(true);
     try {
       const payload = { ...formData };
+      let successMsg = '';
       if (editId) {
         await api.patch(`products/${editId}/`, payload);
-        setFormSuccess('¡Producto editado correctamente!');
+        successMsg = '¡Producto editado correctamente!';
       } else {
         await api.post('products/', payload);
-        setFormSuccess('¡Producto creado correctamente!');
+        successMsg = '¡Producto creado correctamente!';
       }
       setShowForm(false);
       setEditId(null);
@@ -214,23 +216,26 @@ function Products() {
           }
         })
         .catch(() => setProducts([]));
+      setMainMessage({ type: 'success', text: successMsg });
+      setTimeout(() => setMainMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       setFormError('Error al guardar');
       setFormSuccess('');
+      setMainMessage({ type: 'error', text: 'Error al guardar el producto.' });
+      setTimeout(() => setMainMessage({ type: '', text: '' }), 3000);
     } finally {
       setIsSubmitting(false);
-      // Mostrar mensaje de éxito/falla por unos segundos
-      if (formSuccess || formError) {
-        setTimeout(() => {
-          setFormSuccess('');
-          setFormError('');
-        }, 3000);
-      }
     }
   };
 
   return (
     <div className="container-fluid py-3">
+      {/* Mensaje principal de éxito/falla */}
+      {mainMessage.text && (
+        <div className={`alert ${mainMessage.type === 'success' ? 'alert-success' : 'alert-danger'} mb-3`} role="alert">
+          {mainMessage.text}
+        </div>
+      )}
       <div className="row align-items-center mb-4">
         <div className="col">
           <h1 className={`mb-0 text-primary ${isMobile ? 'h4' : 'display-6'}`}>
@@ -434,7 +439,6 @@ function Products() {
                     </div>
                   </div>
               {formError && <div className="alert alert-danger mt-3">{formError}</div>}
-              {formSuccess && <div className="alert alert-success mt-3">{formSuccess}</div>}
                 </form>
               </div>
               <div className="modal-footer">
