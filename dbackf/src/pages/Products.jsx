@@ -38,6 +38,7 @@ function Products() {
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState({ show: false, productId: null, productName: '' });
   const formRef = useRef();
 
   useEffect(() => {
