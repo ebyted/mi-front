@@ -250,17 +250,31 @@ function Products() {
         <div className="col-md-3 mb-2 mb-md-0">
           <select className="form-select" value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value }))}>
             <option value="">Todas las categorías</option>
-            {categories.filter(c => c && c.id != null).map(c => (
-              <option key={c.id} value={c.id}>{c.description || c.name || `Categoría ${c.id}`}</option>
-            ))}
+            {categories
+              .filter(c => c && c.id != null)
+              .sort((a, b) => {
+                const nameA = (a.description || a.name || '').toLowerCase();
+                const nameB = (b.description || b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+              })
+              .map(c => (
+                <option key={c.id} value={c.id}>{c.description || c.name || `Categoría ${c.id}`}</option>
+              ))}
           </select>
         </div>
         <div className="col-md-3 mb-2 mb-md-0">
           <select className="form-select" value={filters.brand} onChange={e => setFilters(f => ({ ...f, brand: e.target.value }))}>
             <option value="">Todas las marcas</option>
-            {brands.filter(b => b && b.id != null).map(b => (
-              <option key={b.id} value={b.id}>{b.description || b.name || `Marca ${b.id}`}</option>
-            ))}
+            {brands
+              .filter(b => b && b.id != null)
+              .sort((a, b) => {
+                const nameA = (a.description || a.name || '').toLowerCase();
+                const nameB = (b.description || b.name || '').toLowerCase();
+                return nameA.localeCompare(nameB);
+              })
+              .map(b => (
+                <option key={b.id} value={b.id}>{b.description || b.name || `Marca ${b.id}`}</option>
+              ))}
           </select>
         </div>
         <div className="col-md-2 text-end">
