@@ -402,9 +402,8 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user:
             return False
-        # Puede autorizar si: no está autorizado, no está cancelado, y no es el creador
-        return (not obj.authorized and not obj.is_cancelled and 
-                obj.user != request.user)
+        # Puede autorizar si: no está autorizado y no está cancelado
+        return (not obj.authorized and not obj.is_cancelled)
     
     def get_can_delete(self, obj):
         request = self.context.get('request')
