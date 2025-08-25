@@ -195,7 +195,7 @@ function Products() {
       const payload = { ...formData };
       let successMsg = '';
       if (editId) {
-        await api.patch(`products/${editId}/`, payload);
+        await api.put(`products/${editId}/`, payload);
         successMsg = '¡Producto editado correctamente!';
       } else {
         await api.post('products/', payload);
