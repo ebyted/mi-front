@@ -155,7 +155,7 @@ function Products() {
 
   const validateForm = () => {
     const errors = [];
-    if (!formData.productId) errors.push('Selecciona un producto');
+  // El campo de búsqueda de producto es opcional, no se valida
     if (!formData.productVariantId) errors.push('Selecciona una variante');
     if (!formData.name.trim()) errors.push('Nombre requerido');
     if (!formData.sku.trim()) errors.push('SKU requerido');
