@@ -7,6 +7,19 @@ logger = logging.getLogger(__name__)
 class ProductWithMainVariantSerializer(serializers.ModelSerializer):
     product_variant_id = serializers.SerializerMethodField()
     variants = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
+    brand_name = serializers.SerializerMethodField()
+    def get_category_name(self, obj):
+        try:
+            return obj.category.name if obj.category else None
+        except Exception:
+            return None
+
+    def get_brand_name(self, obj):
+        try:
+            return obj.brand.name if obj.brand else None
+        except Exception:
+            return None
 
     class Meta:
         model = Product
