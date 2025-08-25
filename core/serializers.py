@@ -293,7 +293,7 @@ class PurchaseOrderReceiptItemSerializer(serializers.ModelSerializer):
 
 class InventoryMovementDetailSerializer(serializers.ModelSerializer):
     # Campos de lectura para mostrar información del producto
-    product_variant_id = serializers.IntegerField(source='product_variant.id', read_only=True)
+    product_variant_id = serializers.IntegerField(write_only=True, required=False)
     product_variant_name = serializers.CharField(source='product_variant.name', read_only=True)
     product_name = serializers.CharField(source='product_variant.product.name', read_only=True)
     product_code = serializers.CharField(source='product_variant.sku', read_only=True)
@@ -317,15 +317,21 @@ class InventoryMovementDetailSerializer(serializers.ModelSerializer):
         return None
     
     def create(self, validated_data):
+        # Si viene product_variant_id, buscar la instancia
+        product_variant_id = validated_data.pop('product_variant_id', None)
+        if product_variant_id:
+            try:
+                product_variant = ProductVariant.objects.get(id=product_variant_id)
+                validated_data['product_variant'] = product_variant
+            except ProductVariant.DoesNotExist:
+                raise serializers.ValidationError({'product_variant_id': f'No existe ProductVariant con id {product_variant_id}'})
         # Si viene product_id, buscar o crear el product_variant correspondiente
         product_id = validated_data.pop('product_id', None)
         if product_id and not validated_data.get('product_variant'):
             try:
                 product = Product.objects.get(id=product_id)
-                # Buscar ProductVariant existente o crear uno por defecto
                 product_variant = ProductVariant.objects.filter(product=product).first()
                 if not product_variant:
-                    # Crear ProductVariant por defecto si no existe
                     product_variant = ProductVariant.objects.create(
                         product=product,
                         name=product.name,
@@ -345,10 +351,8 @@ class InventoryMovementDetailSerializer(serializers.ModelSerializer):
         # Asegurar que price y total tengan valores por defecto
         if 'price' not in validated_data or validated_data['price'] is None:
             validated_data['price'] = 0.00
-        # Calcular total si no viene especificado
         if 'total' not in validated_data or validated_data['total'] is None:
             validated_data['total'] = validated_data['price'] * validated_data.get('quantity', 0)
-        # Crear y retornar el objeto
         return super().create(validated_data)
         
 class InventoryMovementSerializer(serializers.ModelSerializer):
