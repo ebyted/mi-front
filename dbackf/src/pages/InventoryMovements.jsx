@@ -162,10 +162,13 @@ const InventoryMovements = () => {
     // Validar que venga product_variant_id desde ProductSelect
     let variantId = currentDetail.product_variant_id;
     let productObj = currentDetail.product;
+    console.log('[addDetail] currentDetail:', currentDetail);
+    console.log('[addDetail] productObj:', productObj);
     if (!variantId) {
       // Si no se seleccionó variante, intentar obtener la principal del objeto
       if (productObj && Array.isArray(productObj.variants) && productObj.variants.length > 0) {
         variantId = productObj.variants[0].id;
+        console.log('[addDetail] variantId obtenido de variants:', variantId);
       } else {
         alert('El producto seleccionado no tiene variantes válidas. Selecciona un producto desde el buscador.');
         return;
@@ -174,6 +177,7 @@ const InventoryMovements = () => {
     // Validar que el variantId es válido
     if (!variantId) {
       alert('No se pudo determinar la variante del producto. Selecciona un producto válido.');
+      console.log('[addDetail] variantId es null, currentDetail:', currentDetail);
       return;
     }
     const newDetail = {
@@ -182,6 +186,7 @@ const InventoryMovements = () => {
       product_variant_id: variantId,
       quantity: parseFloat(currentDetail.quantity)
     };
+    console.log('[addDetail] newDetail agregado:', newDetail);
     setFormData(prev => ({
       ...prev,
       details: [...prev.details, newDetail]
@@ -640,24 +645,28 @@ const InventoryMovements = () => {
                       onChange={(value) => setCurrentDetail(prev => ({...prev, product_id: value}))}
                       onProductSelect={async (product) => {
                         let productObj = product;
+                        console.log('[onProductSelect] Producto recibido:', productObj);
                         // Si no tiene variantes, consulta el producto completo
                         if (!productObj.variants) {
                           try {
                             const resp = await api.get(`/products/${product.id}/`);
                             productObj = resp.data;
+                            console.log('[onProductSelect] Producto completo desde API:', productObj);
                           } catch (err) {
                             alert('No se pudo obtener la información completa del producto.');
                             return;
                           }
                         }
                         // Asegura que el id de variante se conserve
+                        const variantId = productObj.product_variant_id || (productObj.variants && productObj.variants[0] ? productObj.variants[0].id : null);
+                        console.log('[onProductSelect] product_variant_id asignado:', variantId);
                         setCurrentDetail(prev => ({
                           ...prev,
                           product_id: productObj.id,
                           product_name: productObj.name,
                           product_code: productObj.sku || productObj.code || '',
                           product: productObj,
-                          product_variant_id: productObj.product_variant_id || (productObj.variants && productObj.variants[0] ? productObj.variants[0].id : null)
+                          product_variant_id: variantId
                         }));
                       }}
                       placeholder="Buscar producto por nombre o SKU..."
