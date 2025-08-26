@@ -49,13 +49,11 @@ function Products() {
   }, []);
 
   useEffect(() => {
-    // Usar endpoint correcto según API root
-    api.get('products/')
+    // Usar endpoint search_all para traer todos los productos sin paginación
+    api.get('products/search_all/')
       .then(res => {
         if (Array.isArray(res.data)) {
           setProducts(res.data);
-        } else if (res.data && Array.isArray(res.data.results)) {
-          setProducts(res.data.results);
         } else {
           setProducts([]);
         }
