@@ -146,6 +146,7 @@ const InventoryMovements = () => {
     });
     setCurrentDetail({
       product_id: '',
+      product_variant_id: '',
       product_name: '',
       product_code: '',
       quantity: '',
@@ -153,6 +154,42 @@ const InventoryMovements = () => {
       expiration_date: '',
       notes: ''
     });
+  };
+
+  // Guardar lote de captura como archivo JSON
+  const handleSaveBatch = () => {
+    if (!formData.details || formData.details.length === 0) {
+      alert('No hay productos capturados para guardar.');
+      return;
+    }
+    const name = window.prompt('Nombre para el archivo de lote:', 'lote-inventario');
+    if (!name || !name.trim()) {
+      alert('Debes ingresar un nombre válido.');
+      return;
+    }
+    const json = JSON.stringify(formData.details, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.trim()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('Lote guardado como archivo: ' + name.trim() + '.json');
+  };
+
+  // Limpiar lote (borrar todos los detalles capturados)
+  const handleClearBatch = () => {
+    if (!formData.details || formData.details.length === 0) {
+      alert('No hay productos capturados para limpiar.');
+      return;
+    }
+    if (window.confirm('¿Seguro que deseas borrar todo el lote capturado?')) {
+      setFormData(prev => ({ ...prev, details: [] }));
+      alert('Lote de captura borrado.');
+    }
   };
 
   const addDetail = () => {
@@ -820,6 +857,15 @@ const InventoryMovements = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              {/* Botones para guardar y limpiar lote de captura */}
+              <div className="d-flex gap-2 mt-3">
+                <button type="button" className="btn btn-outline-primary" onClick={handleSaveBatch}>
+                  💾 Guardar lote de captura
+                </button>
+                <button type="button" className="btn btn-outline-danger" onClick={handleClearBatch}>
+                  🗑️ Limpiar lote
+                </button>
               </div>
             </div>
           )}
