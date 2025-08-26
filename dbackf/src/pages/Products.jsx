@@ -198,16 +198,16 @@ function Products() {
       if (editId) {
         // Solo enviar los campos esperados por el backend
         let payload = {
-          name: formData.name,
-          sku: formData.sku,
-          description: formData.description,
-          brand: formData.brand || null,
-          category: formData.category || null,
-          barcode: formData.barcode,
+          name: formData.name === '' ? null : formData.name,
+          sku: formData.sku === '' ? null : formData.sku,
+          description: formData.description === '' ? null : formData.description,
+          brand: formData.brand === '' ? null : Number(formData.brand),
+          category: formData.category === '' ? null : Number(formData.category),
+          barcode: formData.barcode === '' ? null : formData.barcode,
           minimum_stock: formData.minimum_stock === '' ? null : Number(formData.minimum_stock),
           maximum_stock: formData.maximum_stock === '' ? null : Number(formData.maximum_stock),
           cantidad_corrugado: formData.cantidad_corrugado === '' ? null : Number(formData.cantidad_corrugado),
-          status: formData.status,
+          status: formData.status === '' ? null : formData.status,
           is_active: formData.is_active,
           group: formData.group === '' ? null : Number(formData.group),
           image_url: formData.image_url === '' ? null : formData.image_url
