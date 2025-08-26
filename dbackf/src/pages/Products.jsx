@@ -389,13 +389,13 @@ function Products() {
             </tr>
           </thead>
           <tbody>
-            {paginatedProducts.map(p => (
+            {paginatedProducts.filter(p => p && typeof p === 'object' && p.id != null).map(p => (
                 <tr key={p.id}>
-                  <td>{p.name}</td>
-                  <td>{p.sku}</td>
+                  <td>{p.name ?? ''}</td>
+                  <td>{p.sku ?? ''}</td>
                   <td style={{background:'#e3f2fd', fontWeight:'bold'}}>{(() => {
                     if (p.brand && typeof p.brand === 'object') return p.brand.name ?? p.brand.description ?? '';
-                    if (p.brand) {
+                    if (p.brand != null) {
                       const b = brands.find(br => br.id === Number(p.brand));
                       return b ? (b.description || b.name || '') : '';
                     }
@@ -403,7 +403,7 @@ function Products() {
                   })()}</td>
                   <td style={{background:'#e8f5e9', fontWeight:'bold'}}>{(() => {
                     if (p.category && typeof p.category === 'object') return p.category.name ?? p.category.description ?? '';
-                    if (p.category) {
+                    if (p.category != null) {
                       const c = categories.find(cat => cat.id === Number(p.category));
                       return c ? (c.description || c.name || '') : '';
                     }
