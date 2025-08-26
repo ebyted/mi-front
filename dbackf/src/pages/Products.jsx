@@ -171,14 +171,18 @@ function Products() {
     const errors = [];
     // Solo pedir variante en alta, no en edición
     if (!editId && !formData.productVariantId) errors.push('Selecciona una variante');
-    if (!formData.name.trim()) errors.push('Nombre requerido');
-    if (!formData.sku.trim()) errors.push('SKU requerido');
-    if (!formData.brand) errors.push('Marca requerida');
-    if (!formData.category) errors.push('Categoría requerida');
+    // Validar campos obligatorios
+    if (!formData.name || !formData.name.trim()) errors.push('Nombre es obligatorio');
+    if (!formData.sku || !formData.sku.trim()) errors.push('SKU es obligatorio');
+    if (!formData.brand) errors.push('Marca es obligatoria');
+    if (!formData.category) errors.push('Categoría es obligatoria');
+    // Validar campos numéricos
     if (formData.minimum_stock && (isNaN(formData.minimum_stock) || parseFloat(formData.minimum_stock) < 0)) errors.push('Stock mínimo inválido');
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) errors.push('Stock máximo inválido');
     if (formData.cantidad_corrugado && (isNaN(formData.cantidad_corrugado) || parseFloat(formData.cantidad_corrugado) < 0)) errors.push('Cantidad corrugado inválida');
+    // Validar imagen
     if (formData.image_url && formData.image_url.trim() && !/^https?:\/\/.+\.(jpg|jpeg|png|webp)$/i.test(formData.image_url)) errors.push('URL de imagen inválida');
+    // Validar relación de stocks
     if (formData.minimum_stock && formData.maximum_stock && parseFloat(formData.maximum_stock) < parseFloat(formData.minimum_stock)) errors.push('Stock máximo debe ser mayor que mínimo');
     if (errors.length > 0) {
       setFormError(errors.join(', '));
