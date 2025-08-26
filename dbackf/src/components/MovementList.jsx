@@ -1,6 +1,7 @@
+
 import React from 'react';
 
-const MovementList = ({ movements, onSelect }) => (
+const MovementList = ({ movements, onView, onEdit, onAuthorize, onCancel }) => (
   <div className="table-responsive">
     <table className="table table-bordered">
       <thead>
@@ -18,7 +19,10 @@ const MovementList = ({ movements, onSelect }) => (
             <td>{mov.type}</td>
             <td>{mov.notes}</td>
             <td>
-              <button className="btn btn-sm btn-info" onClick={() => onSelect(mov)}>Ver</button>
+              <button className="btn btn-sm btn-info me-1" onClick={() => onView(mov)}>Ver</button>
+              <button className="btn btn-sm btn-warning me-1" onClick={() => onEdit(mov)}>Editar</button>
+              <button className="btn btn-sm btn-success me-1" onClick={() => onAuthorize(mov)}>Autorizar</button>
+              <button className="btn btn-sm btn-danger" onClick={() => onCancel(mov)}>Cancelar</button>
             </td>
           </tr>
         ))}
