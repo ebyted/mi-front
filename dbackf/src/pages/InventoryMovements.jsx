@@ -142,12 +142,25 @@ const InventoryMovements = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Permitir guardar aunque no haya productos, solo mostrar advertencia
+    // Validación previa: todos los detalles deben tener los campos requeridos
     if (formData.details.length === 0) {
       if (!window.confirm('No has agregado productos al movimiento. ¿Deseas guardar de todos modos?')) {
         return;
       }
+    } else {
+      // Validar cada detalle
+      const invalids = formData.details.filter(d =>
+        !d.product_id || !d.product_variant_id || !d.quantity || parseFloat(d.quantity) <= 0
+      );
+      if (invalids.length > 0) {
+        alert(`Hay ${invalids.length} productos con datos incompletos o inválidos. Corrige antes de guardar.`);
+        return;
+      }
+    }
+
+    // Mostrar resumen visual antes de guardar
+    if (!window.confirm(`Se van a guardar ${formData.details.length} productos en el movimiento. ¿Confirmar?`)) {
+      return;
     }
 
     setSaving(true);
@@ -157,7 +170,7 @@ const InventoryMovements = () => {
         type: formData.type,
         notes: formData.notes,
         details: formData.details.map(detail => ({
-          product_id: detail.product_id,
+          product_id: parseInt(detail.product_id),
           product_variant_id: detail.product_variant_id ?? null,
           quantity: parseFloat(detail.quantity),
           lote: detail.lote || '',
