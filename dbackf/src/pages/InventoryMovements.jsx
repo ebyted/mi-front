@@ -8,7 +8,33 @@ const InventoryMovements = () => {
   useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
   
   const [movements, setMovements] = useState([]);
-  // ...existing code...
+  const [formData, setFormData] = useState({
+    warehouse_id: '',
+    type: 'IN',
+    notes: '',
+    details: []
+  });
+  const [showForm, setShowForm] = useState(false);
+  const [editingMovement, setEditingMovement] = useState(null);
+  const [currentDetail, setCurrentDetail] = useState({
+    product_id: '',
+    product_variant_id: '',
+    product_name: '',
+    product_code: '',
+    quantity: '',
+    lote: '',
+    expiration_date: '',
+    notes: '',
+    errorVariant: false
+  });
+  const [hasDraft, setHasDraft] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showAuthorizeModal, setShowAuthorizeModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [showDraftModal, setShowDraftModal] = useState(false);
 
   // Handler para guardar movimiento
   const handleSubmit = async (e) => {
