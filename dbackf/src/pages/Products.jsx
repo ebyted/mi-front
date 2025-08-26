@@ -384,8 +384,18 @@ function Products() {
         </table>
       </div>
       {showForm && (
-        <div className="modal fade show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div className={`modal-dialog ${isMobile ? 'modal-fullscreen' : 'modal-lg modal-dialog-scrollable'}`}>
+        <div
+          className="modal fade show d-block"
+          tabIndex="-1"
+          style={{backgroundColor: 'rgba(0,0,0,0.5)'}}
+          onClick={e => {
+            if (e.target === e.currentTarget) setShowForm(false);
+          }}
+        >
+          <div
+            className={`modal-dialog ${isMobile ? 'modal-fullscreen' : 'modal-lg modal-dialog-scrollable'}`}
+            onClick={e => e.stopPropagation()}
+          >
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">{editId ? 'Editar producto' : 'Nuevo producto'}</h5>
