@@ -194,14 +194,25 @@ function Products() {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      const payload = { ...formData };
-      let successMsg = '';
+      // Limpiar payload para PUT (edición)
+      let payload = { ...formData };
       if (editId) {
+        // Eliminar campos que no debe enviar el backend
+        delete payload.productId;
+        delete payload.productVariantId;
+        // Convertir campos numéricos vacíos a null
+        ['minimum_stock', 'maximum_stock', 'cantidad_corrugado', 'group'].forEach(f => {
+          if (payload[f] === '' || payload[f] === undefined) payload[f] = null;
+          else payload[f] = Number(payload[f]);
+        });
+        // Asegurar que brand y category sean IDs
+        payload.brand = payload.brand || null;
+        payload.category = payload.category || null;
         await api.put(`products/${editId}/`, payload);
-        successMsg = '¡Producto editado correctamente!';
+        var successMsg = '¡Producto editado correctamente!';
       } else {
         await api.post('products/', payload);
-        successMsg = '¡Producto creado correctamente!';
+        var successMsg = '¡Producto creado correctamente!';
       }
       setShowForm(false);
       setEditId(null);
