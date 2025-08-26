@@ -195,23 +195,27 @@ function Products() {
     setIsSubmitting(true);
     try {
       // Limpiar payload para PUT (edición)
-      let payload = { ...formData };
       if (editId) {
-        // Eliminar campos que no debe enviar el backend
-        delete payload.productId;
-        delete payload.productVariantId;
-        // Convertir campos numéricos vacíos a null
-        ['minimum_stock', 'maximum_stock', 'cantidad_corrugado', 'group'].forEach(f => {
-          if (payload[f] === '' || payload[f] === undefined) payload[f] = null;
-          else payload[f] = Number(payload[f]);
-        });
-        // Asegurar que brand y category sean IDs
-        payload.brand = payload.brand || null;
-        payload.category = payload.category || null;
+        // Solo enviar los campos esperados por el backend
+        let payload = {
+          name: formData.name,
+          sku: formData.sku,
+          description: formData.description,
+          brand: formData.brand || null,
+          category: formData.category || null,
+          barcode: formData.barcode,
+          minimum_stock: formData.minimum_stock === '' ? null : Number(formData.minimum_stock),
+          maximum_stock: formData.maximum_stock === '' ? null : Number(formData.maximum_stock),
+          cantidad_corrugado: formData.cantidad_corrugado === '' ? null : Number(formData.cantidad_corrugado),
+          status: formData.status,
+          is_active: formData.is_active,
+          group: formData.group === '' ? null : Number(formData.group),
+          image_url: formData.image_url === '' ? null : formData.image_url
+        };
         await api.put(`products/${editId}/`, payload);
         var successMsg = '¡Producto editado correctamente!';
       } else {
-        await api.post('products/', payload);
+        await api.post('products/', formData);
         var successMsg = '¡Producto creado correctamente!';
       }
       setShowForm(false);
