@@ -341,15 +341,12 @@ const InventoryMovements = () => {
   };
 
   const handleNew = () => {
-    // Solo draft para nuevo movimiento
-    const draft = localStorage.getItem('inventoryMovementDraft');
-    if (draft) {
-      setShowDraftModal(true);
-    } else {
-      resetForm();
-      setEditingMovement(null);
-      setShowForm(true);
-    }
+  // Al iniciar nuevo movimiento, limpiar draft y estado
+  localStorage.removeItem('inventoryMovementDraft');
+  setHasDraft(false);
+  resetForm();
+  setEditingMovement(null);
+  setShowForm(true);
   };
   // Guardar draft en cada cambio relevante
   useEffect(() => {
@@ -374,7 +371,10 @@ const InventoryMovements = () => {
   const loadDraft = () => {
     const draft = localStorage.getItem('inventoryMovementDraft');
     if (draft) {
+      // Sobrescribe completamente el estado con el draft
       setFormData(JSON.parse(draft));
+    } else {
+      resetForm();
     }
     setEditingMovement(null);
     setShowForm(true);
