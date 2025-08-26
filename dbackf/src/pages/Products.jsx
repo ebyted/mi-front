@@ -404,6 +404,22 @@ function Products() {
               {/* Mensaje de error arriba del modal */}
               {formError && <div className="alert alert-danger mx-3 mt-3 mb-0">{formError}</div>}
               <div className="modal-body">
+                {editId && (
+                  <div className="mb-3 text-end">
+                    <button
+                      type="button"
+                      className="btn btn-warning"
+                      onClick={() => setFormData(fd => ({
+                        ...fd,
+                        description: fd.name,
+                        minimum_stock: 0,
+                        maximum_stock: 100
+                      }))}
+                    >
+                      Valida default
+                    </button>
+                  </div>
+                )}
                 <form ref={formRef} onSubmit={handleSubmit}>
                   <div className="row g-2">
                     {/* Campo Nombre */}
