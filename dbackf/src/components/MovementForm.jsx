@@ -1,5 +1,6 @@
 
 import React from 'react';
+import ProductSelect from './ProductSelect';
 
 const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setCurrentDetail, addDetail, removeDetail, saving, handleCancel, handleSaveBatch, handleLoadBatch, handleClearBatch, warehouses, editingMovement }) => (
   <form onSubmit={handleSubmit} className="bg-white p-4 rounded shadow mb-4">
@@ -28,12 +29,21 @@ const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setC
 
     <hr />
     <h5>Captura de productos</h5>
-    <div className="row mb-2">
-      <div className="col-md-2">
-        <input className="form-control" placeholder="ID Producto" value={currentDetail.product_id} onChange={e => setCurrentDetail(d => ({ ...d, product_id: e.target.value }))} />
-      </div>
-      <div className="col-md-2">
-        <input className="form-control" placeholder="ID Variante" value={currentDetail.product_variant_id} onChange={e => setCurrentDetail(d => ({ ...d, product_variant_id: e.target.value }))} />
+    <div className="row mb-2 align-items-end">
+      <div className="col-md-4">
+        <ProductSelect
+          value={currentDetail.product_id}
+          onChange={id => setCurrentDetail(d => ({ ...d, product_id: id }))}
+          onProductSelect={product => setCurrentDetail(d => ({
+            ...d,
+            product_id: product.id,
+            product_variant_id: product.product_variant_id,
+            product_name: product.name,
+            product_code: product.sku || product.product_code || ''
+          }))}
+          placeholder="Buscar producto por nombre o SKU..."
+          required
+        />
       </div>
       <div className="col-md-2">
         <input className="form-control" placeholder="Cantidad" type="number" value={currentDetail.quantity} onChange={e => setCurrentDetail(d => ({ ...d, quantity: e.target.value }))} />
