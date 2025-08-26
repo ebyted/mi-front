@@ -343,11 +343,21 @@ const InventoryMovements = () => {
 
   const handleEdit = (movement) => {
     setEditingMovement(movement);
+    // Sobrescribe completamente el estado, limpia detalles viejos
     setFormData({
       warehouse_id: movement.warehouse_id,
       type: movement.type,
       notes: movement.notes || '',
-      details: movement.details || []
+      details: Array.isArray(movement.details) ? movement.details.map(d => ({
+        product_id: d.product_id ? parseInt(d.product_id) : '',
+        product_variant_id: d.product_variant_id ?? '',
+        product_name: d.product_name ?? '',
+        product_code: d.product_code ?? '',
+        quantity: d.quantity ? parseFloat(d.quantity) : '',
+        lote: d.lote ?? '',
+        expiration_date: d.expiration_date ?? '',
+        notes: d.notes ?? ''
+      })) : []
     });
     setShowForm(true);
   };
@@ -358,6 +368,12 @@ const InventoryMovements = () => {
   setHasDraft(false);
   resetForm();
   setEditingMovement(null);
+  setFormData({
+    warehouse_id: '',
+    type: 'IN',
+    notes: '',
+    details: []
+  });
   setShowForm(true);
   };
   // Guardar draft en cada cambio relevante
@@ -383,8 +399,23 @@ const InventoryMovements = () => {
   const loadDraft = () => {
     const draft = localStorage.getItem('inventoryMovementDraft');
     if (draft) {
-      // Sobrescribe completamente el estado con el draft
-      setFormData(JSON.parse(draft));
+      // Sobrescribe completamente el estado con el draft y limpia detalles viejos
+      const parsed = JSON.parse(draft);
+      setFormData({
+        warehouse_id: parsed.warehouse_id || '',
+        type: parsed.type || 'IN',
+        notes: parsed.notes || '',
+        details: Array.isArray(parsed.details) ? parsed.details.map(d => ({
+          product_id: d.product_id ? parseInt(d.product_id) : '',
+          product_variant_id: d.product_variant_id ?? '',
+          product_name: d.product_name ?? '',
+          product_code: d.product_code ?? '',
+          quantity: d.quantity ? parseFloat(d.quantity) : '',
+          lote: d.lote ?? '',
+          expiration_date: d.expiration_date ?? '',
+          notes: d.notes ?? ''
+        })) : []
+      });
     } else {
       resetForm();
     }
