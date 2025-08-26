@@ -12,6 +12,7 @@ const InventoryMovements = () => {
   useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
   const [movements, setMovements] = useState([]);
   const [formData, setFormData] = useState({ warehouse_id: '', type: 'IN', notes: '', details: [] });
+  const [warehouses, setWarehouses] = useState([]);
   // Eliminada declaración duplicada de showDraftModal/setShowDraftModal
 
     // Mostrar detalles, autorizar y cancelar desde la lista
@@ -41,7 +42,7 @@ const InventoryMovements = () => {
   const [cancellationReason, setCancellationReason] = useState('');
   const [showDraftModal, setShowDraftModal] = useState(false);
 
-  // Cargar movimientos al montar
+  // Cargar movimientos y almacenes al montar
   useEffect(() => {
     const fetchMovements = async () => {
       try {
@@ -51,7 +52,16 @@ const InventoryMovements = () => {
         alert('Error al cargar movimientos');
       }
     };
+    const fetchWarehouses = async () => {
+      try {
+        const resp = await api.get('/warehouses/');
+        setWarehouses(resp.data);
+      } catch (error) {
+        alert('Error al cargar almacenes');
+      }
+    };
     fetchMovements();
+    fetchWarehouses();
   }, []);
 
   // Handler para guardar movimiento
