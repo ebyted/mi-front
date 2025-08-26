@@ -4,6 +4,18 @@ import useDocumentTitle from '../hooks/useDocumentTitle';
 import ProductSelect from '../components/ProductSelect';
 
 const InventoryMovements = () => {
+  // Cargar movimientos al montar
+  useEffect(() => {
+    const fetchMovements = async () => {
+      try {
+        const resp = await api.get('/inventory-movements/');
+        setMovements(resp.data);
+      } catch (error) {
+        alert('Error al cargar movimientos');
+      }
+    };
+    fetchMovements();
+  }, []);
   // Hook para cambiar el título de la pestaña
   useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
   
@@ -300,7 +312,34 @@ const InventoryMovements = () => {
       {!showForm ? (
         // Vista de lista
         <div>
-          {/* ...existing code... */}
+          {movements.length === 0 ? (
+            <div className="alert alert-info">No hay movimientos registrados</div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Tipo</th>
+                    <th>Notas</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movements.map(mov => (
+                    <tr key={mov.id}>
+                      <td>{mov.id}</td>
+                      <td>{mov.type}</td>
+                      <td>{mov.notes}</td>
+                      <td>
+                        <button className="btn btn-sm btn-info" onClick={() => setSelectedMovement(mov)}>Ver</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : (
         // Vista de formulario
