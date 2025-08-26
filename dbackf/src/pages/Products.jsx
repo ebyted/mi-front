@@ -54,6 +54,8 @@ function Products() {
       .then(res => {
         if (Array.isArray(res.data)) {
           setProducts(res.data);
+        } else if (res.data && Array.isArray(res.data.results)) {
+          setProducts(res.data.results);
         } else {
           setProducts([]);
         }
@@ -211,6 +213,8 @@ function Products() {
         .then(res => {
           if (Array.isArray(res.data)) {
             setProducts(res.data);
+          } else if (res.data && Array.isArray(res.data.results)) {
+            setProducts(res.data.results);
           } else {
             setProducts([]);
           }
