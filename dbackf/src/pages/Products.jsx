@@ -65,33 +65,41 @@ function Products() {
   }, []);
 
   // Filtro adicional por categoría y marca
-  const filteredProducts = products.filter(p => {
-    let matchesSearch = true;
-    if (search && search.trim()) {
-      const normalized = (txt) => String(txt || '').toLowerCase();
-      const s = normalized(search);
-      const brandText = p.brand && typeof p.brand === 'object'
-        ? (p.brand.description ?? p.brand.name ?? '')
-        : (p.brand ?? '');
-      const categoryText = p.category && typeof p.category === 'object'
-        ? (p.category.description ?? p.category.name ?? '')
-        : (p.category ?? '');
-      matchesSearch = normalized(p.name).includes(s)
-        || normalized(p.sku).includes(s)
-        || normalized(p.barcode).includes(s)
-        || normalized(brandText).includes(s)
-        || normalized(categoryText).includes(s);
-    }
-  const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
-  const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
-    const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
-    let matchesStock = true;
-    if (filters.stockStatus) {
-      if (filters.stockStatus === 'low' && p.minimum_stock) matchesStock = (p.minimum_stock || 0) < 10;
-      else if (filters.stockStatus === 'ok') matchesStock = (p.minimum_stock || 0) >= 10;
-    }
-    return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
-  });
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const applyFilters = () => {
+    const result = products.filter(p => {
+      let matchesSearch = true;
+      if (search && search.trim()) {
+        const normalized = (txt) => String(txt || '').toLowerCase();
+        const s = normalized(search);
+        const brandText = p.brand && typeof p.brand === 'object'
+          ? (p.brand.description ?? p.brand.name ?? '')
+          : (p.brand ?? '');
+        const categoryText = p.category && typeof p.category === 'object'
+          ? (p.category.description ?? p.category.name ?? '')
+          : (p.category ?? '');
+        matchesSearch = normalized(p.name).includes(s)
+          || normalized(p.sku).includes(s)
+          || normalized(p.barcode).includes(s)
+          || normalized(brandText).includes(s)
+          || normalized(categoryText).includes(s);
+      }
+      const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
+      const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
+      const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
+      let matchesStock = true;
+      if (filters.stockStatus) {
+        if (filters.stockStatus === 'low' && p.minimum_stock) matchesStock = (p.minimum_stock || 0) < 10;
+        else if (filters.stockStatus === 'ok') matchesStock = (p.minimum_stock || 0) >= 10;
+      }
+      return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
+    });
+    setFilteredProducts(result);
+    setPage(1);
+  };
+  useEffect(() => {
+    setFilteredProducts(products);
+  }, [products]);
 
   // Paginación local sobre los productos filtrados
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -340,11 +348,22 @@ function Products() {
               ))}
           </select>
         </div>
-        <div className="col-md-2 text-end">
-          <button className="btn btn-outline-secondary" onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}>
-            <i className={`bi ${viewMode === 'table' ? 'bi-grid-3x3-gap' : 'bi-table'}`}></i>
-          </button>
-        </div>
+          <div className="col-md-2 text-end d-flex gap-2">
+            <button className="btn btn-outline-secondary" onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}>
+              <i className={`bi ${viewMode === 'table' ? 'bi-grid-3x3-gap' : 'bi-table'}`}></i>
+            </button>
+            <button className="btn btn-primary" onClick={applyFilters} title="Aplicar filtros">
+              <i className="bi bi-funnel"></i> Aplicar filtros
+            </button>
+            <button className="btn btn-outline-danger" onClick={() => {
+              setFilters({ brand: '', category: '', warehouse: '', isActive: '', stockStatus: '' });
+              setSearch('');
+              setFilteredProducts(products);
+              setPage(1);
+            }} title="Limpiar filtros">
+              <i className="bi bi-x-circle"></i> Limpiar filtros
+            </button>
+          </div>
       </div>
       {/* Controles de paginación */}
       <div className="row mb-3">
