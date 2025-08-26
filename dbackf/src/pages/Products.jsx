@@ -19,22 +19,21 @@ function Products() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({
-    productId: '',
-    productVariantId: '',
-    name: '',
-    sku: '',
-    description: '',
-    brand: '',
-    category: '',
-    barcode: '',
-    minimum_stock: '',
-    maximum_stock: '',
-    cantidad_corrugado: '',
-    status: 'REGULAR',
-    is_active: true,
-    group: '',
-    image_url: '',
-    business: ''
+  productId: '',
+  productVariantId: '',
+  name: '',
+  sku: '',
+  description: '',
+  brand: '',
+  category: '',
+  barcode: '',
+  minimum_stock: '',
+  maximum_stock: '',
+  cantidad_corrugado: '',
+  status: 'REGULAR',
+  is_active: true,
+  group: '',
+  image_url: ''
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,8 +117,7 @@ function Products() {
       status: product.status || 'REGULAR',
       is_active: product.is_active ?? true,
       group: product.group || '',
-      image_url: product.image_url || '',
-      business: typeof product.business === 'object' ? product.business?.id : product.business || ''
+      image_url: product.image_url || ''
     });
     setShowForm(true);
     setTimeout(() => {
@@ -147,8 +145,7 @@ function Products() {
       status: 'REGULAR',
       is_active: true,
       group: '',
-      image_url: '',
-      business: ''
+      image_url: ''
     });
     setShowForm(true);
   };
@@ -179,7 +176,6 @@ function Products() {
   if (!formData.sku || !formData.sku.trim()) errors.push('SKU es obligatorio');
   if (!formData.brand) errors.push('Marca es obligatoria');
   if (!formData.category) errors.push('Categoría es obligatoria');
-  if (!formData.business) errors.push('Negocio es obligatorio');
     // Validar campos numéricos
     if (formData.minimum_stock && (isNaN(formData.minimum_stock) || parseFloat(formData.minimum_stock) < 0)) errors.push('Stock mínimo inválido');
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) errors.push('Stock máximo inválido');
@@ -219,7 +215,7 @@ function Products() {
           is_active: formData.is_active,
           group: formData.group === '' ? null : Number(formData.group),
           image_url: formData.image_url === '' ? null : formData.image_url,
-          business: formData.business === '' ? null : Number(formData.business)
+          business: 1
         };
         console.log('PUT payload:', payload); // Debug: ver exactamente lo que se envía
         await api.put(`products/${editId}/`, payload);
@@ -400,10 +396,10 @@ function Products() {
               <div className="modal-body">
                 <form ref={formRef} onSubmit={handleSubmit}>
                   <div className="row g-2">
-                    {/* Campo Negocio (business) */}
+                    {/* Campo Nombre */}
                     <div className="col-12">
-                      <label className="form-label fw-bold">Negocio</label>
-                      <input type="number" name="business" className="form-control" value={formData.business} onChange={handleChange} required />
+                      <label className="form-label fw-bold">Nombre</label>
+                      <input type="text" name="name" className="form-control" value={formData.name} onChange={handleChange} required />
                     </div>
                     {/* Eliminado ProductSelect. Si necesitas otro campo aquí, agrégalo debajo. */}
                     {/* Aquí podrías agregar un select para variantes si ProductSelect no lo maneja */}
