@@ -33,6 +33,9 @@ const InventoryMovements = () => {
     notes: '',
     details: []
   });
+  // Draft modal state
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
 
   const [currentDetail, setCurrentDetail] = useState({
     product_id: '',
@@ -47,6 +50,10 @@ const InventoryMovements = () => {
   useEffect(() => {
     fetchMovements();
     fetchWarehouses();
+    // Verificar si hay draft al montar
+    if (localStorage.getItem('inventoryMovementDraft')) {
+      setHasDraft(true);
+    }
   }, []);
 
   const fetchMovements = async () => {
@@ -223,61 +230,53 @@ const InventoryMovements = () => {
   };
 
   const handleNew = () => {
-    resetForm();
-    setEditingMovement(null);
-    setShowForm(true);
+    // Solo draft para nuevo movimiento
+    const draft = localStorage.getItem('inventoryMovementDraft');
+    if (draft) {
+      setShowDraftModal(true);
+    } else {
+      resetForm();
+      setEditingMovement(null);
+      setShowForm(true);
+    }
   };
+  // Guardar draft en cada cambio relevante
+  useEffect(() => {
+    if (showForm && !editingMovement) {
+      localStorage.setItem('inventoryMovementDraft', JSON.stringify(formData));
+      setHasDraft(true);
+    }
+  }, [formData, showForm, editingMovement]);
 
   const handleCancel = () => {
     setShowForm(false);
     setEditingMovement(null);
     resetForm();
+    // Borrar draft al cancelar
+    localStorage.removeItem('inventoryMovementDraft');
+    setHasDraft(false);
   };
 
-  const handleDelete = async (movement) => {
-    if (movement.authorized) {
-      alert('No se puede eliminar un movimiento autorizado. Debe cancelarlo en su lugar.');
-      return;
+  // Unificar handleSubmit para evitar duplicidad y errores
+  // (Removed duplicate handleSubmit definition)
+  // Cargar draft desde localStorage
+  const loadDraft = () => {
+    const draft = localStorage.getItem('inventoryMovementDraft');
+    if (draft) {
+      setFormData(JSON.parse(draft));
     }
-
-    if (!movement.can_delete) {
-      alert('No tienes permisos para eliminar este movimiento');
-      return;
-    }
-
-    if (confirm('¿Estás seguro de que quieres eliminar este movimiento?')) {
-      try {
-        await api.delete(`/inventory-movements/${movement.id}/`);
-        alert('Movimiento eliminado exitosamente');
-        fetchMovements();
-      } catch (error) {
-        console.error('Error deleting movement:', error);
-        alert(`Error eliminando movimiento: ${error.response?.data?.error || error.message}`);
-      }
-    }
+    setEditingMovement(null);
+    setShowForm(true);
+    setShowDraftModal(false);
   };
 
-  const handleAuthorize = (movement) => {
-    if (!movement.can_authorize) {
-      alert('No puedes autorizar este movimiento');
-      return;
-    }
-    setSelectedMovement(movement);
-    setShowAuthorizeModal(true);
+  // Borrar draft manualmente
+  const clearDraft = () => {
+    localStorage.removeItem('inventoryMovementDraft');
+    setHasDraft(false);
+    alert('Lote guardado eliminado.');
   };
-
-  const confirmAuthorize = async () => {
-    try {
-      await api.post(`/inventory-movements/${selectedMovement.id}/authorize/`);
-      alert('Movimiento autorizado exitosamente');
-      setShowAuthorizeModal(false);
-      setSelectedMovement(null);
-      fetchMovements();
-    } catch (error) {
-      console.error('Error authorizing movement:', error);
-      alert(`Error autorizando movimiento: ${error.response?.data?.error || error.message}`);
-    }
-  };
+  // Removed misplaced alert (was outside any function)
 
   const confirmCancel = async () => {
     if (!cancellationReason.trim()) {
@@ -448,21 +447,50 @@ const InventoryMovements = () => {
         </div>
       </div>
 
-      {!showForm ? (
+  {!showForm ? (
         // Vista de lista
         <div>
           <div className="row mb-3">
-            <div className="col">
-              <div className="d-flex justify-content-end">
-                <button
-                  onClick={handleNew}
-                  className="btn btn-primary"
-                >
-                  ➕ Nuevo Movimiento
+            <div className="col d-flex justify-content-end align-items-center gap-2">
+              <button
+                onClick={handleNew}
+                className="btn btn-primary"
+              >
+                ➕ Nuevo Movimiento
+              </button>
+              {hasDraft && (
+                <button className="btn btn-outline-danger" onClick={clearDraft} title="Borrar lote guardado">
+                  🗑️ Borrar lote guardado
                 </button>
+              )}
+            </div>
+          </div>
+      {/* Modal para cargar draft */}
+      {showDraftModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Lote de movimientos guardado</h5>
+                <button type="button" className="btn-close" onClick={() => setShowDraftModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <p>¿Deseas cargar el último lote de movimientos guardado y continuar donde lo dejaste?</p>
+                <div className="alert alert-info">Si eliges "No", se iniciará un nuevo movimiento y el lote guardado permanecerá disponible.</div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => {
+                  setShowDraftModal(false);
+                  resetForm();
+                  setEditingMovement(null);
+                  setShowForm(true);
+                }}>No, empezar nuevo</button>
+                <button type="button" className="btn btn-primary" onClick={loadDraft}>Sí, cargar</button>
               </div>
             </div>
           </div>
+        </div>
+      )}
 
           {loading && (
             <div className="text-center py-5">

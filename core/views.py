@@ -390,6 +390,29 @@ class CustomPageNumberPagination(PageNumberPagination):
     max_page_size = 200
 
 class ProductViewSet(viewsets.ModelViewSet):
+    @action(detail=False, methods=['get'])
+    def show_all(self, request):
+        """
+        Endpoint para devolver todos los productos con filtros y variantes, sin paginación.
+        Filtros: name, sku, category, brand
+        """
+        name = request.query_params.get('name', '').strip()
+        sku = request.query_params.get('sku', '').strip()
+        category = request.query_params.get('category', '').strip()
+        brand = request.query_params.get('brand', '').strip()
+        queryset = Product.objects.select_related('category', 'brand').all()
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        if sku:
+            queryset = queryset.filter(Q(sku__icontains=sku) | Q(barcode__icontains=sku) | Q(code__icontains=sku))
+        if category:
+            queryset = queryset.filter(category_id=category)
+        if brand:
+            queryset = queryset.filter(brand_id=brand)
+        queryset = queryset.order_by('name')
+        from .serializers_product_search import ProductWithMainVariantSerializer
+        serializer = ProductWithMainVariantSerializer(queryset, many=True)
+        return Response(serializer.data)
     queryset = Product.objects.select_related('category', 'brand').all()
     serializer_class = ProductSerializer
     pagination_class = CustomPageNumberPagination
