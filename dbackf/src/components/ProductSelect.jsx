@@ -225,7 +225,7 @@ const ProductSelect = ({
           onChange={handleInputChange}
           onFocus={handleFocus}
           placeholder={placeholder}
-          required={required}
+          // required={required}
           disabled={disabled}
           autoComplete="off"
         />
