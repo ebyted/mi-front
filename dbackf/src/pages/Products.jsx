@@ -376,8 +376,22 @@ function Products() {
                 <tr key={p.id}>
                   <td>{p.name}</td>
                   <td>{p.sku}</td>
-                  <td style={{background:'#e3f2fd', fontWeight:'bold'}}>{p.brand ? (typeof p.brand === 'object' ? (p.brand.name ?? p.brand.description ?? `Marca ${p.brand.id}`) : p.brand) : ''}</td>
-                  <td style={{background:'#e8f5e9', fontWeight:'bold'}}>{p.category ? (typeof p.category === 'object' ? (p.category.name ?? p.category.description ?? `Categoría ${p.category.id}`) : p.category) : ''}</td>
+                  <td style={{background:'#e3f2fd', fontWeight:'bold'}}>{(() => {
+                    if (p.brand && typeof p.brand === 'object') return p.brand.name ?? p.brand.description ?? '';
+                    if (p.brand) {
+                      const b = brands.find(br => br.id === Number(p.brand));
+                      return b ? (b.description || b.name || '') : '';
+                    }
+                    return '';
+                  })()}</td>
+                  <td style={{background:'#e8f5e9', fontWeight:'bold'}}>{(() => {
+                    if (p.category && typeof p.category === 'object') return p.category.name ?? p.category.description ?? '';
+                    if (p.category) {
+                      const c = categories.find(cat => cat.id === Number(p.category));
+                      return c ? (c.description || c.name || '') : '';
+                    }
+                    return '';
+                  })()}</td>
                   <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
                   <td>
                     <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(p)}>✏️</button>
