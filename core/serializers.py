@@ -82,8 +82,8 @@ class ProductSerializer(serializers.ModelSerializer):
     variants = serializers.SerializerMethodField(read_only=True)
     current_stock = serializers.SerializerMethodField(read_only=True)
     image = serializers.CharField(source='image_url', read_only=True)  # Alias para compatibilidad con frontend
-    category = CategorySerializer(read_only=True)
-    brand = BrandSerializer(read_only=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=True)
+    brand = serializers.PrimaryKeyRelatedField(queryset=Brand.objects.all(), required=True)
     brand_name = serializers.SerializerMethodField(read_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
     
@@ -93,6 +93,11 @@ class ProductSerializer(serializers.ModelSerializer):
                  'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
                  'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
                  'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name', 'variants']
+        extra_kwargs = {
+            'cantidad_corrugado': {'required': False},
+            'minimum_stock': {'required': False},
+            'maximum_stock': {'required': False},
+        }
     def get_brand_name(self, obj):
         try:
             return obj.brand.name if obj.brand and hasattr(obj.brand, 'name') else ''
