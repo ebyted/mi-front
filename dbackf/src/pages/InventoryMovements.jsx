@@ -12,6 +12,23 @@ const InventoryMovements = () => {
   useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
   const [movements, setMovements] = useState([]);
   const [formData, setFormData] = useState({ warehouse_id: '', type: 'IN', notes: '', details: [] });
+  // Eliminada declaración duplicada de showDraftModal/setShowDraftModal
+
+    // Mostrar detalles, autorizar y cancelar desde la lista
+    const handleViewDetails = (movement) => {
+      setSelectedMovement(movement);
+      setShowDetailsModal(true);
+    };
+
+    const handleAuthorize = (movement) => {
+      setSelectedMovement(movement);
+      setShowAuthorizeModal(true);
+    };
+
+    const handleCancelMovement = (movement) => {
+      setSelectedMovement(movement);
+      setShowCancelModal(true);
+    };
   const [showForm, setShowForm] = useState(false);
   const [editingMovement, setEditingMovement] = useState(null);
   const [currentDetail, setCurrentDetail] = useState({ product_id: '', product_variant_id: '', product_name: '', product_code: '', quantity: '', lote: '', expiration_date: '', notes: '', errorVariant: false });
@@ -316,35 +333,63 @@ const InventoryMovements = () => {
   // Main JSX return block at the end
   return (
     <div className="container py-5">
-      {/* Vista principal condicional */}
-      {!showForm ? (
-        <>
-          <button className="btn btn-primary mb-3" onClick={() => setShowForm(true)}>➕ Nuevo Movimiento</button>
-          <MovementList movements={movements} onSelect={setSelectedMovement} />
-        </>
-      ) : (
-        <MovementForm
-          formData={formData}
-          setFormData={setFormData}
-          handleSubmit={handleSubmit}
-          currentDetail={currentDetail}
-          setCurrentDetail={setCurrentDetail}
-          addDetail={addDetail}
-          removeDetail={removeDetail}
-          saving={saving}
-          handleCancel={handleCancel}
-          handleSaveBatch={handleSaveBatch}
-          handleLoadBatch={handleLoadBatch}
-          handleClearBatch={handleClearBatch}
-          warehouses={warehouses}
-          editingMovement={editingMovement}
-        />
-      )}
+        <h2 className="mb-4">Movimientos de Inventario</h2>
+        {!showForm ? (
+          <>
+            <button className="btn btn-primary mb-3" onClick={handleNew}>➕ Nuevo Movimiento</button>
+            <MovementList
+              movements={movements}
+              onView={handleViewDetails}
+              onEdit={handleEdit}
+              onAuthorize={handleAuthorize}
+              onCancel={handleCancelMovement}
+            />
+          </>
+        ) : (
+          <MovementForm
+            formData={formData}
+            setFormData={setFormData}
+            handleSubmit={handleSubmit}
+            currentDetail={currentDetail}
+            setCurrentDetail={setCurrentDetail}
+            addDetail={addDetail}
+            removeDetail={removeDetail}
+            saving={saving}
+            handleCancel={handleCancel}
+            handleSaveBatch={handleSaveBatch}
+            handleLoadBatch={loadDraft}
+            handleClearBatch={handleClearBatch}
+            warehouses={warehouses}
+            editingMovement={editingMovement}
+          />
+        )}
 
-      <MovementDetailsModal show={showDetailsModal} movement={selectedMovement} onClose={() => setShowDetailsModal(false)} />
-      <AuthorizeModal show={showAuthorizeModal} movement={selectedMovement} onAuthorize={confirmAuthorize} onCancel={() => setShowAuthorizeModal(false)} />
-      <CancelModal show={showCancelModal} movement={selectedMovement} reason={cancellationReason} setReason={setCancellationReason} onCancel={() => setShowCancelModal(false)} onConfirm={confirmCancel} />
-      <DraftModal show={showDraftModal} onLoad={loadDraft} onNew={handleNew} onClose={() => setShowDraftModal(false)} />
+        {/* Modales funcionales y completos */}
+        <MovementDetailsModal
+          show={showDetailsModal}
+          movement={selectedMovement}
+          onClose={() => setShowDetailsModal(false)}
+        />
+        <AuthorizeModal
+          show={showAuthorizeModal}
+          movement={selectedMovement}
+          onAuthorize={confirmAuthorize}
+          onCancel={() => setShowAuthorizeModal(false)}
+        />
+        <CancelModal
+          show={showCancelModal}
+          movement={selectedMovement}
+          reason={cancellationReason}
+          setReason={setCancellationReason}
+          onCancel={() => setShowCancelModal(false)}
+          onConfirm={confirmCancel}
+        />
+        <DraftModal
+          show={showDraftModal}
+          onLoad={loadDraft}
+          onNew={handleNew}
+          onClose={() => setShowDraftModal(false)}
+        />
     </div>
   );
 }
