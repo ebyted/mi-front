@@ -114,7 +114,18 @@ const InventoryMovements = () => {
       alert('Debes ingresar un nombre válido.');
       return;
     }
-    const json = JSON.stringify(formData.details, null, 2);
+    // Solo guardar los campos product_id y product_variant_id (y los relevantes)
+    const batch = formData.details.map(d => ({
+      product_id: d.product_id,
+      product_variant_id: d.product_variant_id,
+      product_name: d.product_name,
+      product_code: d.product_code,
+      quantity: d.quantity,
+      lote: d.lote,
+      expiration_date: d.expiration_date,
+      notes: d.notes
+    }));
+    const json = JSON.stringify(batch, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -243,7 +254,24 @@ const InventoryMovements = () => {
   // Guardar draft en cada cambio relevante
   useEffect(() => {
     if (showForm && !editingMovement) {
-      localStorage.setItem('inventoryMovementDraft', JSON.stringify(formData));
+      // Solo guardar los campos relevantes en el draft
+      const batch = formData.details.map(d => ({
+        product_id: d.product_id,
+        product_variant_id: d.product_variant_id,
+        product_name: d.product_name,
+        product_code: d.product_code,
+        quantity: d.quantity,
+        lote: d.lote,
+        expiration_date: d.expiration_date,
+        notes: d.notes
+      }));
+      const draft = {
+        warehouse_id: formData.warehouse_id,
+        type: formData.type,
+        notes: formData.notes,
+        details: batch
+      };
+      localStorage.setItem('inventoryMovementDraft', JSON.stringify(draft));
       setHasDraft(true);
     }
   }, [formData, showForm, editingMovement]);
