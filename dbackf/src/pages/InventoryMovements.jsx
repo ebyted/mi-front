@@ -148,12 +148,21 @@ const InventoryMovements = () => {
         return;
       }
     } else {
-      // Validar cada detalle
-      const invalids = formData.details.filter(d =>
-        !d.product_id || !d.product_variant_id || !d.quantity || parseFloat(d.quantity) <= 0
-      );
+      // Validar cada detalle y mostrar qué le falta
+      const invalids = formData.details
+        .map((d, idx) => {
+          const missing = [];
+          if (!d.product_id) missing.push('Producto');
+          if (!d.product_variant_id) missing.push('Variante');
+          if (!d.quantity || parseFloat(d.quantity) <= 0) missing.push('Cantidad');
+          return missing.length > 0 ? { idx, name: d.product_name || '', code: d.product_code || '', missing } : null;
+        })
+        .filter(Boolean);
       if (invalids.length > 0) {
-        alert(`Hay ${invalids.length} productos con datos incompletos o inválidos. Corrige antes de guardar.`);
+        let msg = `Hay ${invalids.length} productos con datos incompletos o inválidos.\n\n`;
+        msg += invalids.map(i => `- ${i.name}${i.code ? ' (' + i.code + ')' : ''}: falta ${i.missing.join(', ')}`).join('\n');
+        msg += '\n\nCorrige antes de guardar.';
+        alert(msg);
         return;
       }
     }
