@@ -293,7 +293,26 @@ const InventoryMovements = () => {
     }
   };
 
-  // ...existing code...
+  // Autorizar movimiento seleccionado
+  const confirmAuthorize = async () => {
+    if (!selectedMovement) {
+      alert('No hay movimiento seleccionado para autorizar.');
+      return;
+    }
+    try {
+      await api.post(`/inventory-movements/${selectedMovement.id}/authorize_movement/`);
+      alert('Movimiento autorizado exitosamente');
+      setShowAuthorizeModal(false);
+      setSelectedMovement(null);
+      // Recargar movimientos
+      const resp = await api.get('/inventory-movements/');
+      setMovements(resp.data);
+    } catch (error) {
+      console.error('Error autorizando movimiento:', error);
+      alert(`Error autorizando movimiento: ${error.response?.data?.error || error.message}`);
+    }
+  };
+
   // Main JSX return block at the end
   return (
     <div className="container py-5">
