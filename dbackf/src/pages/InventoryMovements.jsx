@@ -26,6 +26,39 @@ const InventoryMovements = () => {
   const [movementDetails, setMovementDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
+    // Cargar lote de captura desde archivo JSON
+    const handleLoadBatch = async () => {
+      try {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const text = await file.text();
+          let batch;
+          try {
+            batch = JSON.parse(text);
+          } catch (err) {
+            alert('El archivo no es un JSON válido.');
+            return;
+          }
+          if (!Array.isArray(batch)) {
+            alert('El archivo debe contener un array de detalles.');
+            return;
+          }
+          setFormData((prev) => ({
+            ...prev,
+            details: batch
+          }));
+          alert('Lote de captura cargado correctamente.');
+        };
+        input.click();
+      } catch (err) {
+        alert('Error al cargar el lote: ' + err.message);
+      }
+    };
+
   // Form state
   const [formData, setFormData] = useState({
     warehouse_id: '',
@@ -132,38 +165,6 @@ const InventoryMovements = () => {
           notes: detail.notes || ''
         }))
       };
-    // Cargar lote de captura desde archivo JSON
-    const handleLoadBatch = async () => {
-      try {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json,application/json';
-        input.onchange = async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          const text = await file.text();
-          let batch;
-          try {
-            batch = JSON.parse(text);
-          } catch (err) {
-            alert('El archivo no es un JSON válido.');
-            return;
-          }
-          if (!Array.isArray(batch)) {
-            alert('El archivo debe contener un array de detalles.');
-            return;
-          }
-          setFormData((prev) => ({
-            ...prev,
-            details: batch
-          }));
-          alert('Lote de captura cargado correctamente.');
-        };
-        input.click();
-      } catch (err) {
-        alert('Error al cargar el lote: ' + err.message);
-      }
-    };
 
       if (editingMovement) {
         await api.put(`/inventory-movements/${editingMovement.id}/`, movementData);
