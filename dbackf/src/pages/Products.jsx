@@ -239,10 +239,20 @@ function Products() {
       setMainMessage({ type: 'success', text: successMsg });
       setTimeout(() => setMainMessage({ type: '', text: '' }), 3000);
     } catch (err) {
-      setFormError('Error al guardar');
+      let errorMsg = 'Error al guardar';
+      if (err.response && err.response.data) {
+        if (typeof err.response.data === 'string') {
+          errorMsg = err.response.data;
+        } else if (typeof err.response.data === 'object') {
+          errorMsg = Object.entries(err.response.data)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+            .join(' | ');
+        }
+      }
+      setFormError(errorMsg);
       setFormSuccess('');
-      setMainMessage({ type: 'error', text: 'Error al guardar el producto.' });
-      setTimeout(() => setMainMessage({ type: '', text: '' }), 3000);
+      setMainMessage({ type: 'error', text: errorMsg });
+      setTimeout(() => setMainMessage({ type: '', text: '' }), 5000);
     } finally {
       setIsSubmitting(false);
     }
