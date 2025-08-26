@@ -390,6 +390,8 @@ function Products() {
                 <h5 className="modal-title">{editId ? 'Editar producto' : 'Nuevo producto'}</h5>
                 <button type="button" className="btn-close" onClick={() => setShowForm(false)}></button>
               </div>
+              {/* Mensaje de error arriba del modal */}
+              {formError && <div className="alert alert-danger mx-3 mt-3 mb-0">{formError}</div>}
               <div className="modal-body">
                 <form ref={formRef} onSubmit={handleSubmit}>
                   <div className="row g-2">
@@ -472,7 +474,6 @@ function Products() {
                       <input type="url" name="image_url" className="form-control" value={formData.image_url} onChange={handleChange} />
                     </div>
                   </div>
-              {formError && <div className="alert alert-danger mt-3">{formError}</div>}
                 </form>
               </div>
               <div className="modal-footer">
