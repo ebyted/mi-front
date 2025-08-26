@@ -1,9 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
-import ProductSelect from '../components/ProductSelect';
+import MovementList from '../components/MovementList';
+import MovementForm from '../components/MovementForm';
+import MovementDetailsModal from '../components/MovementDetailsModal';
+import AuthorizeModal from '../components/AuthorizeModal';
+import CancelModal from '../components/CancelModal';
+import DraftModal from '../components/DraftModal';
 
 const InventoryMovements = () => {
+  useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
+  const [movements, setMovements] = useState([]);
+  const [formData, setFormData] = useState({ warehouse_id: '', type: 'IN', notes: '', details: [] });
+  const [showForm, setShowForm] = useState(false);
+  const [editingMovement, setEditingMovement] = useState(null);
+  const [currentDetail, setCurrentDetail] = useState({ product_id: '', product_variant_id: '', product_name: '', product_code: '', quantity: '', lote: '', expiration_date: '', notes: '', errorVariant: false });
+  const [hasDraft, setHasDraft] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showAuthorizeModal, setShowAuthorizeModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [showDraftModal, setShowDraftModal] = useState(false);
+
   // Cargar movimientos al montar
   useEffect(() => {
     const fetchMovements = async () => {
@@ -16,37 +36,6 @@ const InventoryMovements = () => {
     };
     fetchMovements();
   }, []);
-  // Hook para cambiar el título de la pestaña
-  useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
-  
-  const [movements, setMovements] = useState([]);
-  const [formData, setFormData] = useState({
-    warehouse_id: '',
-    type: 'IN',
-    notes: '',
-    details: []
-  });
-  const [showForm, setShowForm] = useState(false);
-  const [editingMovement, setEditingMovement] = useState(null);
-  const [currentDetail, setCurrentDetail] = useState({
-    product_id: '',
-    product_variant_id: '',
-    product_name: '',
-    product_code: '',
-    quantity: '',
-    lote: '',
-    expiration_date: '',
-    notes: '',
-    errorVariant: false
-  });
-  const [hasDraft, setHasDraft] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [showAuthorizeModal, setShowAuthorizeModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedMovement, setSelectedMovement] = useState(null);
-  const [cancellationReason, setCancellationReason] = useState('');
-  const [showDraftModal, setShowDraftModal] = useState(false);
 
   // Handler para guardar movimiento
   const handleSubmit = async (e) => {
@@ -310,58 +299,33 @@ const InventoryMovements = () => {
     <div className="container py-5">
       {/* Vista principal condicional */}
       {!showForm ? (
-        // Vista de lista
-        <div>
-          {movements.length === 0 ? (
-            <div className="alert alert-info">No hay movimientos registrados</div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-bordered">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Tipo</th>
-                    <th>Notas</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {movements.map(mov => (
-                    <tr key={mov.id}>
-                      <td>{mov.id}</td>
-                      <td>{mov.type}</td>
-                      <td>{mov.notes}</td>
-                      <td>
-                        <button className="btn btn-sm btn-info" onClick={() => setSelectedMovement(mov)}>Ver</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <>
+          <button className="btn btn-primary mb-3" onClick={() => setShowForm(true)}>➕ Nuevo Movimiento</button>
+          <MovementList movements={movements} onSelect={setSelectedMovement} />
+        </>
       ) : (
-        // Vista de formulario
-        <form onSubmit={handleSubmit} className="bg-white p-4 rounded shadow mb-4">
-          {/* ...existing code... */}
-        </form>
+        <MovementForm
+          formData={formData}
+          setFormData={setFormData}
+          handleSubmit={handleSubmit}
+          currentDetail={currentDetail}
+          setCurrentDetail={setCurrentDetail}
+          addDetail={addDetail}
+          removeDetail={removeDetail}
+          saving={saving}
+          handleCancel={handleCancel}
+          handleSaveBatch={handleSaveBatch}
+          handleLoadBatch={handleLoadBatch}
+          handleClearBatch={handleClearBatch}
+          warehouses={warehouses}
+          editingMovement={editingMovement}
+        />
       )}
 
-      {/* Modal de Autorización */}
-      {showAuthorizeModal && (
-        <>{/* ...existing code... */}</>
-      )}
-
-      {/* Modal de Cancelación */}
-      {showCancelModal && (
-        <>{/* ...existing code... */}</>
-      )}
-
-      {/* Modal de Detalles */}
-      {showDetailsModal && (
-        <>{/* ...existing code... */}</>
-      )}
+      <MovementDetailsModal show={showDetailsModal} movement={selectedMovement} onClose={() => setShowDetailsModal(false)} />
+      <AuthorizeModal show={showAuthorizeModal} movement={selectedMovement} onAuthorize={confirmAuthorize} onCancel={() => setShowAuthorizeModal(false)} />
+      <CancelModal show={showCancelModal} movement={selectedMovement} reason={cancellationReason} setReason={setCancellationReason} onCancel={() => setShowCancelModal(false)} onConfirm={confirmCancel} />
+      <DraftModal show={showDraftModal} onLoad={loadDraft} onNew={handleNew} onClose={() => setShowDraftModal(false)} />
     </div>
   );
 }
