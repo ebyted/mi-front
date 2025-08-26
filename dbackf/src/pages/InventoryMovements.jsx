@@ -889,10 +889,10 @@ const InventoryMovements = () => {
           </div>
 
           {/* Lista de productos agregados */}
-          {formData.details.length > 0 && (
-            <div className="mb-4">
-              <h5 className="text-primary mb-3">📋 Productos en el Movimiento</h5>
-              <div className="table-responsive">
+          <div className="mb-4">
+            <h5 className="text-primary mb-3">📋 Productos en el Movimiento</h5>
+            <div className="table-responsive">
+              {formData.details.length > 0 ? (
                 <table className="table table-striped table-hover">
                   <thead className="table-dark">
                     <tr>
@@ -944,21 +944,23 @@ const InventoryMovements = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
-              {/* Botones para guardar y limpiar lote de captura */}
-              <div className="d-flex gap-2 mt-3">
-                <button type="button" className="btn btn-outline-primary" onClick={handleSaveBatch}>
-                  💾 Guardar lote de captura
-                </button>
-                <button type="button" className="btn btn-outline-info" onClick={handleLoadBatch}>
-                  📂 Cargar lote de captura
-                </button>
-                <button type="button" className="btn btn-outline-danger" onClick={handleClearBatch}>
-                  🗑️ Limpiar lote
-                </button>
-              </div>
+              ) : (
+                <div className="alert alert-info">No hay productos agregados al movimiento.</div>
+              )}
             </div>
-          )}
+            {/* Botones para guardar y limpiar lote de captura */}
+            <div className="d-flex gap-2 mt-3">
+              <button type="button" className="btn btn-outline-primary" onClick={handleSaveBatch}>
+                💾 Guardar lote de captura
+              </button>
+              <button type="button" className="btn btn-outline-info" onClick={handleLoadBatch}>
+                📂 Cargar lote de captura
+              </button>
+              <button type="button" className="btn btn-outline-danger" onClick={handleClearBatch}>
+                🗑️ Limpiar lote
+              </button>
+            </div>
+          </div>
 
           {/* Botones de acción */}
           <div className="d-flex gap-2 pt-3 border-top">
