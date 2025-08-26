@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const CancelModal = ({ show, movement, reason, setReason, onCancel, onConfirm }) => {
@@ -12,7 +13,8 @@ const CancelModal = ({ show, movement, reason, setReason, onCancel, onConfirm })
           </div>
           <div className="modal-body">
             <label>Motivo de cancelación</label>
-            <textarea className="form-control" value={reason} onChange={e => setReason(e.target.value)} />
+            <textarea className="form-control mb-2" value={reason} onChange={e => setReason(e.target.value)} />
+            <div className="alert alert-warning">Esta acción no se puede deshacer.</div>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onCancel}>Volver</button>

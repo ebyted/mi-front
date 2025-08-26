@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const DraftModal = ({ show, onLoad, onNew, onClose }) => {

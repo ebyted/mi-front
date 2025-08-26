@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const AuthorizeModal = ({ show, movement, onAuthorize, onCancel }) => {
@@ -11,7 +12,10 @@ const AuthorizeModal = ({ show, movement, onAuthorize, onCancel }) => {
             <button type="button" className="btn-close" onClick={onCancel}></button>
           </div>
           <div className="modal-body">
-            {/* ...info y confirmación... */}
+            <p>¿Seguro que deseas autorizar este movimiento?</p>
+            <div><strong>Tipo:</strong> {movement.type}</div>
+            <div><strong>Notas:</strong> {movement.notes}</div>
+            <div className="mt-2 alert alert-info">Esta acción no se puede deshacer.</div>
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
