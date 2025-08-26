@@ -200,6 +200,9 @@ const InventoryMovements = () => {
       setEditingMovement(null);
       resetForm();
       fetchMovements();
+      // Eliminar draft después de guardar
+      localStorage.removeItem('inventoryMovementDraft');
+      setHasDraft(false);
     } catch (error) {
       console.error('Error saving movement:', error);
       alert('Error al guardar el movimiento: ' + (error.response?.data?.message || error.message));
@@ -357,12 +360,12 @@ const InventoryMovements = () => {
   }, [formData, showForm, editingMovement]);
 
   const handleCancel = () => {
-    setShowForm(false);
-    setEditingMovement(null);
-    resetForm();
-    // Borrar draft al cancelar
-    localStorage.removeItem('inventoryMovementDraft');
-    setHasDraft(false);
+  setShowForm(false);
+  setEditingMovement(null);
+  resetForm();
+  // Borrar draft y limpiar detalles al cancelar
+  localStorage.removeItem('inventoryMovementDraft');
+  setHasDraft(false);
   };
 
   // Unificar handleSubmit para evitar duplicidad y errores
