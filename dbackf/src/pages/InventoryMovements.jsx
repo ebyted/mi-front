@@ -47,6 +47,22 @@ const InventoryMovements = () => {
     notes: ''
   });
 
+  // Ref para el campo de búsqueda de producto
+  const productSearchRef = React.useRef(null);
+
+  // Listener global para F2
+  useEffect(() => {
+    const handleF2 = (e) => {
+      if (e.key === 'F2') {
+        if (productSearchRef.current) {
+          productSearchRef.current.focus();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleF2);
+    return () => window.removeEventListener('keydown', handleF2);
+  }, []);
+
   useEffect(() => {
     fetchMovements();
     fetchWarehouses();
@@ -706,6 +722,7 @@ const InventoryMovements = () => {
                   <div className="col-md-4 mb-3">
                     <label className="form-label">Producto</label>
                     <ProductSelect
+                      ref={productSearchRef}
                       value={currentDetail.product_id}
                       onChange={(value) => setCurrentDetail(prev => ({...prev, product_id: value}))}
                       onProductSelect={async (product) => {

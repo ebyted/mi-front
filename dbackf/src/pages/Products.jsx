@@ -429,16 +429,15 @@ function Products() {
         >
           <div
             className={`modal-dialog ${isMobile ? 'modal-fullscreen' : 'modal-lg modal-dialog-scrollable'}`}
-            onClick={e => e.stopPropagation()}
           >
-            <div className="modal-content">
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h5 className="modal-title">{editId ? 'Editar producto' : 'Nuevo producto'}</h5>
                 <button type="button" className="btn-close" onClick={() => setShowForm(false)}></button>
               </div>
               {/* Mensaje de error arriba del modal */}
               {formError && <div className="alert alert-danger mx-3 mt-3 mb-0">{formError}</div>}
-              <div className="modal-body">
+              <div className="modal-body" onClick={e => e.stopPropagation()}>
                 {editId && (
                   <div className="mb-3 text-end">
                     <button
@@ -458,7 +457,7 @@ function Products() {
                     </button>
                   </div>
                 )}
-                <form ref={formRef} onSubmit={handleSubmit}>
+                <form ref={formRef} onSubmit={handleSubmit} onClick={e => e.stopPropagation()}>
                   <div className="row g-2">
                     {/* Campo Nombre */}
                     <div className="col-12">
@@ -546,7 +545,7 @@ function Products() {
                   </div>
                 </form>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer" onClick={e => e.stopPropagation()}>
                 <button type="button" className="btn btn-outline-secondary" disabled={isSubmitting} onClick={() => setShowForm(false)}>
                   ✖ Cancelar
                 </button>
