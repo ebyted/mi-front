@@ -184,6 +184,9 @@ const InventoryMovements = () => {
       return;
     }
 
+    // Eliminar draft antes de guardar
+    localStorage.removeItem('inventoryMovementDraft');
+    setHasDraft(false);
     setSaving(true);
     try {
       const movementData = {
@@ -212,9 +215,6 @@ const InventoryMovements = () => {
       setEditingMovement(null);
       resetForm();
       fetchMovements();
-      // Eliminar draft después de guardar
-      localStorage.removeItem('inventoryMovementDraft');
-      setHasDraft(false);
     } catch (error) {
       console.error('Error saving movement:', error);
       alert('Error al guardar el movimiento: ' + (error.response?.data?.message || error.message));
