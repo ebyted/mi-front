@@ -413,7 +413,8 @@ function Products() {
                         ...fd,
                         description: fd.name,
                         minimum_stock: 0,
-                        maximum_stock: 100
+                        maximum_stock: 100,
+                        barcode: fd.sku
                       }))}
                     >
                       Valida default
