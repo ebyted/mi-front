@@ -414,7 +414,9 @@ function Products() {
                         description: fd.name,
                         minimum_stock: 0,
                         maximum_stock: 100,
-                        barcode: fd.sku
+                        barcode: fd.sku,
+                        cantidad_corrugado: 0,
+                        group:1,
                       }))}
                     >
                       Valida default
