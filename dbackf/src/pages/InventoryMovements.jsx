@@ -47,9 +47,21 @@ const InventoryMovements = () => {
             alert('El archivo debe contener un array de detalles.');
             return;
           }
+          // Normalizar detalles: eliminar id y completar campos requeridos
+          const normalized = batch.map((d) => ({
+            product_id: d.product_id ? parseInt(d.product_id) : '',
+            product_variant_id: d.product_variant_id ?? '',
+            product_name: d.product_name ?? '',
+            product_code: d.product_code ?? '',
+            quantity: d.quantity ? parseFloat(d.quantity) : '',
+            lote: d.lote ?? '',
+            expiration_date: d.expiration_date ?? '',
+            notes: d.notes ?? '',
+            // No incluir id ni campos internos del backend
+          }));
           setFormData((prev) => ({
             ...prev,
-            details: batch
+            details: normalized
           }));
           alert('Lote de captura cargado correctamente.');
         };
