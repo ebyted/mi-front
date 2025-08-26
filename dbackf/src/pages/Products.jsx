@@ -212,6 +212,7 @@ function Products() {
           group: formData.group === '' ? null : Number(formData.group),
           image_url: formData.image_url === '' ? null : formData.image_url
         };
+        console.log('PUT payload:', payload); // Debug: ver exactamente lo que se envía
         await api.put(`products/${editId}/`, payload);
         var successMsg = '¡Producto editado correctamente!';
       } else {
