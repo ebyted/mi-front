@@ -33,7 +33,8 @@ function Products() {
     status: 'REGULAR',
     is_active: true,
     group: '',
-    image_url: ''
+    image_url: '',
+    business: ''
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +118,8 @@ function Products() {
       status: product.status || 'REGULAR',
       is_active: product.is_active ?? true,
       group: product.group || '',
-      image_url: product.image_url || ''
+      image_url: product.image_url || '',
+      business: typeof product.business === 'object' ? product.business?.id : product.business || ''
     });
     setShowForm(true);
     setTimeout(() => {
@@ -145,7 +147,8 @@ function Products() {
       status: 'REGULAR',
       is_active: true,
       group: '',
-      image_url: ''
+      image_url: '',
+      business: ''
     });
     setShowForm(true);
   };
@@ -172,10 +175,11 @@ function Products() {
     // Solo pedir variante en alta, no en edición
     if (!editId && !formData.productVariantId) errors.push('Selecciona una variante');
     // Validar campos obligatorios
-    if (!formData.name || !formData.name.trim()) errors.push('Nombre es obligatorio');
-    if (!formData.sku || !formData.sku.trim()) errors.push('SKU es obligatorio');
-    if (!formData.brand) errors.push('Marca es obligatoria');
-    if (!formData.category) errors.push('Categoría es obligatoria');
+  if (!formData.name || !formData.name.trim()) errors.push('Nombre es obligatorio');
+  if (!formData.sku || !formData.sku.trim()) errors.push('SKU es obligatorio');
+  if (!formData.brand) errors.push('Marca es obligatoria');
+  if (!formData.category) errors.push('Categoría es obligatoria');
+  if (!formData.business) errors.push('Negocio es obligatorio');
     // Validar campos numéricos
     if (formData.minimum_stock && (isNaN(formData.minimum_stock) || parseFloat(formData.minimum_stock) < 0)) errors.push('Stock mínimo inválido');
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) errors.push('Stock máximo inválido');
@@ -214,7 +218,8 @@ function Products() {
           status: formData.status === '' ? null : formData.status,
           is_active: formData.is_active,
           group: formData.group === '' ? null : Number(formData.group),
-          image_url: formData.image_url === '' ? null : formData.image_url
+          image_url: formData.image_url === '' ? null : formData.image_url,
+          business: formData.business === '' ? null : Number(formData.business)
         };
         console.log('PUT payload:', payload); // Debug: ver exactamente lo que se envía
         await api.put(`products/${editId}/`, payload);
@@ -395,6 +400,11 @@ function Products() {
               <div className="modal-body">
                 <form ref={formRef} onSubmit={handleSubmit}>
                   <div className="row g-2">
+                    {/* Campo Negocio (business) */}
+                    <div className="col-12">
+                      <label className="form-label fw-bold">Negocio</label>
+                      <input type="number" name="business" className="form-control" value={formData.business} onChange={handleChange} required />
+                    </div>
                     {/* Eliminado ProductSelect. Si necesitas otro campo aquí, agrégalo debajo. */}
                     {/* Aquí podrías agregar un select para variantes si ProductSelect no lo maneja */}
                     <div className="col-12">
@@ -431,31 +441,31 @@ function Products() {
                     </div>
                     <div className="col-12">
                       <label className="form-label fw-bold">Descripción</label>
-                      <textarea name="description" className="form-control" value={formData.description} onChange={handleChange} rows={isMobile ? 4 : 3} />
+                      <textarea name="description" className="form-control" value={formData.description} onChange={handleChange} rows={isMobile ? 4 : 3} required />
                     </div>
                     <div className="col-12">
                       <label className="form-label fw-bold">Código de Barras</label>
-                      <input type="text" name="barcode" className="form-control" value={formData.barcode} onChange={handleChange} />
+                      <input type="text" name="barcode" className="form-control" value={formData.barcode} onChange={handleChange} required />
                     </div>
                     <div className="col-6">
                       <label className="form-label fw-bold">Stock Mínimo</label>
-                      <input type="number" name="minimum_stock" className="form-control" value={formData.minimum_stock} onChange={handleChange} min="0" />
+                      <input type="number" name="minimum_stock" className="form-control" value={formData.minimum_stock} onChange={handleChange} min="0" required />
                     </div>
                     <div className="col-6">
                       <label className="form-label fw-bold">Stock Máximo</label>
-                      <input type="number" name="maximum_stock" className="form-control" value={formData.maximum_stock} onChange={handleChange} min="0" />
+                      <input type="number" name="maximum_stock" className="form-control" value={formData.maximum_stock} onChange={handleChange} min="0" required />
                     </div>
                     <div className="col-6">
                       <label className="form-label fw-bold">Cantidad Corrugado</label>
-                      <input type="number" name="cantidad_corrugado" className="form-control" value={formData.cantidad_corrugado} onChange={handleChange} min="0" />
+                      <input type="number" name="cantidad_corrugado" className="form-control" value={formData.cantidad_corrugado} onChange={handleChange} min="0" required />
                     </div>
                     <div className="col-6">
                       <label className="form-label fw-bold">Grupo</label>
-                      <input type="number" name="group" className="form-control" value={formData.group} onChange={handleChange} min="0" />
+                      <input type="number" name="group" className="form-control" value={formData.group} onChange={handleChange} min="0" required />
                     </div>
                     <div className="col-6">
                       <label className="form-label fw-bold">Estado</label>
-                      <select name="status" className="form-select" value={formData.status} onChange={handleChange}>
+                      <select name="status" className="form-select" value={formData.status} onChange={handleChange} required>
                         <option value="REGULAR">Regular</option>
                         <option value="NUEVO">Nuevo</option>
                         <option value="OFERTA">Oferta</option>
