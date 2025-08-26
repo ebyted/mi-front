@@ -198,6 +198,8 @@ function Products() {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
+      // Limpiar status inválido antes de enviar
+      let safeStatus = formData.status === 'NORMAL' ? 'REGULAR' : formData.status;
       // Limpiar payload para PUT (edición)
       if (editId) {
         // Solo enviar los campos esperados por el backend
@@ -211,7 +213,7 @@ function Products() {
           minimum_stock: formData.minimum_stock === '' ? null : Number(formData.minimum_stock),
           maximum_stock: formData.maximum_stock === '' ? null : Number(formData.maximum_stock),
           cantidad_corrugado: formData.cantidad_corrugado === '' ? null : Number(formData.cantidad_corrugado),
-          status: formData.status === '' ? null : formData.status,
+          status: safeStatus === '' ? null : safeStatus,
           is_active: formData.is_active,
           group: formData.group === '' ? null : Number(formData.group),
           image_url: formData.image_url === '' ? null : formData.image_url,
@@ -221,7 +223,9 @@ function Products() {
         await api.put(`products/${editId}/`, payload);
         var successMsg = '¡Producto editado correctamente!';
       } else {
-        await api.post('products/', formData);
+        // Para alta, también limpiar status
+        let postData = { ...formData, status: safeStatus };
+        await api.post('products/', postData);
         var successMsg = '¡Producto creado correctamente!';
       }
       setShowForm(false);
