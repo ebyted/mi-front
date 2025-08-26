@@ -912,6 +912,9 @@ const InventoryMovements = () => {
                 <button type="button" className="btn btn-outline-primary" onClick={handleSaveBatch}>
                   💾 Guardar lote de captura
                 </button>
+                <button type="button" className="btn btn-outline-info" onClick={handleLoadBatch}>
+                  📂 Cargar lote de captura
+                </button>
                 <button type="button" className="btn btn-outline-danger" onClick={handleClearBatch}>
                   🗑️ Limpiar lote
                 </button>
