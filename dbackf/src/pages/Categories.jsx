@@ -34,10 +34,21 @@ function Categories() {
       .finally(() => setLoading(false));
   };
 
-  const filteredCategories = categories.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.code && c.code.toLowerCase().includes(search.toLowerCase()))
-  );
+  const [filteredCategories, setFilteredCategories] = useState([]);
+
+  useEffect(() => {
+    setFilteredCategories(categories.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.code && c.code.toLowerCase().includes(search.toLowerCase()))
+    ));
+  }, [categories]);
+
+  const applyFilter = () => {
+    setFilteredCategories(categories.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.code && c.code.toLowerCase().includes(search.toLowerCase()))
+    ));
+  };
 
   const handleChange = e => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -111,7 +122,7 @@ function Categories() {
       </div>
       
       <div className="row mb-3">
-        <div className="col">
+        <div className="col-8 col-md-10">
           <input
             type="text"
             className="form-control"
@@ -119,6 +130,14 @@ function Categories() {
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+        </div>
+        <div className="col-4 col-md-2 d-flex gap-2">
+          <button className="btn btn-warning w-100" onClick={applyFilter} title="Aplicar filtro">
+            <i className="bi bi-funnel"></i> Aplicar filtro
+          </button>
+          <button className="btn btn-outline-danger w-100" onClick={() => { setSearch(''); setFilteredCategories(categories); }} title="Limpiar filtro">
+            <i className="bi bi-x-circle"></i> Limpiar filtro
+          </button>
         </div>
       </div>
       

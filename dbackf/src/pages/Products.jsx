@@ -411,7 +411,7 @@ function Products() {
                   })()}</td>
                   <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
                   <td>
-                    <button className="btn btn-sm btn-outline-primary" onClick={() => handleEdit(p)}>✏️</button>
+                    <button className="btn btn-sm btn-outline-primary" onClick={() => p && p.id != null ? handleEdit(p) : null} disabled={!p || p.id == null}>✏️</button>
                   </td>
                 </tr>
             ))}
