@@ -15,21 +15,23 @@ const InventoryMovements = () => {
   const [warehouses, setWarehouses] = useState([]);
   // Eliminada declaración duplicada de showDraftModal/setShowDraftModal
 
-    // Mostrar detalles, autorizar y cancelar desde la lista
-    const handleViewDetails = (movement) => {
-      setSelectedMovement(movement);
-      setShowDetailsModal(true);
-    };
+  // ...existing code...
 
-    const handleAuthorize = (movement) => {
-      setSelectedMovement(movement);
-      setShowAuthorizeModal(true);
-    };
+  // Mostrar detalles, autorizar y cancelar desde la lista
+  const handleViewDetails = (movement) => {
+    setSelectedMovement(movement);
+    setShowDetailsModal(true);
+  };
 
-    const handleCancelMovement = (movement) => {
-      setSelectedMovement(movement);
-      setShowCancelModal(true);
-    };
+  const handleAuthorize = (movement) => {
+    setSelectedMovement(movement);
+    setShowAuthorizeModal(true);
+  };
+
+  const handleCancelMovement = (movement) => {
+    setSelectedMovement(movement);
+    setShowCancelModal(true);
+  };
   const [showForm, setShowForm] = useState(false);
   const [editingMovement, setEditingMovement] = useState(null);
   const [currentDetail, setCurrentDetail] = useState({ product_id: '', product_variant_id: '', product_name: '', product_code: '', quantity: '', lote: '', expiration_date: '', notes: '', errorVariant: false });
