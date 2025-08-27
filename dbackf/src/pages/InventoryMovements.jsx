@@ -4,6 +4,7 @@ import useDocumentTitle from '../hooks/useDocumentTitle';
 import MovementList from '../components/MovementList';
 import MovementForm from '../components/MovementForm';
 import MovementDetailsModal from '../components/MovementDetailsModal';
+import MovementDetailsTable from '../components/MovementDetailsTable';
 import AuthorizeModal from '../components/AuthorizeModal';
 import CancelModal from '../components/CancelModal';
 import DraftModal from '../components/DraftModal';
@@ -419,11 +420,29 @@ const InventoryMovements = () => {
         )}
 
         {/* Modales funcionales y completos */}
-        <MovementDetailsModal
-          show={showDetailsModal}
-          movement={selectedMovement}
-          onClose={() => setShowDetailsModal(false)}
-        />
+        {showDetailsModal && selectedMovement && (
+          <div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+            <div className="modal-dialog modal-lg">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Detalles del Movimiento #{selectedMovement.id}</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowDetailsModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-2"><strong>Almacén:</strong> {selectedMovement.warehouse_name || selectedMovement.warehouse_id}</div>
+                  <div className="mb-2"><strong>Tipo:</strong> {selectedMovement.type}</div>
+                  <div className="mb-2"><strong>Notas:</strong> {selectedMovement.notes}</div>
+                  <hr />
+                  <h6>Productos</h6>
+                  <MovementDetailsTable details={selectedMovement.details || []} />
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowDetailsModal(false)}>Cerrar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <AuthorizeModal
           show={showAuthorizeModal}
           movement={selectedMovement}
