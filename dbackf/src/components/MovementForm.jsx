@@ -105,6 +105,7 @@ const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setC
           <tr>
             <th>#</th>
             <th>ID Producto</th>
+            <th>Nombre Producto</th>
             <th>ID Variante</th>
             <th>Cantidad</th>
             <th>Lote</th>
@@ -118,6 +119,7 @@ const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setC
             <tr key={idx}>
               <td>{idx + 1}</td>
               <td>{d.product_id}</td>
+              <td>{d.product_name}</td>
               <td>{d.product_variant_id}</td>
               <td>{d.quantity}</td>
               <td>{d.lote}</td>
