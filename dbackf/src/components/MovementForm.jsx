@@ -132,8 +132,9 @@ const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setC
 
     <div className="mb-3">
       <button type="button" className="btn btn-outline-primary me-2" onClick={handleSaveBatch}>Guardar lote</button>
-      <button type="button" className="btn btn-outline-info me-2" onClick={handleLoadBatchFile}>Cargar lote</button>
-      <input type="file" accept="application/json" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
+  <button type="button" className="btn btn-outline-info me-2" onClick={handleLoadBatchFile} id="btn-cargar-lote">Cargar lote</button>
+  <input type="file" accept="application/json" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} id="input-cargar-lote" />
+  <small className="text-muted ms-2">Selecciona un archivo JSON exportado previamente.</small>
       <button type="button" className="btn btn-outline-warning" onClick={handleClearBatch}>Limpiar lote</button>
     </div>
 
