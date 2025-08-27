@@ -236,20 +236,34 @@ const InventoryMovements = () => {
     setShowForm(true);
   };
 
+  // Función para limpiar el formulario y el detalle actual
+  const resetForm = () => {
+    setFormData({
+      warehouse_id: '',
+      type: 'IN',
+      notes: '',
+      details: []
+    });
+    setCurrentDetail({
+      product_id: '',
+      product_variant_id: '',
+      product_name: '',
+      product_code: '',
+      quantity: '',
+      lote: '',
+      expiration_date: '',
+      notes: '',
+      errorVariant: false
+    });
+  };
+
   const handleNew = () => {
-  // Al iniciar nuevo movimiento, limpiar draft y estado
-  localStorage.removeItem('inventoryMovementDraft');
-  setHasDraft(false);
-  resetForm();
-  setEditingMovement(null);
-  setFormData({
-    warehouse_id: '',
-    type: 'IN',
-    notes: '',
-    details: []
-  });
-  console.log('[handleNew] Estado limpio, detalles:', []);
-  setShowForm(true);
+    // Al iniciar nuevo movimiento, limpiar draft y estado
+    localStorage.removeItem('inventoryMovementDraft');
+    setHasDraft(false);
+    resetForm();
+    setEditingMovement(null);
+    setShowForm(true);
   };
   // Guardar draft en cada cambio relevante
   useEffect(() => {

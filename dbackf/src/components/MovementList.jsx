@@ -22,7 +22,15 @@ const MovementList = ({ movements, onView, onEdit, onAuthorize, onCancel }) => (
           movements.map(mov => (
             <tr key={mov.id} className="align-middle">
               <td className="text-center fw-bold text-primary">{mov.id}</td>
-              <td><span className={`badge bg-${mov.type === 'IN' ? 'info' : 'warning'} text-dark`}>{mov.type}</span></td>
+              <td>
+                {mov.type === 'IN' || mov.movement_type === 'IN' ? (
+                  <span className="badge bg-success">Ingreso</span>
+                ) : mov.type === 'OUT' || mov.movement_type === 'OUT' ? (
+                  <span className="badge bg-danger">Egreso</span>
+                ) : (
+                  <span className="text-muted">Sin tipo</span>
+                )}
+              </td>
               <td>{mov.notes}</td>
               <td className="text-center">
                 <button className="btn btn-outline-primary btn-xs me-1" title="Ver" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onView(mov)}>
