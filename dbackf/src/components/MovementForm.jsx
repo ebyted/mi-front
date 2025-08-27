@@ -1,9 +1,46 @@
 
-import React from 'react';
+import React, { useRef } from 'react';
 import ProductSelect from './ProductSelect';
 
-const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setCurrentDetail, addDetail, removeDetail, saving, handleCancel, handleSaveBatch, handleLoadBatch, handleClearBatch, warehouses, editingMovement }) => (
-  <form onSubmit={handleSubmit} className="bg-white p-4 rounded shadow mb-4">
+const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setCurrentDetail, addDetail, removeDetail, saving, handleCancel, handleSaveBatch, handleLoadBatch, handleClearBatch, warehouses, editingMovement }) => {
+  const fileInputRef = useRef();
+
+  // Cargar lote desde archivo JSON
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const batch = JSON.parse(ev.target.result);
+        if (!Array.isArray(batch)) throw new Error('El archivo no tiene formato de lote válido');
+        const cleanedDetails = batch.map(d => ({
+          product_id: d.product_id ? parseInt(d.product_id) : '',
+          product_variant_id: d.product_variant_id ?? '',
+          product_name: d.product_name ?? '',
+          product_code: d.product_code ?? '',
+          quantity: d.quantity ? parseFloat(d.quantity) : '',
+          lote: d.lote ?? '',
+          expiration_date: d.expiration_date ?? '',
+          notes: d.notes ?? ''
+        }));
+        setFormData(f => ({ ...f, details: cleanedDetails }));
+        alert('Lote cargado correctamente');
+      } catch (err) {
+        alert('Error al cargar lote: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Botón para abrir el input file
+  const handleLoadBatchFile = () => {
+    if (fileInputRef.current) fileInputRef.current.value = null;
+    fileInputRef.current.click();
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white p-4 rounded shadow mb-4">
     <div className="row mb-3">
       <div className="col-md-4">
         <label>Almacén</label>
@@ -95,13 +132,15 @@ const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setC
 
     <div className="mb-3">
       <button type="button" className="btn btn-outline-primary me-2" onClick={handleSaveBatch}>Guardar lote</button>
-      <button type="button" className="btn btn-outline-info me-2" onClick={handleLoadBatch}>Cargar lote</button>
+      <button type="button" className="btn btn-outline-info me-2" onClick={handleLoadBatchFile}>Cargar lote</button>
+      <input type="file" accept="application/json" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} />
       <button type="button" className="btn btn-outline-warning" onClick={handleClearBatch}>Limpiar lote</button>
     </div>
 
     <button type="submit" disabled={saving} className="btn btn-primary">{editingMovement ? 'Actualizar' : 'Guardar'}</button>
     <button type="button" onClick={handleCancel} className="btn btn-secondary ms-2">Cancelar</button>
   </form>
-);
+  );
+};
 
 export default MovementForm;
