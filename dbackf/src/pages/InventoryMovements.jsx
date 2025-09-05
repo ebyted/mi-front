@@ -91,13 +91,23 @@ const InventoryMovements = () => {
       };
 
       if (editingMovement) {
-        await api.put(`/inventory-movements/${editingMovement.id}/`, movementData);
-        alert('Movimiento actualizado exitosamente');
-        fetchMovements();
+        if (!formData.details || formData.details.length === 0) {
+          alert('No hay productos capturados para guardar.');
+          return;
+        } else {
+          await api.put(`/inventory-movements/${editingMovement.id}/`, movementData);
+          alert('Movimiento actualizado exitosamente');
+          fetchMovements();
+        }
       } else {
-        await api.post('/inventory-movements/', movementData);
-        alert('Movimiento creado exitosamente');
-        fetchMovements();
+         if (!formData.details || formData.details.length === 0) {
+          alert('No hay productos capturados para guardar.');
+          return;
+        }{
+          await api.post('/inventory-movements/', movementData);
+          alert('Movimiento creado exitosamente');
+          fetchMovements();
+        }
       }
 
       setShowForm(false);
