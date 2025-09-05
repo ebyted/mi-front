@@ -142,10 +142,20 @@ class ProductVariantSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField(source='product.id', read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_sku = serializers.CharField(source='product.sku', read_only=True)
+    price = serializers.DecimalField(source='sale_price', max_digits=12, decimal_places=2, read_only=True)
+    stock = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = ProductVariant
-        fields = ['id', 'name', 'sku', 'is_main', 'price', 'stock', 'product_id', 'product_name', 'product_sku']
+        fields = ['id', 'name', 'sku', 'price', 'stock', 'product_id', 'product_name', 'product_sku']
+    
+    def get_stock(self, obj):
+        try:
+            from django.db.models import Sum
+            total = ProductWarehouseStock.objects.filter(product_variant=obj).aggregate(Sum('quantity'))['quantity__sum']
+            return float(total or 0)
+        except Exception:
+            return 0
 
 class WarehouseSerializer(serializers.ModelSerializer):
     business = serializers.PrimaryKeyRelatedField(queryset=Business.objects.all(), required=False, allow_null=True)
@@ -232,6 +242,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'order_date': {'required': False},
             'status': {'required': False},
+            'total_amount': {'required': False},
         }
     
     def get_supplier_detail(self, obj):
@@ -250,15 +261,22 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         
         # Asignar business automáticamente
         request = self.context.get('request')
-        if request and hasattr(request.user, 'business'):
+        if request and hasattr(request.user, 'business') and request.user.business:
             validated_data['business'] = request.user.business
         elif request and hasattr(request.user, 'userprofile') and request.user.userprofile.business:
             validated_data['business'] = request.user.userprofile.business
         else:
+            # Usar el primero o crearlo si no existe ninguno
             from .models import Business
             first_business = Business.objects.first()
-            if first_business:
-                validated_data['business'] = first_business
+            if not first_business:
+                # Crear un business por defecto si no existe ninguno
+                first_business = Business.objects.create(
+                    name="Empresa Principal",
+                    code="EMP001",
+                    description="Empresa creada automáticamente"
+                )
+            validated_data['business'] = first_business
         
         # Establecer valores por defecto
         if 'status' not in validated_data:
