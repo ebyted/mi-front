@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 
 function SalesOrders() {
@@ -228,10 +228,14 @@ function SalesOrders() {
   };
 
   const handleEditOrder = (order) => {
+    const formattedDate = order.order_date
+    ? new Date(order.order_date).toISOString().slice(0,16)
+    : '';
+
     setEditingOrder(order);
     setFormData({
       customer: order.customer?.id || '',
-      order_date: order.order_date || '',
+      order_date: formattedDate || '',
       status: order.status || '',
       total_amount: order.total_amount || ''
     });
@@ -277,19 +281,20 @@ function SalesOrders() {
   };
 
   // Filtrar pedidos con manejo seguro de datos
-  const filteredOrders = orders.filter(order => {
-    if (!order) return false;
-    
-    const customerName = order.customer?.name || '';
-    const orderId = order.id?.toString() || '';
-    const orderStatus = order.status || '';
-    
-    const matchesSearch = searchTerm === '' || 
-      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      orderId.includes(searchTerm);
-    const matchesStatus = statusFilter === '' || orderStatus === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (!order) return false;
+      const customerName = order.customer?.name || '';
+      const orderId = order.id?.toString() || '';
+      const orderStatus = order.status || '';
+      const matchesSearch = searchTerm.trim() === '' ||
+        customerName.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
+        orderId.includes(searchTerm.trim());
+
+      const matchesStatus = statusFilter === '' || orderStatus === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, searchTerm, statusFilter]);
 
   // Estadísticas con manejo seguro de datos
   const stats = {
