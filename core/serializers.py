@@ -78,6 +78,7 @@ class UnitSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProductSerializer(serializers.ModelSerializer):
+    business = serializers.PrimaryKeyRelatedField(read_only=True)
     price = serializers.SerializerMethodField(read_only=True)
     variants = serializers.SerializerMethodField(read_only=True)
     current_stock = serializers.SerializerMethodField(read_only=True)
@@ -137,6 +138,26 @@ class ProductSerializer(serializers.ModelSerializer):
             return max(0, total_stock)
         except Exception:
             return 0
+
+    def create(self, validated_data):
+        # Asignar automáticamente el business del usuario actual
+        request = self.context.get('request')
+        if request and hasattr(request.user, 'business') and request.user.business:
+            validated_data['business'] = request.user.business
+        elif request and hasattr(request.user, 'userprofile') and getattr(request.user.userprofile, 'business', None):
+            validated_data['business'] = request.user.userprofile.business
+        else:
+            # Usar el primer business disponible
+            first_business = Business.objects.first()
+            if not first_business:
+                first_business = Business.objects.create(
+                    name="Empresa Principal",
+                    code="EMP001",
+                    description="Empresa creada automáticamente"
+                )
+            validated_data['business'] = first_business
+
+        return super().create(validated_data)
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField(source='product.id', read_only=True)
@@ -625,8 +646,7 @@ class SalesOrderSerializer(serializers.ModelSerializer):
                             'id': order_item.id,
                             'product': {
                                 'id': product.id if product else None,
-                                'name': product.name if product else 'Producto desconocido',
-                                'code': product.code if product else ''
+                                'name': product.name if product else 'Producto desconocido'
                             },
                             'quantity': float(order_item.quantity),
                             'price': float(order_item.unit_price),
@@ -719,6 +739,86 @@ class SalesOrderSerializer(serializers.ModelSerializer):
         
         logger.info(f"📦 Total items creados: {created_items}")
         return sales_order
+
+    def update(self, instance, validated_data):
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Extraer items si vienen en el payload para manejarlos manualmente
+        items_data = validated_data.pop('items', None)
+
+        # Actualizar campos simples de la orden
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Si no se enviaron items, terminar aquí
+        if items_data is None:
+            return instance
+
+        created_items = 0
+        updated_items = 0
+
+        for item_data in items_data:
+            try:
+                item_id = item_data.get('id')
+
+                # Resolver product_variant desde product_variant o product
+                product_variant = None
+                product_variant_id = item_data.get('product_variant')
+                product_id = item_data.get('product')
+
+                if product_variant_id:
+                    try:
+                        product_variant = ProductVariant.objects.get(id=product_variant_id)
+                    except ProductVariant.DoesNotExist:
+                        logger.warning(f"📦 ProductVariant no encontrado con ID: {product_variant_id}")
+                        continue
+                elif product_id:
+                    try:
+                        product = Product.objects.get(id=product_id)
+                        product_variant = ProductVariant.objects.filter(product=product).first()
+                        if not product_variant:
+                            logger.warning(f"📦 No se encontró ProductVariant para Product ID: {product_id}")
+                            continue
+                    except Product.DoesNotExist:
+                        logger.error(f"📦 Product no encontrado con ID: {product_id}")
+                        continue
+
+                unit_price = float(item_data.get('price', 0))
+                quantity = float(item_data.get('quantity', 1))
+                total_price = unit_price * quantity
+
+                if item_id:
+                    # Actualizar existente perteneciente a esta orden
+                    try:
+                        order_item = instance.items.get(id=item_id)
+                    except SalesOrderItem.DoesNotExist:
+                        logger.warning(f"📦 SalesOrderItem {item_id} no pertenece a la orden {instance.id}")
+                        continue
+                    if product_variant is not None:
+                        order_item.product_variant = product_variant
+                    order_item.quantity = quantity
+                    order_item.unit_price = unit_price
+                    order_item.total_price = total_price
+                    order_item.save()
+                    updated_items += 1
+                else:
+                    # Crear nuevo
+                    SalesOrderItem.objects.create(
+                        sales_order=instance,
+                        product_variant=product_variant,
+                        quantity=quantity,
+                        unit_price=unit_price,
+                        total_price=total_price
+                    )
+                    created_items += 1
+            except Exception as e:
+                logger.error(f"📦 Error procesando SalesOrderItem en update: {e}")
+                continue
+
+        logger.info(f"📦 Items creados: {created_items}, items actualizados: {updated_items}")
+        return instance
 
 class SalesOrderItemSerializer(serializers.ModelSerializer):
     class Meta:
