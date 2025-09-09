@@ -10,7 +10,7 @@ function SalesOrders() {
   const [formError, setFormError] = useState('');
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [details, setDetails] = useState([{ product: '', quantity: '', price: '' }]);
+  const [details, setDetails] = useState([{ product: '', quantity: '', price: '', id:'' }]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [saving, setSaving] = useState(false);
@@ -102,7 +102,7 @@ function SalesOrders() {
   };
 
   const addDetail = () => {
-    setDetails([...details, { product: '', quantity: '', price: '' }]);
+    setDetails([...details, { product: '', quantity: '', price: '', id:'' }]);
   };
 
   const removeDetail = idx => {
@@ -140,6 +140,7 @@ function SalesOrders() {
         status: formData.status,
         total_amount: parseFloat(formData.total_amount),
         items: details.map(detail => ({
+          id: detail.id,
           product: parseInt(detail.product),
           quantity: parseFloat(detail.quantity),
           price: parseFloat(detail.price)
@@ -205,7 +206,7 @@ function SalesOrders() {
       setShowForm(false);
       setEditingOrder(null);
       setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
-      setDetails([{ product: '', quantity: '', price: '' }]);
+      setDetails([{ product: '', quantity: '', price: '',id:'' }]);
     } catch (error) {
       console.error('Error creating order:', error);
       if (error.response?.data) {
@@ -242,7 +243,8 @@ function SalesOrders() {
     setDetails(order.items?.map(item => ({
       product: item.product?.id || item.product || '',
       quantity: item.quantity || '',
-      price: item.price || ''
+      price: item.price || '',
+      id: item.id || ''
     })) || [{ product: '', quantity: '', price: '' }]);
     setShowForm(true);
   };
@@ -546,7 +548,7 @@ function SalesOrders() {
                   setShowForm(false);
                   setEditingOrder(null);
                   setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
-                  setDetails([{ product: '', quantity: '', price: '' }]);
+                  setDetails([{ product: '', quantity: '', price: '',id:'' }]);
                 }}></button>
               </div>
               <form onSubmit={handleSubmit}>
