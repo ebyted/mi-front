@@ -23,7 +23,7 @@ from .views import (
     ExchangeRateViewSet, CustomerTypeViewSet, CustomerViewSet, SalesOrderViewSet, SalesOrderItemViewSet,
     QuotationViewSet, QuotationItemViewSet, RoleViewSet, MenuOptionViewSet,
     ProductImportView, BrandImportView,
-    AuditLogViewSet, CurrentInventoryView, user_menu_options,
+    AuditLogViewSet, CurrentInventoryView, InventoryGeneralView, user_menu_options,
     WarehouseListView, InventoryMovementViewSet, InventoryMovementDetailViewSet, CustomerPaymentViewSet, SupplierPaymentViewSet,
     UserProfileView
 )
@@ -103,6 +103,7 @@ urlpatterns = [
     # path('authorize-inventory-movement/', AuthorizeInventoryMovementView.as_view(), name='authorize-inventory-movement'),
     # path('cancel-movement/<int:movement_id>/', CancelMovementView.as_view(), name='cancel-movement'),
     path('current-inventory/', CurrentInventoryView.as_view(), name='current-inventory'),
+    path('inventory-general/', InventoryGeneralView.as_view(), name='current-inventory'),
     path('user-menu-options/', user_menu_options, name='user-menu-options'),
     path('products/<int:pk>/kardex/', ProductKardexView.as_view(), name='product-kardex'),
     # Endpoint de perfil de usuario
