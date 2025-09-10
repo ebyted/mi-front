@@ -5,25 +5,29 @@ import { api } from '../services/api';
 const ProductShow = ({ product }) => {
   const [inventory, setInventory] = useState(null);
   const [loadingInventory, setLoadingInventory] = useState(false);
+  console.log("invetory product",inventory)
+  console.log("product",product)
 
-  useEffect(() => {
-    // Validar que el product_variant_id sea válido y mayor a 0
-    if (product && product.product_variant_id && Number(product.product_variant_id) > 0) {
-      setLoadingInventory(true);
-      api.get(`/inventory/?variant_id=${product.product_variant_id}`)
-        .then(resp => {
-          setInventory(resp.data);
-        })
-        .catch(() => {
-          setInventory(null);
-        })
-        .finally(() => {
-          setLoadingInventory(false);
-        });
-    } else {
-      setInventory(null);
-    }
-  }, [product]);
+  // useEffect(() => {
+  //   console.log("product in effect:", product)
+  //   // Validar que el product_variant_id sea válido y mayor a 0
+  //   if (product && product.id && Number(product.id) > 0) {
+  //     setLoadingInventory(true);
+  //     api.get(`/inventory/?variant_id=${product.id}`)
+  //       .then(resp => {
+  //         console.log("resp",resp)
+  //         setInventory(resp.data);
+  //       })
+  //       .catch(() => {
+  //         setInventory(null);
+  //       })
+  //       .finally(() => {
+  //         setLoadingInventory(false);
+  //       });
+  //   } else {
+  //     setInventory(null);
+  //   }
+  // }, [product]);
 
   if (!product) return null;
 
@@ -52,7 +56,9 @@ const ProductShow = ({ product }) => {
               Stock: {product.current_stock}
             </span>
             <span className="badge bg-primary ms-2 fs-5">
-              ${parseFloat(product.price).toFixed(2)}
+              {isNaN(parseFloat(product.price))
+                ? "$0.00"
+                : `$${parseFloat(product.price).toFixed(2)}`}
             </span>
           </div>
           <div className="mb-2">
@@ -71,11 +77,11 @@ const ProductShow = ({ product }) => {
             <h5 className="text-primary">Inventario relacionado</h5>
             {loadingInventory ? (
               <div className="text-muted">Cargando inventario...</div>
-            ) : inventory && Array.isArray(inventory) && inventory.length > 0 ? (
+            ) : product?.variants && product.variants.length > 0 ? (
               <ul className="list-group">
-                {inventory.map((inv, idx) => (
+                {product.variants.map((inv, idx) => (
                   <li key={idx} className="list-group-item">
-                    <strong>Almacén:</strong> {inv.warehouse_name || inv.warehouse}
+                    <strong>Almacén:</strong> {inv.warehouse_name || inv.warehouse || 'N/A'}
                     {' | '}<strong>Stock:</strong> {inv.stock}
                   </li>
                 ))}
