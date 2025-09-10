@@ -337,7 +337,7 @@ class PurchaseOrderReceiptItemSerializer(serializers.ModelSerializer):
 
 class InventoryMovementDetailSerializer(serializers.ModelSerializer):
     # Campos de lectura para mostrar información del producto
-    product_variant_id = serializers.IntegerField(write_only=True, required=False)
+    product_variant_id = serializers.IntegerField(required=False)
     product_variant_name = serializers.CharField(source='product_variant.name', read_only=True)
     product_name = serializers.CharField(source='product_variant.product.name', read_only=True)
     product_code = serializers.CharField(source='product_variant.sku', read_only=True)
@@ -599,7 +599,7 @@ class CustomerSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Asignar automáticamente el business del usuario actual
         request = self.context.get('request')
-        if request and hasattr(request.user, 'business'):
+        if request and hasattr(request.user, 'business') and request.user.business:
             validated_data['business'] = request.user.business
         elif request and hasattr(request.user, 'userprofile') and request.user.userprofile.business:
             validated_data['business'] = request.user.userprofile.business
