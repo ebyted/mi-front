@@ -541,10 +541,8 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   // Filtrar productos
   const getFilteredProducts = () => {
-    // console.log("productss",products)
     const filtered = products.filter(product => {
       // Filtro de búsqueda
-      // console.log("product,price=>",product)
       if (search) {
         const searchLower = search.toLowerCase();
         const matchesSearch = 
@@ -566,8 +564,26 @@ const EnhancedTijuanaStore = ({ user }) => {
       if (priceRange.max && finalPrice > parseFloat(priceRange.max)) return false;
 
       return true;
-    })
-    // console.log("filterrr",filtered)
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'price':
+          return (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price) - 
+                 (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price);
+        case 'price-desc':
+          return (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price) - 
+                 (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price);
+        case 'stock':
+          return b.stock - a.stock;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'discount':
+          return b.discount - a.discount;
+        case 'name':
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+    console.log("filterrr",filtered)
     return filtered;
   };
 
@@ -1886,7 +1902,7 @@ const EnhancedTijuanaStore = ({ user }) => {
             </div>
             <div className="col-md-3">
               <div className="text-muted text-center pt-2">
-                {page} de {products.length} productos
+                {page} de {filteredProducts.length} productos
               </div>
             </div>
           </div>

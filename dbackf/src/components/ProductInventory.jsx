@@ -66,7 +66,9 @@ const ProductInventory = ({ selectedProductObj }) => {
         .then(res => setProducts(res.data.results || res.data))
         .catch(() => setProducts([]));
     } else {
-      setProducts([]);
+      api.get('/inventory-general/')
+        .then(res => setProducts(res.data.results || res.data))
+        .catch(() => setProducts([]));
     }
   }, [selectedWarehouse, filterProduct, filterBrand, filterCategory]);
 

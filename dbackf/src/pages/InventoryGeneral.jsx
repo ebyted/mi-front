@@ -21,7 +21,7 @@ const InventoryGeneral = () => {
     api.get(`/product-variants/${selectedProductId}/`).then(res => {
       const variant = res.data;
       // Obtener el producto completo
-      api.get(`/products/${variant.product}/`).then(resp => {
+      api.get(`/products/${variant.product_id}/`).then(resp => {
         setProduct({ ...resp.data, variant });
       });
     });
@@ -52,7 +52,7 @@ const InventoryGeneral = () => {
         </div>
       ) : (
         selectedProductId && (
-          <ProductInventory product={product} inventoryMovements={inventoryMovements} />
+          <ProductInventory selectedProductObj={product} inventoryMovements={inventoryMovements} />
         )
       )}
     </div>

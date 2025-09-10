@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, ProductVariant
+from .models import Product, ProductVariant, ProductWarehouseStock
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,15 +37,25 @@ class ProductWithMainVariantSerializer(serializers.ModelSerializer):
         try:
             variants = ProductVariant.objects.filter(product=obj)
             print(f'[DEBUG ProductSearch] Producto {obj.id} tiene {variants.count()} variantes')
-            return [
-                {
+            result = []
+            for v in variants:
+                stocks = ProductWarehouseStock.objects.filter(product_variant=v)
+                warehouses_stock = [
+                    {
+                        'id': s.warehouse.id,
+                        'name': s.warehouse.name,
+                        'stock': s.quantity or 0
+                    }
+                    for s in stocks
+                ]
+                result.append({
                     'id': v.id,
                     'name': v.name,
                     'sku': v.sku,
                     'price': v.sale_price,
-                }
-                for v in variants
-            ]
+                    'warehouses': warehouses_stock,
+                })
+            return result
         except Exception as e:
             logger.error(f"Error obteniendo variantes para producto {getattr(obj, 'id', None)}: {e}")
             return []
