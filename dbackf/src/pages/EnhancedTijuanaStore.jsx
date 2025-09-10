@@ -211,16 +211,17 @@ const EnhancedTijuanaStore = ({ user }) => {
         api.get('categories/'),
         api.get('customers/')
       ]);
-
+      // console.log("stockRes",stockRes)
       // Filtrar productos con stock > 0 en TIJUANA
       const stockData = Array.isArray(stockRes.data) ? stockRes.data : (stockRes.data.results || []);
+      // console.log("stockData",stockData)
       const productsWithStock = stockData
-        .filter(stock => parseFloat(stock.quantity || 0) > 0)
+        // .filter(stock => parseFloat(stock.quantity || 0) > 0)
         .map(stock => ({
-          id: stock.product_variant?.id || stock.product_id,
+          id: stock.product_variant?.id || stock.product_variant.product_id,
           name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
           sku: stock.product_code || stock.product_variant?.sku || 'N/A',
-          price: parseFloat(stock.sale_price || stock.product_variant?.sale_price || 0),
+          price: parseFloat(stock.sale_price || stock.product_variant.price || 0),
           stock: parseFloat(stock.quantity || 0),
           brand: {
             id: stock.brand_id,
@@ -540,8 +541,10 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   // Filtrar productos
   const getFilteredProducts = () => {
+    // console.log("productss",products)
     const filtered = products.filter(product => {
       // Filtro de búsqueda
+      // console.log("product,price=>",product)
       if (search) {
         const searchLower = search.toLowerCase();
         const matchesSearch = 
@@ -552,10 +555,10 @@ const EnhancedTijuanaStore = ({ user }) => {
       }
 
       // Filtro de marca (comparar como string para manejar tipos mixtos)
-      if (selectedBrand && String(product.brand.id) !== String(selectedBrand)) return false;
+      if (selectedBrand && String(product.brand.name) !== String(selectedBrand)) return false;
 
       // Filtro de categoría (comparar como string para manejar tipos mixtos)
-      if (selectedCategory && String(product.category.id) !== String(selectedCategory)) return false;
+      if (selectedCategory && String(product.category.name) !== String(selectedCategory)) return false;
 
       // Filtro de precio
       const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
@@ -563,37 +566,20 @@ const EnhancedTijuanaStore = ({ user }) => {
       if (priceRange.max && finalPrice > parseFloat(priceRange.max)) return false;
 
       return true;
-    }).sort((a, b) => {
-      switch (sortBy) {
-        case 'price':
-          return (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price) - 
-                 (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price);
-        case 'price-desc':
-          return (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price) - 
-                 (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price);
-        case 'stock':
-          return b.stock - a.stock;
-        case 'rating':
-          return b.rating - a.rating;
-        case 'discount':
-          return b.discount - a.discount;
-        case 'name':
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
-    
+    })
+    // console.log("filterrr",filtered)
     return filtered;
   };
 
   // Paginación
   const filteredProducts = getFilteredProducts();
+  // console.log("filteredProducts",filteredProducts)
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
   const paginatedProducts = filteredProducts.slice(
     (page - 1) * pageSize,
     page * pageSize
   );
-
+  // console.log("paginatedProducts",paginatedProducts)
   const getCartTotal = () => {
     return cart.reduce((sum, item) => {
       const price = item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price;
@@ -1799,7 +1785,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 {categories
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    <option key={cat.name} value={cat.name}>{cat.name}</option>
                   ))
                 }
               </select>
@@ -1818,7 +1804,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 {brands
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map(brand => (
-                    <option key={brand.id} value={brand.id}>{brand.name}</option>
+                    <option key={brand.name} value={brand.name}>{brand.name}</option>
                   ))
                 }
               </select>
@@ -1900,7 +1886,7 @@ const EnhancedTijuanaStore = ({ user }) => {
             </div>
             <div className="col-md-3">
               <div className="text-muted text-center pt-2">
-                {filteredProducts.length} de {products.length} productos
+                {page} de {products.length} productos
               </div>
             </div>
           </div>

@@ -45,16 +45,17 @@ const InventoryMovements = () => {
   const [cancellationReason, setCancellationReason] = useState('');
   const [showDraftModal, setShowDraftModal] = useState(false);
 
+  const fetchMovements = async () => {
+    try {
+      const resp = await api.get('/inventory-movements/');
+      setMovements(resp.data);
+    } catch (error) {
+      alert('Error al cargar movimientos');
+    }
+  };
+
   // Cargar movimientos y almacenes al montar
   useEffect(() => {
-    const fetchMovements = async () => {
-      try {
-        const resp = await api.get('/inventory-movements/');
-        setMovements(resp.data);
-      } catch (error) {
-        alert('Error al cargar movimientos');
-      }
-    };
     const fetchWarehouses = async () => {
       try {
         const resp = await api.get('/warehouses/');
@@ -90,15 +91,27 @@ const InventoryMovements = () => {
       };
 
       if (editingMovement) {
-        await api.put(`/inventory-movements/${editingMovement.id}/`, movementData);
-        alert('Movimiento actualizado exitosamente');
+        if (!formData.details || formData.details.length === 0) {
+          alert('No hay productos capturados para guardar.');
+          return;
+        } else {
+          await api.put(`/inventory-movements/${editingMovement.id}/`, movementData);
+          alert('Movimiento actualizado exitosamente');
+          fetchMovements();
+        }
       } else {
-        await api.post('/inventory-movements/', movementData);
-        alert('Movimiento creado exitosamente');
+         if (!formData.details || formData.details.length === 0) {
+          alert('No hay productos capturados para guardar.');
+          return;
+        }{
+          await api.post('/inventory-movements/', movementData);
+          alert('Movimiento creado exitosamente');
+          fetchMovements();
+        }
       }
 
       setShowForm(false);
-      setEditingMovement(null);
+      setEditingMovement(null); 
     } catch (error) {
       alert(`Error al guardar movimiento: ${error.response?.data?.error || error.message}`);
     } finally {
@@ -230,7 +243,7 @@ const InventoryMovements = () => {
       notes: d.notes ?? ''
     })) : [];
     setFormData({
-      warehouse_id: movement.warehouse_id,
+      warehouse_id: movement.warehouse,
       type: movement.type,
       notes: movement.notes || '',
       details: cleanedDetails
@@ -418,7 +431,6 @@ const InventoryMovements = () => {
             editingMovement={editingMovement}
           />
         )}
-
         {/* Modales funcionales y completos */}
         {showDetailsModal && selectedMovement && (
           <div className="modal show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
@@ -430,7 +442,13 @@ const InventoryMovements = () => {
                 </div>
                 <div className="modal-body">
                   <div className="mb-2"><strong>Almacén:</strong> {selectedMovement.warehouse_name || selectedMovement.warehouse_id}</div>
-                  <div className="mb-2"><strong>Tipo:</strong> {selectedMovement.type}</div>
+                <div className="mb-2"><strong>Tipo:</strong>  {selectedMovement.type === 'IN' || selectedMovement.movement_type === 'IN' ? (
+                  <span className="badge bg-success">Ingreso</span>
+                ) : selectedMovement.type === 'OUT' || selectedMovement.movement_type === 'OUT' ? (
+                  <span className="badge bg-danger">Egreso</span>
+                ) : (
+                  <span className="text-muted">Sin tipo</span>
+                )}</div>
                   <div className="mb-2"><strong>Notas:</strong> {selectedMovement.notes}</div>
                   <hr />
                   <h6>Productos</h6>

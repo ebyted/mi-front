@@ -1,46 +1,4 @@
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setFormError('');
-    // Validación básica
-    if (!formData.supplier || items.length === 0 || items.some(i => !i.product_variant || i.quantity <= 0 || i.unit_price < 0)) {
-      setFormError('Completa todos los campos obligatorios y agrega al menos un producto válido.');
-      setIsSubmitting(false);
-      return;
-    }
-    const payload = {
-      ...formData,
-      items: items.map(i => ({
-        product_variant: i.product_variant,
-        quantity: parseFloat(i.quantity),
-        unit_price: parseFloat(i.unit_price)
-      }))
-    };
-    try {
-      if (editingOrder) {
-        await api.put(`/purchase-orders/${editingOrder.id}/`, payload);
-      } else {
-        await api.post('/purchase-orders/', payload);
-      }
-      setShowForm(false);
-      setEditingOrder(null);
-      setFormData({
-        supplier: '',
-        order_date: new Date().toISOString().split('T')[0],
-        expected_delivery_date: '',
-        status: 'DRAFT',
-        notes: ''
-      });
-      setItems([{ product_variant: '', quantity: 1, unit_price: 0 }]);
-      loadData();
-    } catch (err) {
-      setFormError('Error al guardar la orden.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-import React, { useState, useEffect } from 'react';
+ import React, { useState, useEffect } from 'react';
 import ProductSelect from '../components/ProductSelect';
 import api from '../services/api';
 
@@ -117,6 +75,48 @@ function PurchaseOrders() {
     }, 0);
   };
 
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setFormError('');
+    // Validación básica
+    if (!formData.supplier || items.length === 0 || items.some(i => !i.product_variant || i.quantity <= 0 || i.unit_price < 0)) {
+      setFormError('Completa todos los campos obligatorios y agrega al menos un producto válido.');
+      setIsSubmitting(false);
+      return;
+    }
+    const payload = {
+      ...formData,
+      items: items.map(i => ({
+        product_variant: i.product_variant,
+        quantity: parseFloat(i.quantity),
+        unit_price: parseFloat(i.unit_price)
+      }))
+    };
+    try {
+      if (editingOrder) {
+        await api.put(`/purchase-orders/${editingOrder.id}/`, payload);
+      } else {
+        await api.post('/purchase-orders/', payload);
+      }
+      setShowForm(false);
+      setEditingOrder(null);
+      setFormData({
+        supplier: '',
+        order_date: new Date().toISOString().split('T')[0],
+        expected_delivery_date: '',
+        status: 'DRAFT',
+        notes: ''
+      });
+      setItems([{ product_variant: '', quantity: 1, unit_price: 0 }]);
+      loadData();
+    } catch (err) {
+      setFormError('Error al guardar la orden.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
   const handleFormChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -261,102 +261,96 @@ function PurchaseOrders() {
           </div>
         </div>
       ) : (
-        <div className="card shadow border-0">
-          <div className="table-responsive">
-            <table className="table table-hover mb-0">
-              <thead style={{background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)', color: 'white'}}>
-                <tr>
-                  <th className="border-0 py-3"><i className="bi bi-hash me-1"></i>ID</th>
-                  <th className="border-0 py-3"><i className="bi bi-truck me-1"></i>Proveedor</th>
-                  <th className="border-0 py-3"><i className="bi bi-calendar me-1"></i>Fecha</th>
-                  <th className="border-0 py-3"><i className="bi bi-calendar-check me-1"></i>Entrega</th>
-                  <th className="border-0 py-3"><i className="bi bi-flag me-1"></i>Estado</th>
-                  <th className="border-0 py-3"><i className="bi bi-box me-1"></i>Items</th>
-                  <th className="border-0 py-3"><i className="bi bi-currency-dollar me-1"></i>Total</th>
-                  <th className="border-0 py-3"><i className="bi bi-gear me-1"></i>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.map((order, index) => (
-                  <tr key={order.id} className={index % 2 === 0 ? 'bg-light' : ''}>
-                    <td className="py-3">
-                      <div className="d-flex align-items-center">
-                        <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style={{width: '24px', height: '24px', fontSize: '12px'}}>
-                          {index + 1}
-                        </div>
-                        <strong className="text-primary">#{order.id}</strong>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <div>
-                        <div className="fw-bold text-dark">{order.supplier_detail?.name || 'N/A'}</div>
-                        {order.supplier_detail?.company_name && (
-                          <small className="text-muted d-block">{order.supplier_detail.company_name}</small>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <span className="badge bg-secondary bg-opacity-25 text-dark">
-                        {formatDate(order.order_date)}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className="badge bg-info bg-opacity-25 text-dark">
-                        {formatDate(order.expected_delivery_date)}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className={`badge ${statusColors[order.status] || 'bg-secondary'} px-3 py-2`}>
-                        {order.status === 'DRAFT' && '📝 '}
-                        {order.status === 'PENDING' && '⏳ '}
-                        {order.status === 'APPROVED' && '✅ '}
-                        {order.status === 'SENT' && '📤 '}
-                        {order.status === 'RECEIVED' && '📥 '}
-                        {order.status === 'CANCELLED' && '❌ '}
-                        {statusLabels[order.status] || order.status}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span className="badge bg-info px-3 py-2">
-                        📦 {order.items?.length || 0} items
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <div className="fw-bold fs-6 text-success">
-                        {formatCurrency(order.total_amount)}
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <div className="btn-group" role="group">
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => setShowDetails(order)}
-                          title="Ver detalles"
-                        >
-                          <i className="bi bi-eye"></i>
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-warning"
-                          onClick={() => handleEdit(order)}
-                          title="Editar"
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(order.id)}
-                          title="Eliminar"
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+       <div className="card shadow border-0">
+  <div className="p-3">
+    <div className="row g-3">
+      {filteredOrders.map((order, index) => (
+        <div key={order.id} className="col-12 col-md-6 col-lg-3">
+          <div className="border rounded shadow-sm h-100 p-3 purched-list">
+            {/* ID */}
+            <div className="d-flex align-items-center">
+              <span className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                style={{ width: '24px', height: '24px', fontSize: '12px' }}>
+                {index + 1}
+              </span>
+              <strong className="text-primary">#{order.id}</strong>
+              <span className={` ${statusColors[order.status] || 'bg-secondary'} ms-auto status-div`}>
+                {order.status === 'DRAFT'}
+                {order.status === 'PENDING'}
+                {order.status === 'APPROVED'}
+                {order.status === 'SENT'}
+                {order.status === 'RECEIVED'}
+                {order.status === 'CANCELLED'}
+                {statusLabels[order.status] || order.status}
+              </span>        
+            </div>
+
+            <div className='d-flex gap-1'>
+              <div className='d-grid'>
+                <div className="fw-bold text-dark" style={{fontSize:'12px'}}>{order.supplier_detail?.name || 'N/A'}</div>
+                  {order.supplier_detail?.company_name && (
+                    <small className="text-muted mb-2" style={{fontSize:'12px', lineHeight:'12px'}}>{order.supplier_detail.company_name}</small>
+                  )}
+                
+                {/* Dates */}
+                <div className="date-div">
+                    <i>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar w-2.5 h-2.5" data-lov-id="src/components/TaskCard.tsx:72:10" data-lov-name="Calendar" data-component-path="src/components/TaskCard.tsx" data-component-line="72" data-component-file="TaskCard.tsx" data-component-name="Calendar" data-component-content="%7B%22className%22%3A%22w-2.5%20h-2.5%22%7D"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path></svg>
+                    </i> 
+                    <p style={{fontSize:'11px', lineHeight:'20px'}} className='m-0' >{formatDate(order.order_date)}</p>
+                    <p style={{fontSize:'11px', lineHeight:'20px'}} className='m-0'>{formatDate(order.expected_delivery_date)}</p>                
+                </div>
+              </div>
+              <span className='ms-auto fw-bold fs-6 text-success'>{formatCurrency(order.total_amount)}</span>
+            </div>
+
+            {/* Status */}
+            <div className="d-flex flex-wrap gap-2 mt-auto">
+              <div className="items-div">
+                <i><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package w-2.5 h-2.5" data-lov-id="src/components/TaskCard.tsx:82:10" data-lov-name="Package" data-component-path="src/components/TaskCard.tsx" data-component-line="82" data-component-file="TaskCard.tsx" data-component-name="Package" data-component-content="%7B%22className%22%3A%22w-2.5%20h-2.5%22%7D"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"></path><path d="m7.5 4.27 9 5.15"></path></svg></i>
+                 <span>{order.items?.length || 0} items</span>
+              </div>
+
+              <div className="action-btn ms-auto" role="group">
+                <button
+                  className="btn-outline-primary"
+                  onClick={() => setShowDetails(order)}
+                  title="Ver detalles"
+                >
+                  <i className="bi bi-eye"></i>
+                </button>
+                <button
+                  className="btn-outline-warning"
+                  onClick={() => handleEdit(order)}
+                  title="Editar"
+                >
+                  <i className="bi bi-pencil"></i>
+                </button>
+                <button
+                  className="btn-outline-danger"
+                  onClick={() => handleDelete(order.id)}
+                  title="Eliminar"
+                >
+                  <i className="bi bi-trash"></i>
+                </button>
+              </div>
+              
+            </div>
+
+            {/* Total */}
+            {/* <div className="fw-bold fs-6 text-success mb-3">
+              {formatCurrency(order.total_amount)}
+            </div> */}
+
+            {/* Actions */}
+            
           </div>
         </div>
+      ))}
+    </div>
+  </div>
+</div>
+
       )}
       {/* Modal de Formulario */}
       {showForm && (

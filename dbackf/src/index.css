@@ -1,3 +1,23 @@
 
 @import "bootstrap/dist/css/bootstrap.min.css";
 @import "bootstrap-icons/font/bootstrap-icons.css";
+
+
+.purched-list{ display:grid; gap:12px;}
+.status-div{ border-radius:400px; padding:4px 8px; line-height:12px; font-size:11px; 
+color:#fff; font-weight:600;}
+.action-btn{ display:flex; gap:2px;}
+.action-btn button{ width:24px; height:24px; display:flex; align-items:center; justify-content:center; 
+ background:rgb(246, 245, 255); border:1px solid transparent; border-radius:4px;}
+.action-btn button.btn-outline-primary{ border-color:rgba(13, 110, 253,.2); color:rgb(13, 110, 253);}
+.action-btn button.btn-outline-warning{ border-color:rgba(234, 179, 8, 0.2); color:rgba(234, 179, 8, 1);}
+.action-btn button.btn-outline-danger{ border-color:rgba(239, 67, 67, 0.2); color:rgb(239, 67, 67);}
+
+.items-div{ border-radius: 4px; padding:4px 8px; line-height:12px; background: rgba(124, 59, 237, 0.1); color: rgb(124, 59, 237);
+display: flex; align-items: center; gap: 5px; height:24px; text-transform: uppercase; font-weight: bold; font-size: 10px;}
+.items-div i{ display:flex; align-items:center;}
+.items-div svg{ width:10px; height:auto;}
+
+.date-div{ display:flex; gap:5px; align-items:center;}
+.date-div i{ display:flex; align-items:center;}
+.date-div p{ color:#666; line-height:12px;}

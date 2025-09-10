@@ -508,7 +508,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
 
 class SalesOrderViewSet(viewsets.ModelViewSet):
-    queryset = SalesOrder.objects.all()
+    queryset = SalesOrder.objects.all().order_by('-created_at')
     serializer_class = SalesOrderSerializer
 
 class SalesOrderItemViewSet(viewsets.ModelViewSet):

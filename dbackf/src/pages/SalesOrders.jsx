@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
 
 function SalesOrders() {
@@ -10,7 +10,7 @@ function SalesOrders() {
   const [formError, setFormError] = useState('');
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [details, setDetails] = useState([{ product: '', quantity: '', price: '' }]);
+  const [details, setDetails] = useState([{ product: '', quantity: '', price: '', id:'' }]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [saving, setSaving] = useState(false);
@@ -102,7 +102,7 @@ function SalesOrders() {
   };
 
   const addDetail = () => {
-    setDetails([...details, { product: '', quantity: '', price: '' }]);
+    setDetails([...details, { product: '', quantity: '', price: '', id:'' }]);
   };
 
   const removeDetail = idx => {
@@ -140,6 +140,7 @@ function SalesOrders() {
         status: formData.status,
         total_amount: parseFloat(formData.total_amount),
         items: details.map(detail => ({
+          id: detail.id,
           product: parseInt(detail.product),
           quantity: parseFloat(detail.quantity),
           price: parseFloat(detail.price)
@@ -205,7 +206,7 @@ function SalesOrders() {
       setShowForm(false);
       setEditingOrder(null);
       setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
-      setDetails([{ product: '', quantity: '', price: '' }]);
+      setDetails([{ product: '', quantity: '', price: '',id:'' }]);
     } catch (error) {
       console.error('Error creating order:', error);
       if (error.response?.data) {
@@ -228,17 +229,22 @@ function SalesOrders() {
   };
 
   const handleEditOrder = (order) => {
+    const formattedDate = order.order_date
+    ? new Date(order.order_date).toISOString().slice(0,16)
+    : '';
+
     setEditingOrder(order);
     setFormData({
       customer: order.customer?.id || '',
-      order_date: order.order_date || '',
+      order_date: formattedDate || '',
       status: order.status || '',
       total_amount: order.total_amount || ''
     });
     setDetails(order.items?.map(item => ({
       product: item.product?.id || item.product || '',
       quantity: item.quantity || '',
-      price: item.price || ''
+      price: item.price || '',
+      id: item.id || ''
     })) || [{ product: '', quantity: '', price: '' }]);
     setShowForm(true);
   };
@@ -277,19 +283,20 @@ function SalesOrders() {
   };
 
   // Filtrar pedidos con manejo seguro de datos
-  const filteredOrders = orders.filter(order => {
-    if (!order) return false;
-    
-    const customerName = order.customer?.name || '';
-    const orderId = order.id?.toString() || '';
-    const orderStatus = order.status || '';
-    
-    const matchesSearch = searchTerm === '' || 
-      customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      orderId.includes(searchTerm);
-    const matchesStatus = statusFilter === '' || orderStatus === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (!order) return false;
+      const customerName = order.customer?.name || '';
+      const orderId = order.id?.toString() || '';
+      const orderStatus = order.status || '';
+      const matchesSearch = searchTerm.trim() === '' ||
+        customerName.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
+        orderId.includes(searchTerm.trim());
+
+      const matchesStatus = statusFilter === '' || orderStatus === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, searchTerm, statusFilter]);
 
   // Estadísticas con manejo seguro de datos
   const stats = {
@@ -541,7 +548,7 @@ function SalesOrders() {
                   setShowForm(false);
                   setEditingOrder(null);
                   setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
-                  setDetails([{ product: '', quantity: '', price: '' }]);
+                  setDetails([{ product: '', quantity: '', price: '',id:'' }]);
                 }}></button>
               </div>
               <form onSubmit={handleSubmit}>
