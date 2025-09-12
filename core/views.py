@@ -589,30 +589,29 @@ class InventoryGeneralView(APIView):
         # Apply filters if query params are provided
         if product_variant_id:
             stocks = stocks.filter(product_variant__id=product_variant_id)
-            
         if warehouse_id:
             stocks = stocks.filter(warehouse__id=warehouse_id)
-        
         if product_name:
             stocks = stocks.filter(product_variant__product__name__icontains=product_name)
-        
         if brand_name:
             stocks = stocks.filter(product_variant__product__brand__name__icontains=brand_name)
-        
         if category_name:
             stocks = stocks.filter(product_variant__product__category__name__icontains=category_name)
         
         data = []
         for stock in stocks:
+            product = stock.product_variant.product
             data.append({
                 'id': stock.product_variant.id,
                 'name': stock.product_variant.name,
                 'sku': stock.product_variant.sku,
+                'brand': product.brand.name if product.brand else None,
+                'category': product.category.name if product.category else None,
                 'warehouse': stock.warehouse.id,
                 'stock': stock.quantity,
-                'status': stock.product_variant.product.status,
-                'minimum_stock': stock.product_variant.product.minimum_stock,
-                'maximum_stock': stock.product_variant.product.maximum_stock
+                'status': product.status,
+                'minimum_stock': product.minimum_stock,
+                'maximum_stock': product.maximum_stock
             })
         
         return Response(data)

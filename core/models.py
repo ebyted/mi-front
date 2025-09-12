@@ -368,17 +368,13 @@ class InventoryMovement(models.Model):
         )
         
         # Crear movimientos de detalle inversos
-        for detail in self.inventorymovementdetail_set.all():
-            # Invertir tipo de movimiento
-            reverse_type = 'IN' if detail.movement_type == 'OUT' else 'OUT'
-            
+        for detail in self.details.all():
             InventoryMovementDetail.objects.create(
                 movement=reverse_movement,
                 product_variant=detail.product_variant,
                 quantity=detail.quantity,  # Misma cantidad
-                movement_type=reverse_type,  # Tipo inverso
-                unit_cost=detail.unit_cost,
-                notes=f"Reverso de {detail.movement_type} del movimiento #{self.id}"
+                price=detail.price,
+                notes=f"Reverso de {self.movement_type} del movimiento #{self.id}"
             )
         
         return reverse_movement
@@ -396,9 +392,10 @@ class InventoryMovementDetail(models.Model):
     aux1 = models.CharField(max_length=255, blank=True)
     
     def save(self, *args, **kwargs):
+        from decimal import Decimal
         # Calcular total automáticamente si no se especifica
         if self.price and self.quantity and not self.total:
-            self.total = self.price * self.quantity
+            self.total = self.price * Decimal(str(self.quantity))
         super().save(*args, **kwargs)
     
     def __str__(self):
