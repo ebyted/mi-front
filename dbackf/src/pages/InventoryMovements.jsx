@@ -385,7 +385,7 @@ const InventoryMovements = () => {
       return;
     }
     try {
-      await api.post(`/inventory-movements/${selectedMovement.id}/authorize_movement/`);
+      await api.post(`/inventory-movements/${selectedMovement.id}/authorize/`);
       alert('Movimiento autorizado exitosamente');
       setShowAuthorizeModal(false);
       setSelectedMovement(null);
@@ -397,6 +397,12 @@ const InventoryMovements = () => {
       alert(`Error autorizando movimiento: ${error.response?.data?.error || error.message}`);
     }
   };
+
+  useEffect(() => {
+    if (showCancelModal) {
+      setCancellationReason('');
+    }
+  }, [showCancelModal]);
 
   // Main JSX return block at the end
   return (
@@ -447,7 +453,7 @@ const InventoryMovements = () => {
                 ) : selectedMovement.type === 'OUT' || selectedMovement.movement_type === 'OUT' ? (
                   <span className="badge bg-danger">Egreso</span>
                 ) : (
-                  <span className="text-muted">Sin tipo</span>
+                  <span className="text-muted">{ selectedMovement.movement_type|| 'Sin tipo'}</span>
                 )}</div>
                   <div className="mb-2"><strong>Notas:</strong> {selectedMovement.notes}</div>
                   <hr />

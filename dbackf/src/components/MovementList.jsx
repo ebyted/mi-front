@@ -28,7 +28,7 @@ const MovementList = ({ movements, onView, onEdit, onAuthorize, onCancel }) => (
                 ) : mov.type === 'OUT' || mov.movement_type === 'OUT' ? (
                   <span className="badge bg-danger">Egreso</span>
                 ) : (
-                  <span className="text-muted">Sin tipo</span>
+                  <span className="text-muted">{mov.movement_type || 'Sin tipo'}</span>
                 )}
               </td>
               <td>{mov.notes}</td>

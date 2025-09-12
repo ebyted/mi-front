@@ -13,7 +13,13 @@ const AuthorizeModal = ({ show, movement, onAuthorize, onCancel }) => {
           </div>
           <div className="modal-body">
             <p>¿Seguro que deseas autorizar este movimiento?</p>
-            <div><strong>Tipo:</strong> {movement.type}</div>
+            <div className="mb-2"><strong>Tipo:</strong>  {movement.type === 'IN' || movement.movement_type === 'IN' ? (
+              <span className="badge bg-success">Ingreso</span>
+            ) : movement.type === 'OUT' || movement.movement_type === 'OUT' ? (
+              <span className="badge bg-danger">Egreso</span>
+            ) : (
+              <span className="text-muted">Sin tipo</span>
+            )}</div>
             <div><strong>Notas:</strong> {movement.notes}</div>
             <div className="mt-2 alert alert-info">Esta acción no se puede deshacer.</div>
           </div>
