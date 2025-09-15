@@ -521,6 +521,15 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
     queryset = SalesOrder.objects.all().order_by('-created_at')
     serializer_class = SalesOrderSerializer
 
+    def update(self, request, *args, **kwargs):
+        """Override update to ensure fresh data in response"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+        return Response(serializer.data)
+
 class SalesOrderItemViewSet(viewsets.ModelViewSet):
     queryset = SalesOrderItem.objects.all()
     serializer_class = SalesOrderItemSerializer
@@ -742,9 +751,9 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
 
                             qty = float(detail.quantity)
                             mt = movement.movement_type.lower()
-                            if mt in ['entrada', 'ingreso', 'compra', 'ajuste+', 'ajuste positivo']:
+                            if mt in ['in', 'entrada', 'ingreso', 'compra', 'ajuste+', 'ajuste positivo']:
                                 stock.quantity += qty
-                            elif mt in ['salida', 'egreso', 'venta', 'ajuste-', 'ajuste negativo']:
+                            elif mt in ['out', 'salida', 'egreso', 'venta', 'ajuste-', 'ajuste negativo']:
                                 stock.quantity -= qty
                             else:
                                 # Si el tipo no es reconocido, no ajustar stock aquí
@@ -785,6 +794,22 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
                 'error': 'Error interno del servidor',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def update(self, request, *args, **kwargs):
+        movement = self.get_object()
+        
+        # Solo permitir edición si no está autorizado
+        if movement.authorized:
+            return Response(
+                {'error': 'No se puede editar un movimiento ya autorizado'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        partial = kwargs.pop('partial', False)
+        serializer = self.get_serializer(movement, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        movement = serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def authorize(self, request, pk=None):
