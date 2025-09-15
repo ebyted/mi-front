@@ -139,12 +139,19 @@ function SalesOrders() {
         order_date: formData.order_date,
         status: formData.status,
         total_amount: parseFloat(formData.total_amount),
-        items: details.map(detail => ({
-          id: detail.id,
-          product: parseInt(detail.product),
-          quantity: parseFloat(detail.quantity),
-          price: parseFloat(detail.price)
-        }))
+        items: details.map(detail => {
+          const item = {
+            product: parseInt(detail.product),
+            quantity: parseFloat(detail.quantity),
+            price: parseFloat(detail.price),
+            // warehouse_id: detail.warehouse_id
+          };
+
+          if (detail.id) {
+            item.id = detail.id; // only add id if it exists
+          }
+          return item;
+        })
       };
 
       let createdOrder = null;
@@ -159,26 +166,28 @@ function SalesOrders() {
       }
 
       // Si el estado es Procesado o Completado, crear movimiento de inventario
-      if (orderData.status === 'Procesado' || orderData.status === 'Completado') {
-        // Crear movimiento de inventario tipo EGRESO, sin autorizar, usuario referencia tienda@admin.com
-        const movementData = {
-          movement_type: 'EGRESO',
-          authorized: false,
-          created_by_email: 'tienda@admin.com',
-          authorized_by_email: null,
-          reference: `Venta Pedido #${createdOrder.id || ''}`,
-          details: orderData.items.map(item => ({
-            product: item.product,
-            quantity: item.quantity,
-            price: item.price
-          }))
-        };
-        try {
-          await api.post('inventory-movements/', movementData);
-        } catch (err) {
-          console.error('Error creando movimiento de inventario:', err);
-        }
-      }
+      // if (orderData.status === 'Procesado' || orderData.status === 'Completado') {
+      //   // Crear movimiento de inventario tipo EGRESO, sin autorizar, usuario referencia tienda@admin.com
+      //   const movementData = {
+      //     movement_type: 'EGRESO',
+      //     authorized: false,
+      //     created_by_email: 'tienda@admin.com',
+      //     authorized_by_email: null,
+      //     warehouse_id: null,
+      //     reference: `Venta Pedido #${createdOrder.id || ''}`,
+      //     details: orderData.items.map(item => ({
+      //       product: item.product,
+      //       quantity: item.quantity,
+      //       price: item.price,
+      //       id: item.id
+      //     }))
+      //   };
+      //   try {
+      //     await api.post('inventory-movements/', movementData);
+      //   } catch (err) {
+      //     console.error('Error creando movimiento de inventario:', err);
+      //   }
+      // }
 
       // Refrescar lista de pedidos
       const ordersRes = await api.get('sales-orders/');
