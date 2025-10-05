@@ -12,13 +12,6 @@ function SalesOrders() {
   const defaultOrderDate = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}T${pad(today.getHours())}:${pad(today.getMinutes())}`;
   const [formData, setFormData] = useState({ customer: '', order_date: defaultOrderDate, status: '' });
   const [formError, setFormError] = useState('');
-
-  // Ensure order_date is always set to today when creating a new order
-  useEffect(() => {
-    if (showForm && !editingOrder) {
-      setFormData(prev => ({ ...prev, order_date: defaultOrderDate }));
-    }
-  }, [showForm, editingOrder, defaultOrderDate]);
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [details, setDetails] = useState([{ product: '', quantity: '', price: '', id:'', productSearch: '' }]);
@@ -602,14 +595,13 @@ function SalesOrders() {
                     {/* Fecha */}
                     <div className="col-md-6">
                       <label className="form-label fw-semibold">Fecha del pedido</label>
-                      <input
-                        name="order_date"
-                        type="datetime-local"
-                        className="form-control"
-                        value={formData.order_date}
+                      <input 
+                        name="order_date" 
+                        type="datetime-local" 
+                        className="form-control" 
+                        value={formData.order_date} 
                         readOnly
                         disabled
-                        style={{ background: '#e9ecef' }}
                       />
                     </div>
                     
