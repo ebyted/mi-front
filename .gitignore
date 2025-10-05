@@ -65,3 +65,4 @@ scripts/scripts bd.txt
 scripts/# 2. Ir al directorio y actualizar valura.txt
 lote-inventario-Inv-INI-export.json
 lote-inventario-II-01-export.json
+backup_maestro_inventario_.dump

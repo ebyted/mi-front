@@ -6,11 +6,15 @@ function SalesOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ customer: '', order_date: '', status: '', total_amount: '' });
+  // Set default order_date to today (yyyy-MM-ddTHH:mm for datetime-local)
+  const today = new Date();
+  const pad = n => n < 10 ? '0' + n : n;
+  const defaultOrderDate = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}T${pad(today.getHours())}:${pad(today.getMinutes())}`;
+  const [formData, setFormData] = useState({ customer: '', order_date: defaultOrderDate, status: '' });
   const [formError, setFormError] = useState('');
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
-  const [details, setDetails] = useState([{ product: '', quantity: '', price: '', id:'' }]);
+  const [details, setDetails] = useState([{ product: '', quantity: '', price: '', id:'', productSearch: '' }]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [saving, setSaving] = useState(false);
@@ -87,22 +91,26 @@ function SalesOrders() {
 
   const handleDetailChange = (idx, e) => {
     const newDetails = [...details];
-    newDetails[idx][e.target.name] = e.target.value;
-    
-    // Auto-calcular precio si es un producto seleccionado
-    if (e.target.name === 'product' && e.target.value) {
-      const selectedProduct = products.find(p => p.id == e.target.value);
-      if (selectedProduct && selectedProduct.price) {
-        newDetails[idx]['price'] = selectedProduct.price;
+    if (e.target.name === 'productSearch') {
+      newDetails[idx].productSearch = e.target.value;
+      // Opcional: limpiar selección si cambia el texto
+      // newDetails[idx].product = '';
+    } else {
+      newDetails[idx][e.target.name] = e.target.value;
+      // Auto-calcular precio si es un producto seleccionado
+      if (e.target.name === 'product' && e.target.value) {
+        const selectedProduct = products.find(p => p.id == e.target.value);
+        if (selectedProduct && selectedProduct.price) {
+          newDetails[idx]['price'] = selectedProduct.price;
+        }
       }
     }
-    
     setDetails(newDetails);
     calculateTotal(newDetails);
   };
 
   const addDetail = () => {
-    setDetails([...details, { product: '', quantity: '', price: '', id:'' }]);
+    setDetails([...details, { product: '', quantity: '', price: '', id:'', productSearch: '' }]);
   };
 
   const removeDetail = idx => {
@@ -586,14 +594,14 @@ function SalesOrders() {
                     
                     {/* Fecha */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold">Fecha del pedido *</label>
+                      <label className="form-label fw-semibold">Fecha del pedido</label>
                       <input 
                         name="order_date" 
                         type="datetime-local" 
                         className="form-control" 
                         value={formData.order_date} 
-                        onChange={handleChange} 
-                        required 
+                        readOnly
+                        disabled
                       />
                     </div>
                     
@@ -616,19 +624,7 @@ function SalesOrders() {
                     </div>
                     
                     {/* Total (calculado automáticamente) */}
-                    <div className="col-md-6">
-                      <label className="form-label fw-semibold">Total</label>
-                      <input 
-                        name="total_amount" 
-                        type="number" 
-                        className="form-control bg-light" 
-                        placeholder="Se calcula automáticamente" 
-                        value={formData.total_amount} 
-                        readOnly
-                        min="0" 
-                        step="0.01" 
-                      />
-                    </div>
+
                   </div>
                   
                   <hr className="my-4" />
@@ -790,34 +786,6 @@ function SalesOrders() {
                 <button type="button" className="btn-close btn-close-white" onClick={() => setShowDetails(false)}></button>
               </div>
               <div className="modal-body">
-                <div className="row g-3 mb-4">
-                  <div className="col-md-6">
-                    <h6 className="fw-bold">Cliente:</h6>
-                    <p className="mb-1">{selectedOrder.customer?.name || 'Cliente desconocido'}</p>
-                    <small className="text-muted">{selectedOrder.customer?.email}</small>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="fw-bold">Fecha:</h6>
-                    <p>{new Date(selectedOrder.order_date).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}</p>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="fw-bold">Estado:</h6>
-                    <span className={`badge ${getStatusBadgeClass(selectedOrder.status)}`}>
-                      {selectedOrder.status}
-                    </span>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="fw-bold">Total:</h6>
-                    <h4 className="text-success">${parseFloat(selectedOrder.total_amount || 0).toFixed(2)}</h4>
-                  </div>
-                </div>
-                
                 <h6 className="fw-bold mb-3">Items del pedido:</h6>
                 {selectedOrder.items && selectedOrder.items.length > 0 ? (
                   <div className="table-responsive">
