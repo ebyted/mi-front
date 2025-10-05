@@ -4,7 +4,6 @@ import ProductSelect from './ProductSelect';
 
 const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setCurrentDetail, addDetail, removeDetail, saving, handleCancel, handleSaveBatch, handleLoadBatch, handleClearBatch, warehouses, editingMovement }) => {
   const fileInputRef = useRef();
-
   // Cargar lote desde archivo JSON
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -41,7 +40,14 @@ const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setC
 
   // Editar detalle: carga el detalle en el formulario y lo elimina de la lista
   const handleEditDetail = idx => {
-    setCurrentDetail(formData.details[idx]);
+    const detail = formData.details[idx];
+    const formattedDetail = {
+      ...detail,
+      expiration_date: detail.expiration_date
+        ? detail.expiration_date.split("T")[0]
+        : ""
+    };
+    setCurrentDetail(formattedDetail);
     removeDetail(idx);
   };
 

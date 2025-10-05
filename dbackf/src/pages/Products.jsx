@@ -176,7 +176,7 @@ function Products() {
   const validateForm = () => {
     const errors = [];
     // Solo pedir variante en alta, no en edición
-    if (!editId && !formData.productVariantId) errors.push('Selecciona una variante');
+    // if (!editId && !formData.productVariantId) errors.push('Selecciona una variante');
     // Validar campos obligatorios
   if (!formData.name || !formData.name.trim()) errors.push('Nombre es obligatorio');
   if (!formData.sku || !formData.sku.trim()) errors.push('SKU es obligatorio');
@@ -368,7 +368,7 @@ function Products() {
       {/* Controles de paginación */}
       <div className="row mb-3">
         <div className="col d-flex justify-content-end align-items-center gap-2">
-          <span>Página {page} de {totalPages}</span>
+          <span>Página {page} de {products.length}</span>
           <button className="btn btn-outline-primary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>&lt; Anterior</button>
           <button className="btn btn-outline-primary btn-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Siguiente &gt;</button>
           <select className="form-select form-select-sm w-auto" value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}>

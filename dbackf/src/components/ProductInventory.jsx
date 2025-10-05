@@ -66,7 +66,9 @@ const ProductInventory = ({ selectedProductObj }) => {
         .then(res => setProducts(res.data.results || res.data))
         .catch(() => setProducts([]));
     } else {
-      setProducts([]);
+      api.get('/inventory-general/')
+        .then(res => setProducts(res.data.results || res.data))
+        .catch(() => setProducts([]));
     }
   }, [selectedWarehouse, filterProduct, filterBrand, filterCategory]);
 
@@ -157,13 +159,15 @@ const ProductInventory = ({ selectedProductObj }) => {
                 <input className="form-control" value={filterCategory} onChange={e => setFilterCategory(e.target.value)} placeholder="Categoría" />
               </div>
             </div>
-            <div className="table-responsive">
-              <table className="table table-bordered table-hover">
+            <div className="table-responsive GeneralTable">
+              <table className="table table-bordered table-hover" >
                 <thead className="table-primary">
                   <tr>
                     <th>SKU</th>
                     <th>Nombre</th>
                     <th>Estado</th>
+                    <th>Marca</th>
+                    <th>Categoría</th>
                     <th>Stock</th>
                     <th>Mínimo</th>
                     <th>Máximo</th>
@@ -172,7 +176,7 @@ const ProductInventory = ({ selectedProductObj }) => {
                 <tbody>
                   {filteredProducts.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-5">
+                      <td colSpan="8" className="text-center py-5">
                         <div className="text-muted">
                           <div className="h1 mb-3">📦</div>
                           <h5>No hay productos con existencia</h5>
@@ -185,6 +189,8 @@ const ProductInventory = ({ selectedProductObj }) => {
                         <td><span className="fw-bold text-info">{prod.sku}</span></td>
                         <td><span className="fw-bold text-primary">{prod.name}</span></td>
                         <td><span className={`badge ${prod.status === 'REGULAR' ? 'bg-light text-dark' : 'bg-danger'}`}>{prod.status}</span></td>
+                        <td>{prod.brand || 'N/A'}</td>
+                        <td>{prod.category || 'N/A'}</td>
                         <td><span className="badge bg-success fs-6">{prod.stock}</span></td>
                         <td><span className="badge bg-warning text-dark">{prod.minimum_stock}</span></td>
                         <td><span className="badge bg-warning text-dark">{prod.maximum_stock}</span></td>
@@ -258,6 +264,11 @@ const ProductInventory = ({ selectedProductObj }) => {
         .table th, .table td {
           vertical-align: middle;
         }
+        .GeneralTable table{ table-layout:fixed;}
+        .GeneralTable table tr th:nth-child(2),
+        .GeneralTable table tr td:nth-child(2){ width:200px;word-break: break-all;}
+        .GeneralTable table tr th:nth-child(5),
+        .GeneralTable table tr td:nth-child(5){ width:100px;word-break: break-all;}
       `}</style>
     </div>
   );

@@ -471,6 +471,16 @@ class ProductWarehouseStockViewSet(viewsets.ModelViewSet):
     queryset = ProductWarehouseStock.objects.all()
     serializer_class = ProductWarehouseStockSerializer
 
+    def get_queryset(self):
+        queryset = ProductWarehouseStock.objects.filter(quantity__gt=0)
+        
+        # Optional: Add filtering by warehouse if provided
+        warehouse_id = self.request.query_params.get('warehouse')
+        if warehouse_id:
+            queryset = queryset.filter(warehouse_id=warehouse_id)
+        
+        return queryset
+
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
@@ -508,7 +518,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
 
 class SalesOrderViewSet(viewsets.ModelViewSet):
-    queryset = SalesOrder.objects.all()
+    queryset = SalesOrder.objects.all().order_by('-created_at')
     serializer_class = SalesOrderSerializer
 
 class SalesOrderItemViewSet(viewsets.ModelViewSet):
@@ -554,6 +564,54 @@ class CurrentInventoryView(APIView):
                 },
                 'quantity': stock.quantity,
                 'updated_at': stock.updated_at
+            })
+        
+        return Response(data)
+
+class InventoryGeneralView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Get query parameters from the URL, default to None if not provided
+        product_variant_id = request.query_params.get('product_variant')
+        warehouse_id = request.query_params.get('warehouse')
+        product_name = request.query_params.get('product')
+        brand_name = request.query_params.get('brand')
+        category_name = request.query_params.get('category')
+
+        # Start with all stocks, use select_related for optimization
+        stocks = ProductWarehouseStock.objects.select_related(
+            'product_variant__product__category',
+            'product_variant__product__brand',
+            'warehouse'
+        ).all()
+
+        # Apply filters if query params are provided
+        if product_variant_id:
+            stocks = stocks.filter(product_variant__id=product_variant_id)
+        if warehouse_id:
+            stocks = stocks.filter(warehouse__id=warehouse_id)
+        if product_name:
+            stocks = stocks.filter(product_variant__product__name__icontains=product_name)
+        if brand_name:
+            stocks = stocks.filter(product_variant__product__brand__name__icontains=brand_name)
+        if category_name:
+            stocks = stocks.filter(product_variant__product__category__name__icontains=category_name)
+        
+        data = []
+        for stock in stocks:
+            product = stock.product_variant.product
+            data.append({
+                'id': stock.product_variant.id,
+                'name': stock.product_variant.name,
+                'sku': stock.product_variant.sku,
+                'brand': product.brand.name if product.brand else None,
+                'category': product.category.name if product.category else None,
+                'warehouse': stock.warehouse.id,
+                'stock': stock.quantity,
+                'status': product.status,
+                'minimum_stock': product.minimum_stock,
+                'maximum_stock': product.maximum_stock
             })
         
         return Response(data)
@@ -675,6 +733,27 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
                     
                     if detail_serializer.is_valid():
                         detail = detail_serializer.save(movement=movement)
+
+                        # Actualizar el stock en ProductWarehouseStock al crear el detalle
+                        try:
+                            pv = ProductVariant.objects.get(id=detail.product_variant_id)
+                            warehouse = Warehouse.objects.get(id=movement.warehouse_id)
+                            stock, _ = ProductWarehouseStock.objects.get_or_create(product_variant=pv, warehouse=warehouse)
+
+                            qty = float(detail.quantity)
+                            mt = movement.movement_type.lower()
+                            if mt in ['entrada', 'ingreso', 'compra', 'ajuste+', 'ajuste positivo']:
+                                stock.quantity += qty
+                            elif mt in ['salida', 'egreso', 'venta', 'ajuste-', 'ajuste negativo']:
+                                stock.quantity -= qty
+                            else:
+                                # Si el tipo no es reconocido, no ajustar stock aquí
+                                logger.warning(f"Tipo de movimiento no soportado para stock: {movement.movement_type}")
+                                raise Exception(f'Unsupported movement type: {movement.movement_type}')
+                            stock.save()
+                        except Exception as e:
+                            logger.error(f"Error actualizando stock para detalle {i}: {str(e)}")
+                        
                         created_details.append(detail)
                         logger.info(f"📦 Detalle creado: {detail.id}")
                     else:
