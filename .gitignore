@@ -58,3 +58,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+flow_and_doc.md
+.gitignore
+scripts/SCRIPTS VALURA REVISAR.txt
+scripts/scripts bd.txt
+scripts/# 2. Ir al directorio y actualizar valura.txt
+lote-inventario-Inv-INI-export.json
+lote-inventario-II-01-export.json
