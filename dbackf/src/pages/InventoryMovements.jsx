@@ -44,13 +44,17 @@ const InventoryMovements = () => {
   const [selectedMovement, setSelectedMovement] = useState(null);
   const [cancellationReason, setCancellationReason] = useState('');
   const [showDraftModal, setShowDraftModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const fetchMovements = async () => {
+    setLoading(true);
     try {
       const resp = await api.get('/inventory-movements/');
       setMovements(resp.data);
     } catch (error) {
       alert('Error al cargar movimientos');
+    } finally {
+       setLoading(false);
     }
   };
 
@@ -244,7 +248,7 @@ const InventoryMovements = () => {
     })) : [];
     setFormData({
       warehouse_id: movement.warehouse,
-      type: movement.type,
+      type: movement.movement_type,
       notes: movement.notes || '',
       details: cleanedDetails
     });
@@ -417,6 +421,7 @@ const InventoryMovements = () => {
               onEdit={handleEdit}
               onAuthorize={handleAuthorize}
               onCancel={handleCancelMovement}
+              loading={loading}
             />
           </>
         ) : (

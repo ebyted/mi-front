@@ -81,7 +81,7 @@ const MovementForm = ({ formData, setFormData, handleSubmit, currentDetail, setC
       <div className="row mb-2 align-items-end">
         <div className="col-md-4">
           <ProductSelect
-            value={currentDetail.product_id}
+             value={{ id: currentDetail.product_id, name: currentDetail.product_name }}
             onChange={id => setCurrentDetail(d => ({ ...d, product_id: id }))}
             onProductSelect={product => setCurrentDetail(d => ({
               ...d,

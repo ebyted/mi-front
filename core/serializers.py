@@ -515,6 +515,118 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
             )
         return movement
 
+    def update(self, instance, validated_data):
+        details_data = self.initial_data.get('details', [])
+        warehouse_id = validated_data.pop('warehouse_id', None)
+        if warehouse_id:
+            validated_data['warehouse'] = Warehouse.objects.get(id=warehouse_id)
+
+        movement_type_from_type = validated_data.pop('type', None)
+        if movement_type_from_type:
+            validated_data['movement_type'] = movement_type_from_type
+
+        # Before making changes, reverse stock effects of existing details
+        # Only if movement_type or warehouse or details are changing
+        old_mt = instance.movement_type.lower() if instance.movement_type else None
+        old_warehouse = instance.warehouse
+
+        # Reverse stock
+        for old_detail in instance.details.all():
+            try:
+                pv = old_detail.product_variant
+                stock, _ = ProductWarehouseStock.objects.get_or_create(
+                    product_variant=pv, warehouse=old_warehouse
+                )
+                qty = float(old_detail.quantity)
+                if old_mt in ['in', 'entrada', 'ingreso', 'compra', 'ajuste+', 'ajuste positivo']:
+                    stock.quantity -= qty
+                elif old_mt in ['out', 'salida', 'egreso', 'venta', 'ajuste-', 'ajuste negativo']:
+                    stock.quantity += qty
+                stock.save()
+            except Exception:
+                # optionally log
+                pass
+
+        # Update the movement fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Process details: update existing, create new, delete missing
+        existing_details = {d.id: d for d in instance.details.all()}
+        updated_ids = []
+
+        for detail_data in details_data:
+            detail_id = detail_data.get('id')
+            product_variant_id = detail_data.get('product_variant_id')
+            product_id = detail_data.get('product_id')
+
+            if not product_variant_id and product_id:
+                try:
+                    product = Product.objects.get(id=product_id)
+                    product_variant = ProductVariant.objects.filter(product=product).first()
+                    if not product_variant:
+                        raise serializers.ValidationError(f"No variant for product {product_id}")
+                    product_variant_id = product_variant.id
+                except Product.DoesNotExist:
+                    raise serializers.ValidationError(f"Product with id {product_id} not found")
+
+            if not product_variant_id:
+                raise serializers.ValidationError("Must specify product_variant_id or product_id")
+
+            qty = detail_data.get('quantity', 0)
+            lote = detail_data.get('lote', '')
+            exp_date = detail_data.get('expiration_date', None)
+            notes = detail_data.get('notes', '')
+
+            if detail_id and detail_id in existing_details:
+                # Update existing
+                detail_inst = existing_details[detail_id]
+                detail_inst.product_variant_id = product_variant_id
+                detail_inst.quantity = qty
+                detail_inst.lote = lote or ''
+                detail_inst.expiration_date = exp_date
+                detail_inst.notes = notes
+                detail_inst.save()
+                updated_ids.append(detail_id)
+            else:
+                # Create new detail
+                new_detail = InventoryMovementDetail.objects.create(
+                    movement=instance,
+                    product_variant_id=product_variant_id,
+                    quantity=qty,
+                    lote=lote or '',
+                    expiration_date=exp_date,
+                    notes=notes
+                )
+
+        # Delete details removed in update
+        for old_id, old_detail in existing_details.items():
+            if old_id not in updated_ids:
+                old_detail.delete()
+
+        # After details updated/created, apply stock effects again using new details
+        new_mt = instance.movement_type.lower() if instance.movement_type else None
+        warehouse_new = instance.warehouse
+
+        for detail in instance.details.all():
+            try:
+                pv = detail.product_variant
+                stock, _ = ProductWarehouseStock.objects.get_or_create(
+                    product_variant=pv, warehouse=warehouse_new
+                )
+                qty = float(detail.quantity)
+                if new_mt in ['in', 'entrada', 'ingreso', 'compra', 'ajuste+', 'ajuste positivo']:
+                    stock.quantity += qty
+                elif new_mt in ['out', 'salida', 'egreso', 'venta', 'ajuste-', 'ajuste negativo']:
+                    stock.quantity -= qty
+                stock.save()
+            except Exception:
+                # optionally log
+                pass
+
+        return instance
+
 class ExchangeRateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExchangeRate
@@ -758,10 +870,12 @@ class SalesOrderSerializer(serializers.ModelSerializer):
 
         created_items = 0
         updated_items = 0
+        sent_item_ids = []
 
         for item_data in items_data:
             try:
                 item_id = item_data.get('id')
+                sent_item_ids.append(item_id)
 
                 # Resolver product_variant desde product_variant o product
                 product_variant = None
@@ -796,7 +910,7 @@ class SalesOrderSerializer(serializers.ModelSerializer):
                     except SalesOrderItem.DoesNotExist:
                         logger.warning(f"📦 SalesOrderItem {item_id} no pertenece a la orden {instance.id}")
                         continue
-                    if product_variant is not None:
+                    if product_variant:
                         order_item.product_variant = product_variant
                     order_item.quantity = quantity
                     order_item.unit_price = unit_price
@@ -805,19 +919,25 @@ class SalesOrderSerializer(serializers.ModelSerializer):
                     updated_items += 1
                 else:
                     # Crear nuevo
-                    SalesOrderItem.objects.create(
+                    order_item = SalesOrderItem.objects.create(
                         sales_order=instance,
                         product_variant=product_variant,
                         quantity=quantity,
                         unit_price=unit_price,
                         total_price=total_price
                     )
+                    sent_item_ids.append(order_item.id)
                     created_items += 1
             except Exception as e:
                 logger.error(f"📦 Error procesando SalesOrderItem en update: {e}")
                 continue
 
-        logger.info(f"📦 Items creados: {created_items}, items actualizados: {updated_items}")
+        # ✅ Eliminar los items que ya no están en items_data
+        existing_item_ids = instance.items.values_list('id', flat=True)
+        items_to_delete = [item_id for item_id in existing_item_ids if item_id not in sent_item_ids or item_id is None]
+        deleted_count = instance.items.filter(id__in=items_to_delete).delete()[0]
+
+        logger.info(f"📦 Items creados: {created_items}, actualizados: {updated_items}, eliminados: {deleted_count}")
         return instance
 
 class SalesOrderItemSerializer(serializers.ModelSerializer):

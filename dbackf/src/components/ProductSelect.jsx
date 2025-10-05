@@ -37,7 +37,7 @@ const ProductSelect = ({
   });
 
   // Encontrar producto seleccionado
-  const selectedProduct = products.find(p => p.id === parseInt(value));
+const selectedProduct = value && value.name ? value : products.find(p => p.id === parseInt(value));
 
   /**
    * Manejo de búsqueda con debounce

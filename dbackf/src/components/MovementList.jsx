@@ -2,7 +2,7 @@
 import React from 'react';
 
 
-const MovementList = ({ movements, onView, onEdit, onAuthorize, onCancel }) => (
+const MovementList = ({ movements, loading, onView, onEdit, onAuthorize, onCancel }) => (
   <div className="table-responsive">
     <table className="table table-striped table-hover align-middle shadow-sm rounded" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
       <thead className="table-light">
@@ -14,7 +14,16 @@ const MovementList = ({ movements, onView, onEdit, onAuthorize, onCancel }) => (
         </tr>
       </thead>
       <tbody>
-        {movements.length === 0 ? (
+        {loading ? (
+          <tr>
+            <td colSpan="4" className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Cargando...</span>
+              </div>
+              <p className="mt-2 text-secondary">Cargando Movimientos de Inventario...</p>
+            </td>
+          </tr>
+        ) : movements.length === 0 ? (
           <tr>
             <td colSpan="4" className="text-center">No hay movimientos registrados.</td>
           </tr>

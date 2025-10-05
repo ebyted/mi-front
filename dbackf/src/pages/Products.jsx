@@ -18,6 +18,7 @@ function Products() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
   productId: '',
   productVariantId: '',
@@ -49,19 +50,31 @@ function Products() {
   }, []);
 
   useEffect(() => {
-    // Usar endpoint search_all para traer todos los productos sin paginación
-    api.get('products/search_all/')
-      .then(res => {
-        if (Array.isArray(res.data)) {
-          setProducts(res.data);
+    setLoading(true);
+
+    Promise.all([
+      api.get('products/search_all/'),
+      api.get('brands/'),
+      api.get('categories/'),
+      api.get('warehouses/')
+    ])
+      .then(([productsRes, brandsRes, categoriesRes, warehousesRes]) => {
+        if (Array.isArray(productsRes.data)) {
+          setProducts(productsRes.data);
         } else {
           setProducts([]);
         }
+        setBrands(brandsRes.data || []);
+        setCategories(categoriesRes.data || []);
+        setWarehouses(warehousesRes.data || []);
       })
-      .catch(() => setProducts([]));
-    api.get('brands/').then(res => setBrands(res.data)).catch(() => setBrands([]));
-    api.get('categories/').then(res => setCategories(res.data)).catch(() => setCategories([]));
-    api.get('warehouses/').then(res => setWarehouses(res.data)).catch(() => setWarehouses([]));
+      .catch(() => {
+        setProducts([]);
+        setBrands([]);
+        setCategories([]);
+        setWarehouses([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   // Filtro adicional por categoría y marca
@@ -389,31 +402,40 @@ function Products() {
             </tr>
           </thead>
           <tbody>
-            {paginatedProducts.filter(p => p && typeof p === 'object' && p.id != null).map(p => (
-                <tr key={p.id}>
-                  <td>{p.name ?? ''}</td>
-                  <td>{p.sku ?? ''}</td>
-                  <td style={{background:'#e3f2fd', fontWeight:'bold'}}>{(() => {
-                    if (p.brand && typeof p.brand === 'object') return p.brand.name ?? p.brand.description ?? '';
-                    if (p.brand != null) {
-                      const b = brands.find(br => br.id === Number(p.brand));
-                      return b ? (b.description || b.name || '') : '';
-                    }
-                    return '';
-                  })()}</td>
-                  <td style={{background:'#e8f5e9', fontWeight:'bold'}}>{(() => {
-                    if (p.category && typeof p.category === 'object') return p.category.name ?? p.category.description ?? '';
-                    if (p.category != null) {
-                      const c = categories.find(cat => cat.id === Number(p.category));
-                      return c ? (c.description || c.name || '') : '';
-                    }
-                    return '';
-                  })()}</td>
-                  <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
-                  <td>
-                    <button className="btn btn-sm btn-outline-primary" onClick={() => p && p.id != null ? handleEdit(p) : null} disabled={!p || p.id == null}>✏️</button>
-                  </td>
-                </tr>
+            {loading ? (            
+              <tr>
+                <td colSpan="6" className="text-center py-5">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Cargando...</span>
+                  </div>
+                  <p className="mt-2 text-secondary">Cargando Productos...</p>
+                </td>
+              </tr>
+            ) : paginatedProducts.filter(p => p && typeof p === 'object' && p.id != null).map(p => (
+              <tr key={p.id}>
+                <td>{p.name ?? ''}</td>
+                <td>{p.sku ?? ''}</td>
+                <td style={{ background: '#e3f2fd', fontWeight: 'bold' }}>{(() => {
+                  if (p.brand && typeof p.brand === 'object') return p.brand.name ?? p.brand.description ?? '';
+                  if (p.brand != null) {
+                    const b = brands.find(br => br.id === Number(p.brand));
+                    return b ? (b.description || b.name || '') : '';
+                  }
+                  return '';
+                })()}</td>
+                <td style={{ background: '#e8f5e9', fontWeight: 'bold' }}>{(() => {
+                  if (p.category && typeof p.category === 'object') return p.category.name ?? p.category.description ?? '';
+                  if (p.category != null) {
+                    const c = categories.find(cat => cat.id === Number(p.category));
+                    return c ? (c.description || c.name || '') : '';
+                  }
+                  return '';
+                })()}</td>
+                <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
+                <td>
+                  <button className="btn btn-sm btn-outline-primary" onClick={() => p && p.id != null ? handleEdit(p) : null} disabled={!p || p.id == null}>✏️</button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
