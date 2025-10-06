@@ -52,12 +52,22 @@ const ProductInventory = ({ selectedProductObj }) => {
     });
   }, []);
 
+  // Filtrar siempre por el producto/variant seleccionado en los tabs de inventario
   useEffect(() => {
-    // Buscar productos reales desde el backend
-    if (filterProduct.length >= 2 || filterBrand.length >= 2 || filterCategory.length >= 2 || selectedWarehouse) {
+    // Limpiar filtros al cambiar de producto
+    setFilterProduct('');
+    setFilterBrand('');
+    setFilterCategory('');
+    setSelectedWarehouse('');
+  }, [selectedProductObj?.product_variant_id]);
+
+  useEffect(() => {
+    // Si hay producto seleccionado, filtrar por product_variant_id
+    if (selectedProductObj && selectedProductObj.product_variant_id) {
       api.get('/inventory-general/', {
         params: {
           warehouse: selectedWarehouse,
+          product_variant_id: selectedProductObj.product_variant_id,
           product: filterProduct,
           brand: filterBrand,
           category: filterCategory
@@ -66,11 +76,9 @@ const ProductInventory = ({ selectedProductObj }) => {
         .then(res => setProducts(res.data.results || res.data))
         .catch(() => setProducts([]));
     } else {
-      api.get('/inventory-general/')
-        .then(res => setProducts(res.data.results || res.data))
-        .catch(() => setProducts([]));
+      setProducts([]);
     }
-  }, [selectedWarehouse, filterProduct, filterBrand, filterCategory]);
+  }, [selectedWarehouse, filterProduct, filterBrand, filterCategory, selectedProductObj]);
 
   return (
     <div className="product-inventory-container">
