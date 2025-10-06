@@ -16,7 +16,12 @@ const ProductInventory = ({ selectedProductObj }) => {
     brand: '',
     category: '',
   });
-  const [filteredProducts, setProducts] = useState([]);
+    const [filteredProducts, setProducts] = useState([]);  
+  
+    // Filtrado forzado en frontend para Inventario General
+    const filteredGeneralProducts = selectedProductObj && selectedProductObj.product_variant_id
+      ? filteredProducts.filter(p => p.product_variant_id === selectedProductObj.product_variant_id)
+      : filteredProducts;
   const [warehouses, setWarehouses] = useState([]);
 
   // Consultar info del producto y movimientos del inventario por variant
@@ -157,7 +162,14 @@ const ProductInventory = ({ selectedProductObj }) => {
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Producto</label>
-                <input className="form-control" value={filters.product} onChange={e => setFilters(f => ({ ...f, product: e.target.value }))} placeholder="Nombre o SKU" />
+                  <input
+                    className="form-control"
+                    value={filters.product}
+                    onChange={e => setFilters(f => ({ ...f, product: e.target.value }))}
+                    placeholder="Nombre o SKU"
+                    readOnly={!!selectedProductObj}
+                    style={selectedProductObj ? { background: '#f0f4ff', fontWeight: 'bold' } : {}}
+                  />
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Marca</label>
@@ -193,7 +205,7 @@ const ProductInventory = ({ selectedProductObj }) => {
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((prod, idx) => (
+                      filteredGeneralProducts.map((prod, idx) => (
                       <tr key={idx}>
                         <td><span className="fw-bold text-info">{prod.sku}</span></td>
                         <td><span className="fw-bold text-primary">{prod.name}</span></td>
