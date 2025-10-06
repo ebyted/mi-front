@@ -54,8 +54,12 @@ const ProductInventory = ({ selectedProductObj }) => {
 
   // Filtrar siempre por el producto/variant seleccionado en los tabs de inventario
   useEffect(() => {
-    // Limpiar filtros al cambiar de producto
-    setFilterProduct('');
+    // Al cambiar de producto, poner el SKU en el filtro y limpiar los demás
+    if (selectedProductObj && selectedProductObj.sku) {
+      setFilterProduct(selectedProductObj.sku);
+    } else {
+      setFilterProduct('');
+    }
     setFilterBrand('');
     setFilterCategory('');
     setSelectedWarehouse('');
