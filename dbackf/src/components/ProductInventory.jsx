@@ -195,7 +195,7 @@ const ProductInventory = ({ selectedProductObj }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.length === 0 ? (
+                  {filteredGeneralProducts.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="text-center py-5">
                         <div className="text-muted">
@@ -205,7 +205,7 @@ const ProductInventory = ({ selectedProductObj }) => {
                       </td>
                     </tr>
                   ) : (
-                      filteredGeneralProducts.map((prod, idx) => (
+                    filteredGeneralProducts.map((prod, idx) => (
                       <tr key={idx}>
                         <td><span className="fw-bold text-info">{prod.sku}</span></td>
                         <td><span className="fw-bold text-primary">{prod.name}</span></td>
