@@ -71,7 +71,7 @@ const ProductInventory = ({ selectedProductObj }) => {
   }, [selectedProductObj?.product_variant_id]);
 
   useEffect(() => {
-    // Si hay producto seleccionado, filtrar por product_variant_id (solo ese producto en el grid)
+    // Si hay producto seleccionado, filtrar solo por product_variant_id
     if (selectedProductObj && selectedProductObj.product_variant_id) {
       api.get('/inventory-general/', {
         params: {
@@ -82,7 +82,17 @@ const ProductInventory = ({ selectedProductObj }) => {
         .then(res => setProducts(res.data.results || res.data))
         .catch(() => setProducts([]));
     } else {
-      setProducts([]);
+      // Si no hay producto seleccionado, permite filtrar por texto
+      api.get('/inventory-general/', {
+        params: {
+          warehouse: filters.warehouse,
+          product: filters.product,
+          brand: filters.brand,
+          category: filters.category
+        }
+      })
+        .then(res => setProducts(res.data.results || res.data))
+        .catch(() => setProducts([]));
     }
   }, [filters, selectedProductObj]);
 
@@ -162,14 +172,21 @@ const ProductInventory = ({ selectedProductObj }) => {
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Producto</label>
+                {selectedProductObj ? (
+                  <input
+                    className="form-control"
+                    value={selectedProductObj.sku || selectedProductObj.name || ''}
+                    readOnly
+                    style={{ background: '#f0f4ff', fontWeight: 'bold' }}
+                  />
+                ) : (
                   <input
                     className="form-control"
                     value={filters.product}
                     onChange={e => setFilters(f => ({ ...f, product: e.target.value }))}
                     placeholder="Nombre o SKU"
-                    readOnly={!!selectedProductObj}
-                    style={selectedProductObj ? { background: '#f0f4ff', fontWeight: 'bold' } : {}}
                   />
+                )}
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Marca</label>
@@ -195,7 +212,7 @@ const ProductInventory = ({ selectedProductObj }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredGeneralProducts.length === 0 ? (
+                  {filteredProducts.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="text-center py-5">
                         <div className="text-muted">
@@ -205,7 +222,7 @@ const ProductInventory = ({ selectedProductObj }) => {
                       </td>
                     </tr>
                   ) : (
-                    filteredGeneralProducts.map((prod, idx) => (
+                    filteredProducts.map((prod, idx) => (
                       <tr key={idx}>
                         <td><span className="fw-bold text-info">{prod.sku}</span></td>
                         <td><span className="fw-bold text-primary">{prod.name}</span></td>
