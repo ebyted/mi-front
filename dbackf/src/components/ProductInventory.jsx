@@ -62,15 +62,12 @@ const ProductInventory = ({ selectedProductObj }) => {
   }, [selectedProductObj?.product_variant_id]);
 
   useEffect(() => {
-    // Si hay producto seleccionado, filtrar por product_variant_id
+    // Si hay producto seleccionado, filtrar por product_variant_id (solo ese producto en el grid)
     if (selectedProductObj && selectedProductObj.product_variant_id) {
       api.get('/inventory-general/', {
         params: {
           warehouse: selectedWarehouse,
-          product_variant_id: selectedProductObj.product_variant_id,
-          product: filterProduct,
-          brand: filterBrand,
-          category: filterCategory
+          product_variant_id: selectedProductObj.product_variant_id
         }
       })
         .then(res => setProducts(res.data.results || res.data))
@@ -78,7 +75,7 @@ const ProductInventory = ({ selectedProductObj }) => {
     } else {
       setProducts([]);
     }
-  }, [selectedWarehouse, filterProduct, filterBrand, filterCategory, selectedProductObj]);
+  }, [selectedWarehouse, selectedProductObj]);
 
   return (
     <div className="product-inventory-container">
