@@ -6,14 +6,16 @@ import { api } from '../services/api';
 
 
 const ProductInventory = ({ selectedProductObj }) => {
-  const [activeTab, setActiveTab] = useState('product');
+  const [activeTab, setActiveTab] = useState(0);
   const [productInfo, setProductInfo] = useState(null); // product details from API
   const [inventoryMovements, setInventoryMovements] = useState([]); // movements for selected variant
   // Estado para filtros de Inventario General
-  const [selectedWarehouse, setSelectedWarehouse] = useState('');
-  const [filterProduct, setFilterProduct] = useState('');
-  const [filterBrand, setFilterBrand] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
+  const [filters, setFilters] = useState({
+    warehouse: 'Todos',
+    product: '',
+    brand: '',
+    category: '',
+  });
   const [filteredProducts, setProducts] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
 
@@ -56,13 +58,11 @@ const ProductInventory = ({ selectedProductObj }) => {
   useEffect(() => {
     // Al cambiar de producto, poner el SKU en el filtro y limpiar los demás
     if (selectedProductObj && selectedProductObj.sku) {
-      setFilterProduct(selectedProductObj.sku);
+      setFilters(f => ({ ...f, product: selectedProductObj.sku }));
     } else {
-      setFilterProduct('');
+      setFilters(f => ({ ...f, product: '' }));
     }
-    setFilterBrand('');
-    setFilterCategory('');
-    setSelectedWarehouse('');
+    setFilters(f => ({ ...f, brand: '', category: '', warehouse: 'Todos' }));
   }, [selectedProductObj?.product_variant_id]);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ const ProductInventory = ({ selectedProductObj }) => {
     if (selectedProductObj && selectedProductObj.product_variant_id) {
       api.get('/inventory-general/', {
         params: {
-          warehouse: selectedWarehouse,
+          warehouse: filters.warehouse,
           product_variant_id: selectedProductObj.product_variant_id
         }
       })
@@ -79,35 +79,35 @@ const ProductInventory = ({ selectedProductObj }) => {
     } else {
       setProducts([]);
     }
-  }, [selectedWarehouse, selectedProductObj]);
+  }, [filters, selectedProductObj]);
 
   return (
     <div className="product-inventory-container">
       <div className="tabs mb-4">
         <button
-          className={`tab-btn ${activeTab === 'product' ? 'active' : ''}`}
-          onClick={() => setActiveTab('product')}
+          className={`tab-btn ${activeTab === 0 ? 'active' : ''}`}
+          onClick={() => setActiveTab(0)}
         >
           Información de Producto
         </button>
         <button
-          className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventory')}
+          className={`tab-btn ${activeTab === 1 ? 'active' : ''}`}
+          onClick={() => setActiveTab(1)}
         >
           Inventario
         </button>
         <button
-          className={`tab-btn ${activeTab === 'general' ? 'active' : ''}`}
-          onClick={() => setActiveTab('general')}
+          className={`tab-btn ${activeTab === 2 ? 'active' : ''}`}
+          onClick={() => setActiveTab(2)}
         >
           Inventario General
         </button>
       </div>
       <div className="tab-content">
-        {activeTab === 'product' && (
+        {activeTab === 0 && (
           selectedProductObj ? <ProductShow product={productInfo || selectedProductObj} /> : <div className="alert alert-info">Selecciona un producto para ver la información.</div>
         )}
-        {activeTab === 'inventory' && (
+        {activeTab === 1 && (
           <div className="inventory-tab">
             <h3 className="mb-3 text-primary fw-bold">Movimientos de Inventario</h3>
             {selectedProductObj && inventoryMovements.length === 0 ? (
@@ -142,14 +142,14 @@ const ProductInventory = ({ selectedProductObj }) => {
             )}
           </div>
         )}
-        {activeTab === 'general' && (
+        {activeTab === 2 && (
           <div className="inventory-general-tab">
             <h3 className="mb-3 text-primary fw-bold">Inventario General</h3>
             <div className="row mb-4">
               <div className="col-md-3 mb-2">
                 <label className="form-label">Almacén</label>
-                <select className="form-select" value={selectedWarehouse} onChange={e => setSelectedWarehouse(e.target.value)}>
-                  <option value="">Todos</option>
+                <select className="form-select" value={filters.warehouse} onChange={e => setFilters(f => ({ ...f, warehouse: e.target.value }))}>
+                  <option value="Todos">Todos</option>
                   {warehouses.map(w => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
@@ -157,15 +157,15 @@ const ProductInventory = ({ selectedProductObj }) => {
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Producto</label>
-                <input className="form-control" value={filterProduct} onChange={e => setFilterProduct(e.target.value)} placeholder="Nombre o SKU" />
+                <input className="form-control" value={filters.product} onChange={e => setFilters(f => ({ ...f, product: e.target.value }))} placeholder="Nombre o SKU" />
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Marca</label>
-                <input className="form-control" value={filterBrand} onChange={e => setFilterBrand(e.target.value)} placeholder="Marca" />
+                <input className="form-control" value={filters.brand} onChange={e => setFilters(f => ({ ...f, brand: e.target.value }))} placeholder="Marca" />
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Categoría</label>
-                <input className="form-control" value={filterCategory} onChange={e => setFilterCategory(e.target.value)} placeholder="Categoría" />
+                <input className="form-control" value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value }))} placeholder="Categoría" />
               </div>
             </div>
             <div className="table-responsive GeneralTable">
