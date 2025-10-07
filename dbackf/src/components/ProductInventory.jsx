@@ -60,20 +60,18 @@ const ProductInventory = ({ selectedProductObj }) => {
   }, [selectedProductObj?.product_variant_id]);
 
   useEffect(() => {
-    // Siempre filtra por el producto/variant recibido
+    // Si hay producto seleccionado, filtra por variante; si no, muestra todos los artículos con existencia
+    const params = {};
+    if (filters.warehouse && filters.warehouse !== 'Todos') params.warehouse = filters.warehouse;
+    if (filters.brand) params.brand = filters.brand;
+    if (filters.category) params.category = filters.category;
     if (selectedProductObj && selectedProductObj.product_variant_id) {
-      api.get('/inventory-general/', {
-        params: {
-          warehouse: filters.warehouse,
-          product_variant_id: selectedProductObj.product_variant_id
-        }
-      })
-        .then(res => setProducts(res.data.results || res.data))
-        .catch(() => setProducts([]));
-    } else {
-      setProducts([]);
+      params.product_variant_id = selectedProductObj.product_variant_id;
     }
-  }, [filters.warehouse, selectedProductObj]);
+    api.get('/inventory-general/', { params })
+      .then(res => setProducts(res.data.results || res.data))
+      .catch(() => setProducts([]));
+  }, [filters.warehouse, filters.brand, filters.category, selectedProductObj]);
 
   return (
     <div className="product-inventory-container">
