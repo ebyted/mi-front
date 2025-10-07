@@ -139,6 +139,13 @@ const ProductInventory = ({ selectedProductObj }) => {
         {activeTab === 2 && (
           <div className="inventory-general-tab">
             <h3 className="mb-3 text-primary fw-bold">Inventario General</h3>
+            {/* Mostrar product_variant_id y product_id para depuración */}
+            {selectedProductObj && (
+              <div className="alert alert-info mb-3">
+                <strong>product_variant_id:</strong> {selectedProductObj.product_variant_id || 'N/A'}<br />
+                <strong>product_id:</strong> {selectedProductObj.id || selectedProductObj.product_id || 'N/A'}
+              </div>
+            )}
             <div className="row mb-4">
               <div className="col-md-3 mb-2">
                 <label className="form-label">Almacén</label>
