@@ -16,12 +16,7 @@ const ProductInventory = ({ selectedProductObj }) => {
     brand: '',
     category: '',
   });
-    const [filteredProducts, setProducts] = useState([]);  
-  
-    // Filtrado forzado en frontend para Inventario General
-    const filteredGeneralProducts = selectedProductObj && selectedProductObj.product_variant_id
-      ? filteredProducts.filter(p => p.product_variant_id === selectedProductObj.product_variant_id)
-      : filteredProducts;
+  const [filteredProducts, setProducts] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
 
   // Consultar info del producto y movimientos del inventario por variant
@@ -59,19 +54,13 @@ const ProductInventory = ({ selectedProductObj }) => {
     });
   }, []);
 
-  // Filtrar siempre por el producto/variant seleccionado en los tabs de inventario
+  // Al cambiar de producto, limpiar filtros y solo mostrar el producto seleccionado
   useEffect(() => {
-    // Al cambiar de producto, poner el SKU en el filtro y limpiar los demás
-    if (selectedProductObj && selectedProductObj.sku) {
-      setFilters(f => ({ ...f, product: selectedProductObj.sku }));
-    } else {
-      setFilters(f => ({ ...f, product: '' }));
-    }
-    setFilters(f => ({ ...f, brand: '', category: '', warehouse: 'Todos' }));
+    setFilters({ warehouse: 'Todos', product: '', brand: '', category: '' });
   }, [selectedProductObj?.product_variant_id]);
 
   useEffect(() => {
-    // Si hay producto seleccionado, filtrar solo por product_variant_id
+    // Siempre filtra por el producto/variant recibido
     if (selectedProductObj && selectedProductObj.product_variant_id) {
       api.get('/inventory-general/', {
         params: {
@@ -82,19 +71,9 @@ const ProductInventory = ({ selectedProductObj }) => {
         .then(res => setProducts(res.data.results || res.data))
         .catch(() => setProducts([]));
     } else {
-      // Si no hay producto seleccionado, permite filtrar por texto
-      api.get('/inventory-general/', {
-        params: {
-          warehouse: filters.warehouse,
-          product: filters.product,
-          brand: filters.brand,
-          category: filters.category
-        }
-      })
-        .then(res => setProducts(res.data.results || res.data))
-        .catch(() => setProducts([]));
+      setProducts([]);
     }
-  }, [filters, selectedProductObj]);
+  }, [filters.warehouse, selectedProductObj]);
 
   return (
     <div className="product-inventory-container">
@@ -172,21 +151,13 @@ const ProductInventory = ({ selectedProductObj }) => {
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Producto</label>
-                {selectedProductObj ? (
-                  <input
-                    className="form-control"
-                    value={selectedProductObj.sku || selectedProductObj.name || ''}
-                    readOnly
-                    style={{ background: '#f0f4ff', fontWeight: 'bold' }}
-                  />
-                ) : (
-                  <input
-                    className="form-control"
-                    value={filters.product}
-                    onChange={e => setFilters(f => ({ ...f, product: e.target.value }))}
-                    placeholder="Nombre o SKU"
-                  />
-                )}
+                <input
+                  className="form-control"
+                  value={selectedProductObj ? (selectedProductObj.sku || selectedProductObj.name || '') : ''}
+                  readOnly
+                  style={{ background: '#f0f4ff', fontWeight: 'bold' }}
+                  placeholder="Nombre o SKU"
+                />
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Marca</label>
