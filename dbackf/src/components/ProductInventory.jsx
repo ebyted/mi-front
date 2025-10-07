@@ -161,11 +161,11 @@ const ProductInventory = ({ selectedProductObj }) => {
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Marca</label>
-                <input className="form-control" value={filters.brand} onChange={e => setFilters(f => ({ ...f, brand: e.target.value }))} placeholder="Marca" />
+                <input className="form-control" value={filters.brand} onChange={e => setFilters(f => ({ ...f, brand: e.target.value }))} placeholder="Marca" disabled={!!selectedProductObj} />
               </div>
               <div className="col-md-3 mb-2">
                 <label className="form-label">Categoría</label>
-                <input className="form-control" value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value }))} placeholder="Categoría" />
+                <input className="form-control" value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value }))} placeholder="Categoría" disabled={!!selectedProductObj} />
               </div>
             </div>
             <div className="table-responsive GeneralTable">
@@ -183,7 +183,10 @@ const ProductInventory = ({ selectedProductObj }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.length === 0 ? (
+                  {(selectedProductObj && selectedProductObj.product_variant_id
+                    ? filteredProducts.filter(p => p.product_variant_id === selectedProductObj.product_variant_id)
+                    : filteredProducts
+                  ).length === 0 ? (
                     <tr>
                       <td colSpan="8" className="text-center py-5">
                         <div className="text-muted">
@@ -193,7 +196,10 @@ const ProductInventory = ({ selectedProductObj }) => {
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((prod, idx) => (
+                    (selectedProductObj && selectedProductObj.product_variant_id
+                      ? filteredProducts.filter(p => p.product_variant_id === selectedProductObj.product_variant_id)
+                      : filteredProducts
+                    ).map((prod, idx) => (
                       <tr key={idx}>
                         <td><span className="fw-bold text-info">{prod.sku}</span></td>
                         <td><span className="fw-bold text-primary">{prod.name}</span></td>
