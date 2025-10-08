@@ -563,6 +563,26 @@ function SalesOrders() {
                             >
                               <i className="bi bi-trash"></i>
                             </button>
+                            {/* Botón para actualizar a Completado */}
+                            {order.status !== 'Completado' && (
+                              <button
+                                className="btn btn-sm btn-success"
+                                title="Marcar como Completado"
+                                onClick={async () => {
+                                  try {
+                                    await api.patch(`sales-orders/${order.id}/`, { status: 'Completado' });
+                                    // Refrescar pedidos después de actualizar
+                                    const ordersRes = await api.get('sales-orders/');
+                                    const refreshedOrders = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data.results || []);
+                                    setOrders(refreshedOrders);
+                                  } catch (err) {
+                                    alert('No se pudo actualizar el estado del pedido.');
+                                  }
+                                }}
+                              >
+                                <i className="bi bi-check2-circle"></i>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
