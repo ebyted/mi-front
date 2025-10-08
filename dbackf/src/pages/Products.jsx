@@ -20,21 +20,22 @@ function Products() {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-  productId: '',
-  productVariantId: '',
-  name: '',
-  sku: '',
-  description: '',
-  brand: '',
-  category: '',
-  barcode: '',
-  minimum_stock: '',
-  maximum_stock: '',
-  cantidad_corrugado: '',
-  status: 'REGULAR',
-  is_active: true,
-  group: '',
-  image_url: ''
+    productId: '',
+    productVariantId: '',
+    name: '',
+    sku: '',
+    description: '',
+    brand: '',
+    category: '',
+    barcode: '',
+    minimum_stock: '',
+    maximum_stock: '',
+    cantidad_corrugado: '',
+    status: 'REGULAR',
+    is_active: true,
+    group: '',
+    image_url: '',
+    image_file: null
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -182,8 +183,12 @@ function Products() {
   };
 
   const handleChange = e => {
-    const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+    const { name, value, type, checked, files } = e.target;
+    if (name === 'image_file') {
+      setFormData({ ...formData, image_file: files && files.length > 0 ? files[0] : null });
+    } else {
+      setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
+    }
   };
 
   const validateForm = () => {
@@ -217,35 +222,32 @@ function Products() {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      // Limpiar status inválido antes de enviar
       let safeStatus = formData.status === 'NORMAL' ? 'REGULAR' : formData.status;
-      // Limpiar payload para PUT (edición)
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('sku', formData.sku);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('brand', formData.brand);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('barcode', formData.barcode);
+      formDataToSend.append('minimum_stock', formData.minimum_stock);
+      formDataToSend.append('maximum_stock', formData.maximum_stock);
+      formDataToSend.append('cantidad_corrugado', formData.cantidad_corrugado);
+      formDataToSend.append('status', safeStatus);
+      formDataToSend.append('is_active', formData.is_active);
+      formDataToSend.append('group', formData.group);
+      formDataToSend.append('image_url', formData.image_url);
+      formDataToSend.append('business', 1);
+      if (formData.image_file) {
+        formDataToSend.append('image_file', formData.image_file);
+      }
+      let successMsg = '';
       if (editId) {
-        // Solo enviar los campos esperados por el backend
-        let payload = {
-          name: formData.name === '' ? null : formData.name,
-          sku: formData.sku === '' ? null : formData.sku,
-          description: formData.description === '' ? null : formData.description,
-          brand: formData.brand === '' ? null : Number(formData.brand),
-          category: formData.category === '' ? null : Number(formData.category),
-          barcode: formData.barcode === '' ? null : formData.barcode,
-          minimum_stock: formData.minimum_stock === '' ? null : Number(formData.minimum_stock),
-          maximum_stock: formData.maximum_stock === '' ? null : Number(formData.maximum_stock),
-          cantidad_corrugado: formData.cantidad_corrugado === '' ? null : Number(formData.cantidad_corrugado),
-          status: safeStatus === '' ? null : safeStatus,
-          is_active: formData.is_active,
-          group: formData.group === '' ? null : Number(formData.group),
-          image_url: formData.image_url === '' ? null : formData.image_url,
-          business: 1
-        };
-        console.log('PUT payload:', payload); // Debug: ver exactamente lo que se envía
-        await api.put(`products/${editId}/`, payload);
-        var successMsg = '¡Producto editado correctamente!';
+        await api.put(`products/${editId}/`, formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } });
+        successMsg = '¡Producto editado correctamente!';
       } else {
-        // Para alta, también limpiar status
-        let postData = { ...formData, status: safeStatus };
-        await api.post('products/', postData);
-        var successMsg = '¡Producto creado correctamente!';
+        await api.post('products/', formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } });
+        successMsg = '¡Producto creado correctamente!';
       }
       setShowForm(false);
       setEditId(null);
@@ -393,6 +395,7 @@ function Products() {
         <table className="table table-hover">
           <thead className="table-primary">
             <tr>
+              <th>Imagen</th>
               <th>Nombre</th>
               <th>SKU</th>
               <th style={{background:'#e3f2fd'}}>Marca</th>
@@ -411,32 +414,49 @@ function Products() {
                   <p className="mt-2 text-secondary">Cargando Productos...</p>
                 </td>
               </tr>
-            ) : paginatedProducts.filter(p => p && typeof p === 'object' && p.id != null).map(p => (
-              <tr key={p.id}>
-                <td>{p.name ?? ''}</td>
-                <td>{p.sku ?? ''}</td>
-                <td style={{ background: '#e3f2fd', fontWeight: 'bold' }}>{(() => {
-                  if (p.brand && typeof p.brand === 'object') return p.brand.name ?? p.brand.description ?? '';
-                  if (p.brand != null) {
-                    const b = brands.find(br => br.id === Number(p.brand));
-                    return b ? (b.description || b.name || '') : '';
-                  }
-                  return '';
-                })()}</td>
-                <td style={{ background: '#e8f5e9', fontWeight: 'bold' }}>{(() => {
-                  if (p.category && typeof p.category === 'object') return p.category.name ?? p.category.description ?? '';
-                  if (p.category != null) {
-                    const c = categories.find(cat => cat.id === Number(p.category));
-                    return c ? (c.description || c.name || '') : '';
-                  }
-                  return '';
-                })()}</td>
-                <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
-                <td>
-                  <button className="btn btn-sm btn-outline-primary" onClick={() => p && p.id != null ? handleEdit(p) : null} disabled={!p || p.id == null}>✏️</button>
-                </td>
-              </tr>
-            ))}
+            ) : paginatedProducts.filter(p => p && typeof p === 'object' && p.id != null).map(p => {
+              // Determinar la URL de la imagen a mostrar
+              let imgSrc = '';
+              if (p.image_file) {
+                // Si es ruta relativa, anteponer el dominio si es necesario
+                imgSrc = p.image_file.startsWith('http') ? p.image_file : `${process.env.REACT_APP_MEDIA_URL || ''}${p.image_file}`;
+              } else if (p.image_url) {
+                imgSrc = p.image_url;
+              }
+              return (
+                <tr key={p.id}>
+                  <td>
+                    {imgSrc ? (
+                      <img src={imgSrc} alt={p.name} style={{ maxWidth: 60, maxHeight: 60, borderRadius: 6, objectFit: 'cover', border: '1px solid #ddd' }} />
+                    ) : (
+                      <span className="text-muted">Sin imagen</span>
+                    )}
+                  </td>
+                  <td>{p.name ?? ''}</td>
+                  <td>{p.sku ?? ''}</td>
+                  <td style={{ background: '#e3f2fd', fontWeight: 'bold' }}>{(() => {
+                    if (p.brand && typeof p.brand === 'object') return p.brand.name ?? p.brand.description ?? '';
+                    if (p.brand != null) {
+                      const b = brands.find(br => br.id === Number(p.brand));
+                      return b ? (b.description || b.name || '') : '';
+                    }
+                    return '';
+                  })()}</td>
+                  <td style={{ background: '#e8f5e9', fontWeight: 'bold' }}>{(() => {
+                    if (p.category && typeof p.category === 'object') return p.category.name ?? p.category.description ?? '';
+                    if (p.category != null) {
+                      const c = categories.find(cat => cat.id === Number(p.category));
+                      return c ? (c.description || c.name || '') : '';
+                    }
+                    return '';
+                  })()}</td>
+                  <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
+                  <td>
+                    <button className="btn btn-sm btn-outline-primary" onClick={() => p && p.id != null ? handleEdit(p) : null} disabled={!p || p.id == null}>✏️</button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -561,7 +581,19 @@ function Products() {
                       </div>
                     </div>
                     <div className="col-12">
-                      <label className="form-label fw-bold">URL de Imagen</label>
+                      <label className="form-label fw-bold">Imagen</label>
+                      <input type="file" name="image_file" className="form-control mb-2" accept="image/*" onChange={handleChange} />
+                      {/* Vista previa de imagen seleccionada o actual */}
+                      {formData.image_file ? (
+                        <div className="mb-2">
+                          <img src={URL.createObjectURL(formData.image_file)} alt="preview" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, objectFit: 'cover', border: '1px solid #ddd' }} />
+                        </div>
+                      ) : (formData.image_url || (editId && products.find(p => p.id === editId)?.image_file)) ? (
+                        <div className="mb-2">
+                          <img src={formData.image_url || ((editId && products.find(p => p.id === editId)?.image_file) ? ((products.find(p => p.id === editId).image_file.startsWith('http') ? products.find(p => p.id === editId).image_file : `${process.env.REACT_APP_MEDIA_URL || ''}${products.find(p => p.id === editId).image_file}`)) : '')} alt="actual" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, objectFit: 'cover', border: '1px solid #ddd' }} />
+                        </div>
+                      ) : null}
+                      <label className="form-label fw-bold">URL de Imagen (opcional)</label>
                       <input type="url" name="image_url" className="form-control" value={formData.image_url} onChange={handleChange} />
                     </div>
                   </div>

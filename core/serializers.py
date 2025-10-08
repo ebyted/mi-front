@@ -88,11 +88,13 @@ class ProductSerializer(serializers.ModelSerializer):
     brand_name = serializers.SerializerMethodField(read_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
     
+    image_file = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = Product
         fields = ['id', 'business', 'category', 'brand', 'name', 'description', 'sku', 
                  'barcode', 'base_unit', 'minimum_stock', 'maximum_stock', 'image_url', 
-                 'image', 'is_active', 'group', 'cantidad_corrugado', 'status', 
+                 'image', 'image_file', 'is_active', 'group', 'cantidad_corrugado', 'status', 
                  'created_at', 'updated_at', 'price', 'current_stock', 'brand_name', 'category_name', 'variants']
         extra_kwargs = {
             'cantidad_corrugado': {'required': False},

@@ -144,6 +144,7 @@ class Product(models.Model):
     minimum_stock = models.FloatField(default=0)
     maximum_stock = models.FloatField(default=0)
     image_url = models.URLField(blank=True, null=True)
+    image_file = models.ImageField(upload_to='product_images/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     group = models.IntegerField(default=0)
     # NUEVOS CAMPOS AGREGADOS
