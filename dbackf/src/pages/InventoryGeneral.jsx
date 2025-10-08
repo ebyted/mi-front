@@ -30,22 +30,19 @@ const InventoryGeneral = () => {
 			.then(r => setProductOptions(r.data.results || []));
 	}, [productSearch]);
 
-	// Cargar inventario con paginación y filtros
+	// Cargar inventario general (sin paginación, muestra todos los productos)
 	useEffect(() => {
 		setLoading(true);
-		const params = {
-			page,
-			page_size: PAGE_SIZE
-		};
+		const params = {};
 		if (selectedWarehouse) params.warehouse = selectedWarehouse;
 		if (selectedProduct) params.product = selectedProduct.id;
-		api.get('/inventory/', { params })
+		api.get('/inventory-general/', { params })
 			.then(r => {
-				setInventory(r.data.results || []);
-				setTotalPages(Math.ceil((r.data.count || 1) / PAGE_SIZE));
+				setInventory(Array.isArray(r.data) ? r.data : []);
+				setTotalPages(1);
 			})
 			.finally(() => setLoading(false));
-	}, [selectedWarehouse, selectedProduct, page]);
+	}, [selectedWarehouse, selectedProduct]);
 
 	return (
 		<div className="container py-4">
