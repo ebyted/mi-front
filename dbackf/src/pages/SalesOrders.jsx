@@ -699,22 +699,16 @@ function SalesOrders() {
                                     setDetails(newDetails);
                                   }}
                                 />
-                                <select
-                                  name="product"
-                                  className="form-select mt-2"
-                                  value={d.product}
-                                  onChange={e => handleDetailChange(idx, e)}
-                                  required
-                                >
-                                  <option value="">Seleccionar producto...</option>
-                                  {(d.filteredProducts || products)
-                                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-                                    .map(p => (
-                                      <option key={p.id} value={p.id}>
-                                        {p.name} {p.price && `- $${p.price}`}
-                                      </option>
-                                    ))}
-                                </select>
+                                <input
+                                  type="text"
+                                  className="form-control mt-2 bg-light"
+                                  value={(() => {
+                                    const prod = (d.filteredProducts || products).find(p => p.id === d.product);
+                                    return prod ? `${prod.name}${prod.description ? ' - ' + prod.description : ''}` : '';
+                                  })()}
+                                  readOnly
+                                  placeholder="Descripción del producto"
+                                />
                               </>
                             )}
                           </div>
