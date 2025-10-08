@@ -13,6 +13,19 @@ const InventoryMovements = () => {
   useDocumentTitle('Movimientos de Inventario - Maestro Inventario');
   const [movements, setMovements] = useState([]);
   const [formData, setFormData] = useState({ warehouse_id: '', type: 'IN', notes: '', details: [] });
+
+  // Manejar cambio de tipo de movimiento y actualizar notas con la fecha actual
+  const handleTypeChange = (e) => {
+    const newType = e.target.value;
+    const now = new Date();
+    const fecha = now.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' }) +
+      ' ' + now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    setFormData(prev => ({
+      ...prev,
+      type: newType,
+      notes: `Movimiento tipo ${newType} creado el ${fecha}`
+    }));
+  };
   const [warehouses, setWarehouses] = useState([]);
   // Eliminada declaración duplicada de showDraftModal/setShowDraftModal
 
@@ -440,6 +453,7 @@ const InventoryMovements = () => {
             handleClearBatch={handleClearBatch}
             warehouses={warehouses}
             editingMovement={editingMovement}
+            handleTypeChange={handleTypeChange}
           />
         )}
         {/* Modales funcionales y completos */}

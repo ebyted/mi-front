@@ -518,6 +518,52 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
 
 class SalesOrderViewSet(viewsets.ModelViewSet):
+    def create(self, request, *args, **kwargs):
+        """
+        Al crear una venta, también crea un movimiento de almacén tipo OUT con el mismo detalle y nota 'Venta Portal {fecha}'.
+        """
+        from django.utils import timezone
+        from core.models import InventoryMovement, InventoryMovementDetail, Warehouse
+        from decimal import Decimal
+
+        # Crear la venta normalmente
+        response = super().create(request, *args, **kwargs)
+        try:
+            sales_order_id = response.data.get('id')
+            sales_order = SalesOrder.objects.get(id=sales_order_id)
+            # Determinar almacén (puedes ajustar esta lógica según tu modelo)
+            warehouse = None
+            if hasattr(sales_order, 'warehouse') and sales_order.warehouse:
+                warehouse = sales_order.warehouse
+            else:
+                # Si no hay almacén en la venta, usa el primero activo
+                warehouse = Warehouse.objects.filter(is_active=True).first()
+            if not warehouse:
+                return response  # No se puede crear movimiento sin almacén
+
+            fecha = timezone.now().strftime('%d/%m/%Y %H:%M')
+            movimiento = InventoryMovement.objects.create(
+                warehouse=warehouse,
+                user=sales_order.customer if hasattr(sales_order, 'customer') else None,
+                movement_type='OUT',
+                notes=f'Venta Portal {fecha}',
+                authorized=True,
+                authorized_by=request.user,
+                authorized_at=timezone.now()
+            )
+            for item in sales_order.items.all():
+                InventoryMovementDetail.objects.create(
+                    movement=movimiento,
+                    product_variant=item.product_variant,
+                    quantity=item.quantity,
+                    price=item.unit_price,
+                    total=Decimal(item.quantity) * Decimal(item.unit_price),
+                    notes=f'Venta Portal {fecha}'
+                )
+        except Exception as e:
+            # Puedes loggear el error si lo deseas
+            pass
+        return response
     queryset = SalesOrder.objects.all().order_by('-created_at')
     serializer_class = SalesOrderSerializer
 
