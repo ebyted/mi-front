@@ -257,16 +257,36 @@ function SalesOrders() {
       status: order.status || '',
       total_amount: order.total_amount || ''
     });
-    setDetails(
-      order.items?.map(item => ({
-        product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
-        quantity: item.quantity || '',
-        price: item.price || '',
-        id: item.id || '',
-        productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
-      })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
-    );
-    setShowForm(true);
+    // Si los productos aún no están cargados, espera a que se carguen antes de setDetails
+    if (!products || products.length === 0) {
+      // Espera a que los productos se carguen antes de setDetails
+      const interval = setInterval(() => {
+        if (products && products.length > 0) {
+          clearInterval(interval);
+          setDetails(
+            order.items?.map(item => ({
+              product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
+              quantity: item.quantity || '',
+              price: item.price || '',
+              id: item.id || '',
+              productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
+            })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
+          );
+          setShowForm(true);
+        }
+      }, 100);
+    } else {
+      setDetails(
+        order.items?.map(item => ({
+          product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
+          quantity: item.quantity || '',
+          price: item.price || '',
+          id: item.id || '',
+          productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
+        })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
+      );
+      setShowForm(true);
+    }
   };
 
   const handleDeleteOrder = async (orderId) => {

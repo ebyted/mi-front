@@ -12,7 +12,6 @@ const menuItems = [
   { name: "Órdenes de Compra", path: "/purchase-orders", icon: "bi-cart-plus" },
   { name: "Cotizaciones", path: "/quotations", icon: "bi-calculator" },
   { name: "Ventas", path: "/sales-orders", icon: "bi-receipt" },
-  { name: "Detalles de Ventas", path: "/sales-order-details", icon: "bi-list-check" },
   { name: "Clientes", path: "/customers", icon: "bi-person-badge" },
   { name: "Proveedores", path: "/suppliers", icon: "bi-truck" },
   { name: "Movimientos", path: "/inventory-movements", icon: "bi-arrow-left-right" },
