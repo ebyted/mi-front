@@ -257,12 +257,15 @@ function SalesOrders() {
       status: order.status || '',
       total_amount: order.total_amount || ''
     });
-    setDetails(order.items?.map(item => ({
-      product: item.product?.id || item.product || '',
-      quantity: item.quantity || '',
-      price: item.price || '',
-      id: item.id || ''
-    })) || [{ product: '', quantity: '', price: '' }]);
+    setDetails(
+      order.items?.map(item => ({
+        product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
+        quantity: item.quantity || '',
+        price: item.price || '',
+        id: item.id || '',
+        productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
+      })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
+    );
     setShowForm(true);
   };
 
