@@ -35,7 +35,11 @@ function Products() {
     is_active: true,
     group: '',
     image_url: '',
-    image_file: null
+    image_file: null,
+    // Campos de precio para la variante
+    price: '',
+    cost_price: '',
+    sale_price: ''
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,9 +126,10 @@ function Products() {
   const handleEdit = (product) => {
     setEditId(product.id);
     setFormError('');
+    const variant = product.variants?.[0]; // Tomar la primera variante
     setFormData({
       productId: product.id,
-      productVariantId: product.variants?.[0]?.id || '',
+      productVariantId: variant?.id || '',
       name: product.name || '',
       sku: product.sku || '',
       description: product.description || '',
@@ -137,7 +142,11 @@ function Products() {
       status: product.status || 'REGULAR',
       is_active: product.is_active ?? true,
       group: product.group || '',
-      image_url: product.image_url || ''
+      image_url: product.image_url || '',
+      // Cargar precios de la variante
+      price: variant?.price || '',
+      cost_price: variant?.cost_price || '',
+      sale_price: variant?.sale_price || ''
     });
     setShowForm(true);
     setTimeout(() => {
@@ -165,7 +174,10 @@ function Products() {
       status: 'REGULAR',
       is_active: true,
       group: '',
-      image_url: ''
+      image_url: '',
+      price: '',
+      cost_price: '',
+      sale_price: ''
     });
     setShowForm(true);
   };
@@ -204,6 +216,10 @@ function Products() {
     if (formData.minimum_stock && (isNaN(formData.minimum_stock) || parseFloat(formData.minimum_stock) < 0)) errors.push('Stock mínimo inválido');
     if (formData.maximum_stock && (isNaN(formData.maximum_stock) || parseFloat(formData.maximum_stock) < 0)) errors.push('Stock máximo inválido');
     if (formData.cantidad_corrugado && (isNaN(formData.cantidad_corrugado) || parseFloat(formData.cantidad_corrugado) < 0)) errors.push('Cantidad corrugado inválida');
+    // Validar precios
+    if (formData.price && (isNaN(formData.price) || parseFloat(formData.price) < 0)) errors.push('Precio inválido');
+    if (formData.cost_price && (isNaN(formData.cost_price) || parseFloat(formData.cost_price) < 0)) errors.push('Precio de costo inválido');
+    if (formData.sale_price && (isNaN(formData.sale_price) || parseFloat(formData.sale_price) < 0)) errors.push('Precio de venta inválido');
     // Validar imagen
     if (formData.image_url && formData.image_url.trim() && !/^https?:\/\/.+\.(jpg|jpeg|png|webp)$/i.test(formData.image_url)) errors.push('URL de imagen inválida');
     // Validar relación de stocks
@@ -243,16 +259,52 @@ function Products() {
       }
       let successMsg = '';
       if (editId) {
+        // Actualizar producto
         await api.put(`products/${editId}/`, formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } });
-        successMsg = '¡Producto editado correctamente!';
+        
+        // Actualizar precios de la variante si existe
+        if (formData.productVariantId && (formData.price || formData.cost_price || formData.sale_price)) {
+          const variantData = {};
+          if (formData.price) variantData.price = parseFloat(formData.price);
+          if (formData.cost_price) variantData.cost_price = parseFloat(formData.cost_price);
+          if (formData.sale_price) variantData.sale_price = parseFloat(formData.sale_price);
+          
+          try {
+            await api.patch(`product-variants/${formData.productVariantId}/`, variantData);
+          } catch (variantError) {
+            console.warn('Error actualizando precios de variante:', variantError);
+          }
+        }
+        
+        successMsg = '¡Producto y precios actualizados correctamente!';
       } else {
-        await api.post('products/', formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const productResponse = await api.post('products/', formDataToSend, { headers: { 'Content-Type': 'multipart/form-data' } });
+        
+        // Si es un producto nuevo y tiene precios, buscar y actualizar la variante creada automáticamente
+        if (productResponse.data.id && (formData.price || formData.cost_price || formData.sale_price)) {
+          try {
+            // Obtener las variantes del producto recién creado
+            const productDetail = await api.get(`products/${productResponse.data.id}/`);
+            if (productDetail.data.variants && productDetail.data.variants.length > 0) {
+              const firstVariant = productDetail.data.variants[0];
+              const variantData = {};
+              if (formData.price) variantData.price = parseFloat(formData.price);
+              if (formData.cost_price) variantData.cost_price = parseFloat(formData.cost_price);
+              if (formData.sale_price) variantData.sale_price = parseFloat(formData.sale_price);
+              
+              await api.patch(`product-variants/${firstVariant.id}/`, variantData);
+            }
+          } catch (variantError) {
+            console.warn('Error actualizando precios de variante en producto nuevo:', variantError);
+          }
+        }
+        
         successMsg = '¡Producto creado correctamente!';
       }
       setShowForm(false);
       setEditId(null);
       setFormData({
-        productId: '', productVariantId: '', name: '', sku: '', description: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '', image_url: ''
+        productId: '', productVariantId: '', name: '', sku: '', description: '', brand: '', category: '', barcode: '', minimum_stock: '', maximum_stock: '', cantidad_corrugado: '', status: 'REGULAR', is_active: true, group: '', image_url: '', price: '', cost_price: '', sale_price: ''
       });
       // Refrescar productos usando el endpoint correcto tras guardar
       api.get('products/')
@@ -400,6 +452,7 @@ function Products() {
               <th>SKU</th>
               <th style={{background:'#e3f2fd'}}>Marca</th>
               <th style={{background:'#e8f5e9'}}>Categoría</th>
+              <th style={{background:'#fff3cd'}}>Precio</th>
               <th>Activo</th>
               <th>Acciones</th>
             </tr>
@@ -407,7 +460,7 @@ function Products() {
           <tbody>
             {loading ? (            
               <tr>
-                <td colSpan="6" className="text-center py-5">
+                <td colSpan="8" className="text-center py-5">
                   <div className="spinner-border text-primary" role="status">
                     <span className="visually-hidden">Cargando...</span>
                   </div>
@@ -450,6 +503,15 @@ function Products() {
                     }
                     return '';
                   })()}</td>
+                  <td style={{ background: '#fff3cd', fontWeight: 'bold', color: '#856404' }}>
+                    {(() => {
+                      const variant = p.variants && p.variants.length > 0 ? p.variants[0] : null;
+                      if (variant && variant.price) {
+                        return `$${parseFloat(variant.price).toFixed(2)}`;
+                      }
+                      return <span className="text-muted">Sin precio</span>;
+                    })()}
+                  </td>
                   <td><span className={`badge ${p.is_active ? 'bg-success' : 'bg-danger'}`}>{p.is_active ? 'Activo' : 'Inactivo'}</span></td>
                   <td>
                     <button className="btn btn-sm btn-outline-primary" onClick={() => p && p.id != null ? handleEdit(p) : null} disabled={!p || p.id == null}>✏️</button>
@@ -572,6 +634,63 @@ function Products() {
                         <option value="OFERTA">Oferta</option>
                         <option value="REMATE">Remate</option>
                       </select>
+                    </div>
+                    
+                    {/* Campos de precio */}
+                    <div className="col-12">
+                      <hr />
+                      <h6 className="text-primary">
+                        <i className="bi bi-currency-dollar me-2"></i>
+                        Precios del Producto
+                      </h6>
+                    </div>
+                    <div className="col-4">
+                      <label className="form-label fw-bold">Precio Base</label>
+                      <div className="input-group">
+                        <span className="input-group-text">$</span>
+                        <input 
+                          type="number" 
+                          name="price" 
+                          className="form-control" 
+                          value={formData.price} 
+                          onChange={handleChange} 
+                          min="0" 
+                          step="0.01"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-4">
+                      <label className="form-label fw-bold">Precio de Costo</label>
+                      <div className="input-group">
+                        <span className="input-group-text">$</span>
+                        <input 
+                          type="number" 
+                          name="cost_price" 
+                          className="form-control" 
+                          value={formData.cost_price} 
+                          onChange={handleChange} 
+                          min="0" 
+                          step="0.01"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-4">
+                      <label className="form-label fw-bold">Precio de Venta</label>
+                      <div className="input-group">
+                        <span className="input-group-text">$</span>
+                        <input 
+                          type="number" 
+                          name="sale_price" 
+                          className="form-control" 
+                          value={formData.sale_price} 
+                          onChange={handleChange} 
+                          min="0" 
+                          step="0.01"
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
                     <div className="col-6">
                       <label className="form-label fw-bold">Activo</label>
