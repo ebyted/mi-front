@@ -9,6 +9,7 @@ const MovementList = ({ movements, loading, onView, onEdit, onAuthorize, onCance
         <tr>
           <th className="text-center">ID</th>
           <th>Tipo</th>
+          <th>Fecha</th>
           <th>Notas</th>
           <th className="text-center">Acciones</th>
         </tr>
@@ -25,38 +26,42 @@ const MovementList = ({ movements, loading, onView, onEdit, onAuthorize, onCance
           </tr>
         ) : movements.length === 0 ? (
           <tr>
-            <td colSpan="4" className="text-center">No hay movimientos registrados.</td>
+            <td colSpan="5" className="text-center">No hay movimientos registrados.</td>
           </tr>
         ) : (
-          movements.map(mov => (
-            <tr key={mov.id} className="align-middle">
-              <td className="text-center fw-bold text-primary">{mov.id}</td>
-              <td>
-                {mov.type === 'IN' || mov.movement_type === 'IN' ? (
-                  <span className="badge bg-success">Ingreso</span>
-                ) : mov.type === 'OUT' || mov.movement_type === 'OUT' ? (
-                  <span className="badge bg-danger">Egreso</span>
-                ) : (
-                  <span className="text-muted">{mov.movement_type || 'Sin tipo'}</span>
-                )}
-              </td>
-              <td>{mov.notes}</td>
-              <td className="text-center">
-                <button className="btn btn-outline-primary btn-xs me-1" title="Ver" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onView(mov)}>
-                  <i className="bi bi-eye"></i>
-                </button>
-                <button className="btn btn-outline-warning btn-xs me-1" title="Editar" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onEdit(mov)}>
-                  <i className="bi bi-pencil"></i>
-                </button>
-                <button className="btn btn-outline-success btn-xs me-1" title="Autorizar" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onAuthorize(mov)}>
-                  <i className="bi bi-check2-circle"></i>
-                </button>
-                <button className="btn btn-outline-danger btn-xs" title="Cancelar" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onCancel(mov)}>
-                  <i className="bi bi-x-circle"></i>
-                </button>
-              </td>
-            </tr>
-          ))
+          movements.map(mov => {
+            const fecha = mov.created_at ? new Date(mov.created_at).toLocaleString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+            return (
+              <tr key={mov.id} className="align-middle">
+                <td className="text-center fw-bold text-primary">{mov.id}</td>
+                <td>
+                  {mov.type === 'IN' || mov.movement_type === 'IN' ? (
+                    <span className="badge bg-success">Ingreso</span>
+                  ) : mov.type === 'OUT' || mov.movement_type === 'OUT' ? (
+                    <span className="badge bg-danger">Egreso</span>
+                  ) : (
+                    <span className="text-muted">{mov.movement_type || 'Sin tipo'}</span>
+                  )}
+                </td>
+                <td>{fecha}</td>
+                <td>{mov.notes}</td>
+                <td className="text-center">
+                  <button className="btn btn-outline-primary btn-xs me-1" title="Ver" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onView(mov)}>
+                    <i className="bi bi-eye"></i>
+                  </button>
+                  <button className="btn btn-outline-warning btn-xs me-1" title="Editar" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onEdit(mov)}>
+                    <i className="bi bi-pencil"></i>
+                  </button>
+                  <button className="btn btn-outline-success btn-xs me-1" title="Autorizar" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onAuthorize(mov)}>
+                    <i className="bi bi-check2-circle"></i>
+                  </button>
+                  <button className="btn btn-outline-danger btn-xs" title="Cancelar" style={{padding: '2px 6px', fontSize: '0.9em'}} onClick={() => onCancel(mov)}>
+                    <i className="bi bi-x-circle"></i>
+                  </button>
+                </td>
+              </tr>
+            );
+          })
         )}
       </tbody>
     </table>

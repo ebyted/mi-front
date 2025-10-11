@@ -16,7 +16,6 @@ const MovementDetailsTable = ({ details }) => (
           <th style={{ width: 40 }}>#</th>
           <th style={{ width: 90 }}>ID Producto</th>
           <th style={{ minWidth: 160 }}>Nombre Producto</th>
-          <th style={{ width: 90 }}>ID Variante</th>
           <th style={{ width: 90 }}>Cantidad</th>
           <th style={{ width: 90 }}>Lote</th>
           <th style={{ width: 120 }}>Vencimiento</th>
@@ -29,7 +28,6 @@ const MovementDetailsTable = ({ details }) => (
             // Mejor manejo de datos vacíos y formato
             const productName = d.product_name || (d.product && d.product.name) || '—';
             const productCode = d.product_code || (d.product && d.product.code) || '';
-            const variantId = d.product_variant_id || (d.product_variant && d.product_variant.id) || '—';
             const quantity = d.quantity ?? '—';
             const lote = d.lote ?? '—';
             const expiration = formatDate(d.expiration_date);
@@ -42,7 +40,6 @@ const MovementDetailsTable = ({ details }) => (
                   <span style={{ fontWeight: 500 }}>{productName}</span>
                   {productCode && <span className="text-muted" style={{ fontSize: '0.9em', marginLeft: 6 }}>({productCode})</span>}
                 </td>
-                <td>{variantId}</td>
                 <td>{quantity}</td>
                 <td>{lote}</td>
                 <td>{expiration}</td>
@@ -52,7 +49,7 @@ const MovementDetailsTable = ({ details }) => (
           })
         ) : (
           <tr>
-            <td colSpan={8} className="text-center text-muted">No hay productos en este movimiento.</td>
+            <td colSpan={7} className="text-center text-muted">No hay productos en este movimiento.</td>
           </tr>
         )}
       </tbody>
