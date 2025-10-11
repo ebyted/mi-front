@@ -544,7 +544,7 @@ class SalesOrderViewSet(viewsets.ModelViewSet):
             fecha = timezone.now().strftime('%d/%m/%Y %H:%M')
             movimiento = InventoryMovement.objects.create(
                 warehouse=warehouse,
-                user=sales_order.customer if hasattr(sales_order, 'customer') else None,
+                user=request.user,
                 movement_type='OUT',
                 notes=f'Venta Portal {fecha}',
                 authorized=True,
