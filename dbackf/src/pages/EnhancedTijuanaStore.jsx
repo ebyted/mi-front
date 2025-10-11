@@ -750,13 +750,13 @@ const EnhancedTijuanaStore = ({ user }) => {
       console.log('🎉 Respuesta del servidor:', response.data);
       console.log('📊 Status de respuesta:', response.status);
       
-      // Crear movimiento de inventario tipo EGRESO, sin autorizar, usuario referencia tienda@admin.com
+      // Crear movimiento de inventario tipo EGRESO, autorizado automáticamente para ventas de tienda
       try {
         const movementData = {
           movement_type: 'EGRESO',
-          authorized: false,
+          authorized: true,
           created_by_email: 'tienda@admin.com',
-          authorized_by_email: null,
+          authorized_by_email: 'tienda@admin.com',
           reference: `Venta Tienda TIJUANA - Orden #${response.data.id || response.data.order_number || 'N/A'}`,
           details: cart.map(item => ({
             product: item.id,
@@ -765,7 +765,7 @@ const EnhancedTijuanaStore = ({ user }) => {
           }))
         };
         await api.post('inventory-movements/', movementData);
-        console.log('✅ Movimiento de inventario creado exitosamente');
+        console.log('✅ Movimiento de inventario creado exitosamente como AUTORIZADO');
       } catch (err) {
         console.error('Error creando movimiento de inventario:', err);
       }
