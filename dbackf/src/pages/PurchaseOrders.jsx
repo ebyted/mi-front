@@ -98,16 +98,7 @@ function PurchaseOrders() {
       } else {
         await api.post('/purchase-orders/', payload);
       }
-      setShowForm(false);
-      setEditingOrder(null);
-      setFormData({
-        supplier: '',
-        order_date: new Date().toISOString().split('T')[0],
-        expected_delivery_date: '',
-        status: 'DRAFT',
-        notes: ''
-      });
-      setItems([]);
+      handleCloseForm();
       loadData();
     } catch (err) {
       setFormError('Error al guardar la orden.');
@@ -118,6 +109,36 @@ function PurchaseOrders() {
   
   const handleFormChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleNewOrder = () => {
+    // Limpiar todos los campos y establecer valores por defecto
+    setEditingOrder(null);
+    setFormError('');
+    setFormData({
+      supplier: '',
+      order_date: new Date().toISOString().split('T')[0], // Siempre la fecha de hoy
+      expected_delivery_date: '',
+      status: 'DRAFT',
+      notes: ''
+    });
+    setItems([]); // Limpiar items
+    setShowForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingOrder(null);
+    setFormError('');
+    // Restablecer a valores por defecto para la próxima vez
+    setFormData({
+      supplier: '',
+      order_date: new Date().toISOString().split('T')[0],
+      expected_delivery_date: '',
+      status: 'DRAFT',
+      notes: ''
+    });
+    setItems([]);
   };
 
   const handleEdit = (order) => {
@@ -226,7 +247,7 @@ function PurchaseOrders() {
           </select>
         </div>
         <div className="col-md-3 text-end">
-          <button className="btn btn-success btn-lg" onClick={() => setShowForm(true)}>
+          <button className="btn btn-success btn-lg" onClick={handleNewOrder}>
             <i className="bi bi-plus-circle me-2"></i> Nueva Orden
           </button>
         </div>
@@ -246,7 +267,7 @@ function PurchaseOrders() {
             <p className="text-muted">Comienza creando tu primera orden de compra</p>
             <button 
               className="btn btn-success btn-lg mt-3"
-              onClick={() => setShowForm(true)}
+              onClick={handleNewOrder}
             >
               <i className="bi bi-plus-circle me-2"></i>
               Crear Primera Orden
@@ -355,7 +376,7 @@ function PurchaseOrders() {
                   <i className="bi bi-cart-plus me-2"></i>
                   {editingOrder ? 'Editar Orden' : 'Nueva Orden de Compra'}
                 </h5>
-                <button type="button" className="btn-close" onClick={() => setShowForm(false)}></button>
+                <button type="button" className="btn-close" onClick={handleCloseForm}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
@@ -385,11 +406,19 @@ function PurchaseOrders() {
                       <input
                         type="date"
                         name="order_date"
-                        className="form-control form-control-lg"
-                        value={formData.order_date || new Date().toISOString().split('T')[0]}
+                        className={`form-control form-control-lg ${!editingOrder ? 'bg-light' : ''}`}
+                        value={formData.order_date}
                         onChange={handleFormChange}
+                        readOnly={!editingOrder} // Solo lectura en nuevas órdenes
                         required
+                        title={!editingOrder ? "La fecha de orden se establece automáticamente al día de hoy" : ""}
                       />
+                      {!editingOrder && (
+                        <small className="text-muted">
+                          <i className="bi bi-info-circle me-1"></i>
+                          Fecha establecida automáticamente
+                        </small>
+                      )}
                     </div>
                     <div className="col-md-3">
                       <label className="form-label fw-bold">Fecha de Entrega</label>
@@ -430,7 +459,7 @@ function PurchaseOrders() {
                   <OrderItemsManager items={items} setItems={setItems} />
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>
+                  <button type="button" className="btn btn-secondary" onClick={handleCloseForm}>
                     Cancelar
                   </button>
                   <button type="submit" className="btn btn-primary">
