@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Row, Col, Form, Button, Alert, Table, Pagination, Badge, InputGroup } from 'react-bootstrap';
-import { ToastContainer, toast } from 'react-toastify';
-import ProductModal from './ProductModal';
-import ProductFormModal from './ProductFormModal';
+// import ProductModal from './ProductModal';
+// import ProductFormModal from './ProductFormModal';
 
 const ProductsOptimized = () => {
     // Estados principales
@@ -102,7 +101,7 @@ const ProductsOptimized = () => {
         } catch (error) {
             console.error('Error searching products:', error);
             setError('Error al cargar los productos. Por favor, intenta nuevamente.');
-            toast.error('Error al cargar los productos');
+            alert('Error al cargar los productos');
         } finally {
             setLoading(false);
         }
@@ -158,7 +157,7 @@ const ProductsOptimized = () => {
         if (hasSearched) {
             searchProducts(); // Refrescar la lista actual
         }
-        toast.success('Producto guardado exitosamente');
+        alert('Producto guardado exitosamente');
     };
     
     // Función para renderizar el estado inicial
@@ -443,7 +442,7 @@ const ProductsOptimized = () => {
                 </Card.Body>
             </Card>
             
-            {/* Modales */}
+            {/* Modales - Comentados temporalmente
             {showModal && selectedProduct && (
                 <ProductModal
                     show={showModal}
@@ -460,8 +459,7 @@ const ProductsOptimized = () => {
                     onSave={handleProductSaved}
                 />
             )}
-            
-            <ToastContainer />
+            */}
             
             <style jsx>{`
                 .spin {
