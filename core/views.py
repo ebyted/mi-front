@@ -1128,3 +1128,272 @@ class SupplierPaymentViewSet(viewsets.ModelViewSet):
         if supplier_id:
             queryset = queryset.filter(supplier_id=supplier_id)
         return queryset
+
+
+# === VISTAS PARA DASHBOARD ===
+from django.db.models import Sum, Count, F, Case, When, IntegerField, Q
+from django.utils import timezone
+from datetime import datetime, timedelta
+
+class DashboardSummaryAPIView(APIView):
+    """
+    Vista principal para el resumen del dashboard
+    Devuelve alertas críticas, operaciones del día y productos críticos
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        today = timezone.now().date()
+        
+        # 1. ALERTAS CRÍTICAS
+        # Productos sin stock
+        zero_stock_products = ProductWarehouseStock.objects.filter(
+            stock_quantity=0
+        ).values(
+            'product_variant__product__id',
+            'product_variant__product__name',
+            'product_variant__product__sku',
+            'product_variant__sku',
+            'stock_quantity',
+            'minimum_stock'
+        ).distinct()[:10]
+        
+        # Productos con stock bajo
+        low_stock_products = ProductWarehouseStock.objects.filter(
+            stock_quantity__gt=0,
+            stock_quantity__lte=F('minimum_stock')
+        ).values(
+            'product_variant__product__id',
+            'product_variant__product__name',
+            'product_variant__product__sku',
+            'product_variant__sku',
+            'stock_quantity',
+            'minimum_stock'
+        ).distinct()[:10]
+        
+        # Órdenes de compra pendientes
+        pending_orders = PurchaseOrder.objects.filter(
+            status__in=['PENDING', 'PARTIALLY_RECEIVED']
+        ).count()
+        
+        # Productos inactivos
+        inactive_products = Product.objects.filter(is_active=False).count()
+        
+        # 2. OPERACIONES DEL DÍA
+        # Órdenes de compra de hoy
+        purchase_orders_today = PurchaseOrder.objects.filter(created_at__date=today)
+        po_created = purchase_orders_today.count()
+        po_received = purchase_orders_today.filter(status='RECEIVED').count()
+        po_pending = PurchaseOrder.objects.filter(status='PENDING').count()
+        
+        # Pedidos de venta de hoy
+        sales_orders_today = SalesOrder.objects.filter(created_at__date=today)
+        so_new = sales_orders_today.count()
+        so_processing = SalesOrder.objects.filter(status='PROCESSING').count()
+        so_dispatched = sales_orders_today.filter(status='DISPATCHED').count()
+        
+        # Movimientos de inventario de hoy
+        movements_today = InventoryMovement.objects.filter(created_at__date=today)
+        entries = movements_today.filter(type='IN').count()
+        exits = movements_today.filter(type='OUT').count()
+        adjustments = movements_today.filter(type='ADJUSTMENT').count()
+        transfers = movements_today.filter(type='TRANSFER').count()
+        
+        # 3. ÚLTIMOS MOVIMIENTOS
+        latest_movements = InventoryMovement.objects.select_related(
+            'warehouse', 'created_by'
+        ).prefetch_related(
+            'details__product_variant__product'
+        ).order_by('-created_at')[:5]
+        
+        movements_data = []
+        for movement in latest_movements:
+            product_names = []
+            for detail in movement.details.all()[:3]:  # Solo los primeros 3 productos
+                if detail.product_variant and detail.product_variant.product:
+                    product_names.append(detail.product_variant.product.name)
+            
+            movements_data.append({
+                'id': movement.id,
+                'date': movement.created_at.strftime('%Y-%m-%d %H:%M'),
+                'product': ', '.join(product_names) if product_names else 'Sin productos',
+                'type': movement.get_type_display(),
+                'quantity': sum([d.quantity for d in movement.details.all()]),
+                'user': movement.created_by.username if movement.created_by else 'Sistema'
+            })
+        
+        # Estructurar respuesta
+        data = {
+            'alerts': {
+                'zeroStock': {
+                    'count': zero_stock_products.count(),
+                    'products': [
+                        {
+                            'id': p['product_variant__product__id'],
+                            'name': p['product_variant__product__name'],
+                            'sku': p['product_variant__product__sku'] or p['product_variant__sku'],
+                            'current_stock': p['stock_quantity'],
+                            'minimum_stock': p['minimum_stock']
+                        } for p in zero_stock_products
+                    ]
+                },
+                'lowStock': {
+                    'count': low_stock_products.count(),
+                    'products': [
+                        {
+                            'id': p['product_variant__product__id'],
+                            'name': p['product_variant__product__name'],
+                            'sku': p['product_variant__product__sku'] or p['product_variant__sku'],
+                            'current_stock': p['stock_quantity'],
+                            'minimum_stock': p['minimum_stock']
+                        } for p in low_stock_products
+                    ]
+                },
+                'pendingOrders': {'count': pending_orders, 'orders': []},
+                'inactiveProducts': {'count': inactive_products, 'products': []}
+            },
+            'todayOperations': {
+                'purchaseOrders': {
+                    'created': po_created,
+                    'received': po_received,
+                    'pending': po_pending
+                },
+                'salesOrders': {
+                    'new': so_new,
+                    'processing': so_processing,
+                    'dispatched': so_dispatched
+                },
+                'movements': {
+                    'entries': entries,
+                    'exits': exits,
+                    'adjustments': adjustments,
+                    'transfers': transfers
+                }
+            },
+            'recentData': {
+                'latestMovements': movements_data,
+                'activePurchaseOrders': [],
+                'criticalProducts': []
+            }
+        }
+        
+        return Response(data)
+
+
+class ProductsZeroStockAPIView(APIView):
+    """Vista para productos sin stock"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        products = ProductWarehouseStock.objects.filter(
+            stock_quantity=0
+        ).select_related(
+            'product_variant__product__category',
+            'product_variant__product__brand',
+            'warehouse'
+        ).values(
+            'product_variant__product__id',
+            'product_variant__product__name',
+            'product_variant__product__sku',
+            'product_variant__sku',
+            'product_variant__product__category__name',
+            'product_variant__product__brand__name',
+            'warehouse__name',
+            'stock_quantity',
+            'minimum_stock',
+            'last_updated'
+        ).distinct()
+        
+        data = [
+            {
+                'id': p['product_variant__product__id'],
+                'name': p['product_variant__product__name'],
+                'sku': p['product_variant__product__sku'] or p['product_variant__sku'],
+                'category': p['product_variant__product__category__name'] or 'Sin categoría',
+                'brand': p['product_variant__product__brand__name'] or 'Sin marca',
+                'warehouse': p['warehouse__name'],
+                'current_stock': p['stock_quantity'],
+                'minimum_stock': p['minimum_stock'],
+                'last_updated': p['last_updated']
+            } for p in products
+        ]
+        
+        return Response(data)
+
+
+class ProductsLowStockAPIView(APIView):
+    """Vista para productos con stock bajo"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        products = ProductWarehouseStock.objects.filter(
+            stock_quantity__gt=0,
+            stock_quantity__lte=F('minimum_stock')
+        ).select_related(
+            'product_variant__product__category',
+            'product_variant__product__brand',
+            'warehouse'
+        ).values(
+            'product_variant__product__id',
+            'product_variant__product__name',
+            'product_variant__product__sku',
+            'product_variant__sku',
+            'product_variant__product__category__name',
+            'product_variant__product__brand__name',
+            'warehouse__name',
+            'stock_quantity',
+            'minimum_stock',
+            'last_updated'
+        ).distinct()
+        
+        data = [
+            {
+                'id': p['product_variant__product__id'],
+                'name': p['product_variant__product__name'],
+                'sku': p['product_variant__product__sku'] or p['product_variant__sku'],
+                'category': p['product_variant__product__category__name'] or 'Sin categoría',
+                'brand': p['product_variant__product__brand__name'] or 'Sin marca',
+                'warehouse': p['warehouse__name'],
+                'current_stock': p['stock_quantity'],
+                'minimum_stock': p['minimum_stock'],
+                'last_updated': p['last_updated']
+            } for p in products
+        ]
+        
+        return Response(data)
+
+
+class PendingPurchaseOrdersAPIView(APIView):
+    """Vista para órdenes de compra pendientes"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        orders = PurchaseOrder.objects.filter(
+            status__in=['PENDING', 'PARTIALLY_RECEIVED']
+        ).select_related(
+            'supplier', 'created_by'
+        ).values(
+            'id',
+            'order_number',
+            'supplier__name',
+            'total_amount',
+            'status',
+            'expected_date',
+            'created_at',
+            'created_by__username'
+        ).order_by('-created_at')
+        
+        data = [
+            {
+                'id': o['id'],
+                'order_number': o['order_number'],
+                'supplier': o['supplier__name'],
+                'total_amount': float(o['total_amount']) if o['total_amount'] else 0,
+                'status': o['status'],
+                'expected_date': o['expected_date'],
+                'created_at': o['created_at'],
+                'created_by': o['created_by__username']
+            } for o in orders
+        ]
+        
+        return Response(data)

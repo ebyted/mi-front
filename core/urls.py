@@ -25,7 +25,9 @@ from .views import (
     ProductImportView, BrandImportView,
     AuditLogViewSet, CurrentInventoryView, InventoryGeneralView, user_menu_options,
     WarehouseListView, InventoryMovementViewSet, InventoryMovementDetailViewSet, CustomerPaymentViewSet, SupplierPaymentViewSet,
-    UserProfileView
+    UserProfileView,
+    # Nuevas vistas para Dashboard
+    DashboardSummaryAPIView, ProductsZeroStockAPIView, ProductsLowStockAPIView, PendingPurchaseOrdersAPIView
 )
 
 
@@ -109,6 +111,13 @@ urlpatterns = [
     # Endpoint de perfil de usuario
     path('user/profile/', UserProfileView.as_view(), name='user-profile'),
     path('products-search/', ProductSearchWithVariantView.as_view(), name='products-search'),
+    
+    # === NUEVOS ENDPOINTS PARA DASHBOARD ===
+    path('dashboard/summary/', DashboardSummaryAPIView.as_view(), name='dashboard-summary'),
+    path('dashboard/products/zero-stock/', ProductsZeroStockAPIView.as_view(), name='products-zero-stock'),
+    path('dashboard/products/low-stock/', ProductsLowStockAPIView.as_view(), name='products-low-stock'),
+    path('dashboard/orders/pending/', PendingPurchaseOrdersAPIView.as_view(), name='pending-purchase-orders'),
+    
     path('', include(router.urls)),
 ]
 

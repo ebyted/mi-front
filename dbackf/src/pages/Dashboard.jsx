@@ -36,12 +36,19 @@ function Dashboard() {
     try {
       setLoading(true);
       
-      // Por ahora usamos datos simulados hasta crear los endpoints
-      await simulateApiCall();
+      // Cargar datos reales del backend
+      const response = await api.get('/dashboard/summary/');
+      const data = response.data;
+      
+      setAlerts(data.alerts);
+      setTodayOperations(data.todayOperations);
+      setRecentData(data.recentData);
       
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      // Fallback a datos simulados si falla el API
+      await simulateApiCall();
     } finally {
       setLoading(false);
     }
@@ -315,7 +322,15 @@ function Dashboard() {
           title="Productos sin Stock"
           severity="danger"
           actionText="Ver productos"
-          onAction={() => window.location.href = '/products?filter=zero-stock'}
+          onAction={async () => {
+            try {
+              const response = await api.get('/dashboard/products/zero-stock/');
+              console.log('Productos sin stock:', response.data);
+              // Aquí puedes abrir un modal o navegar a una página específica
+            } catch (error) {
+              console.error('Error:', error);
+            }
+          }}
         />
         <AlertCard 
           icon="bi bi-exclamation-circle-fill"
@@ -323,7 +338,15 @@ function Dashboard() {
           title="Stock Bajo Mínimo"
           severity="warning"
           actionText="Ver productos"
-          onAction={() => window.location.href = '/products?filter=low-stock'}
+          onAction={async () => {
+            try {
+              const response = await api.get('/dashboard/products/low-stock/');
+              console.log('Productos con stock bajo:', response.data);
+              // Aquí puedes abrir un modal o navegar a una página específica
+            } catch (error) {
+              console.error('Error:', error);
+            }
+          }}
         />
         <AlertCard 
           icon="bi bi-clock-fill"
@@ -331,7 +354,15 @@ function Dashboard() {
           title="Órdenes Pendientes"
           severity="info"
           actionText="Ver órdenes"
-          onAction={() => window.location.href = '/purchase-orders?status=pending'}
+          onAction={async () => {
+            try {
+              const response = await api.get('/dashboard/orders/pending/');
+              console.log('Órdenes pendientes:', response.data);
+              // Aquí puedes abrir un modal o navegar a una página específica
+            } catch (error) {
+              console.error('Error:', error);
+            }
+          }}
         />
         <AlertCard 
           icon="bi bi-pause-circle-fill"
