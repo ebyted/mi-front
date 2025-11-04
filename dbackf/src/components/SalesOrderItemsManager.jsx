@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import ProductSelect from './ProductSelect';
 
-const SalesOrderItemsManager = ({ items, setItems }) => {
+const SalesOrderItemsManager = ({ items, onChange, products, readOnly = false }) => {
+  const setItems = onChange;
+  
+  console.log('SalesOrderItemsManager render:', { 
+    itemsCount: items?.length || 0, 
+    readOnly, 
+    hasOnChange: !!onChange,
+    hasProducts: !!products && products.length > 0
+  });
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItem, setNewItem] = useState({
     product_variant: '',
@@ -18,17 +26,23 @@ const SalesOrderItemsManager = ({ items, setItems }) => {
     }
     
     // Validar duplicados
-    const exists = items.find(item => item.product_variant === newItem.product_variant);
+    const exists = items.find(item => item.product_variant_id === newItem.product_variant);
     if (exists) {
       alert('Este producto ya está agregado');
       return;
     }
 
-    setItems([...items, { 
-      ...newItem,
+    const newItemToAdd = { 
+      product_variant_id: newItem.product_variant,
       quantity: parseFloat(newItem.quantity),
-      price: parseFloat(newItem.price)
-    }]);
+      price: parseFloat(newItem.price),
+      product_name: newItem.product_name,
+      product_code: newItem.product_code
+    };
+
+    console.log('Adding new sales item:', newItemToAdd);
+    setItems([...items, newItemToAdd]);
+    
     setNewItem({ 
       product_variant: '', 
       quantity: 1, 
@@ -67,18 +81,23 @@ const SalesOrderItemsManager = ({ items, setItems }) => {
     <div className="sales-order-items-manager">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h6 className="mb-0">Items del Pedido ({items.length})</h6>
-        <button 
-          type="button" 
-          className="btn btn-outline-success btn-sm"
-          onClick={() => setShowAddForm(true)}
-        >
-          <i className="bi bi-plus-circle me-1"></i>
-          Agregar Producto
-        </button>
+        {!readOnly && (
+          <button 
+            type="button" 
+            className="btn btn-outline-success btn-sm"
+            onClick={() => {
+              console.log('Agregar Producto clicked - showAddForm será:', !showAddForm);
+              setShowAddForm(true);
+            }}
+          >
+            <i className="bi bi-plus-circle me-1"></i>
+            Agregar Producto
+          </button>
+        )}
       </div>
 
       {/* Formulario de agregar */}
-      {showAddForm && (
+      {showAddForm && !readOnly && (
         <div className="card border-success mb-3">
           <div className="card-body">
             <div className="row g-2 align-items-end">
@@ -157,16 +176,17 @@ const SalesOrderItemsManager = ({ items, setItems }) => {
                   <td>
                     <input
                       type="number"
-                      className="form-control form-control-sm"
+                      className={`form-control form-control-sm ${readOnly ? 'bg-light' : ''}`}
                       value={item.quantity}
                       onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                       min="1"
+                      readOnly={readOnly}
                     />
                   </td>
                   <td>
                     <input
                       type="number"
-                      className="form-control form-control-sm"
+                      className={`form-control form-control-sm ${readOnly ? 'bg-light' : ''}`}
                       value={item.price}
                       onChange={(e) => updateItem(index, 'price', e.target.value)}
                       min="0"
@@ -177,14 +197,16 @@ const SalesOrderItemsManager = ({ items, setItems }) => {
                     <strong>{formatCurrency(parseFloat(item.quantity) * parseFloat(item.price))}</strong>
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => removeItem(index)}
-                      title="Eliminar"
-                    >
-                      <i className="bi bi-trash"></i>
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={() => removeItem(index)}
+                        title="Eliminar"
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

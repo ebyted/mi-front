@@ -289,41 +289,41 @@ function SalesOrders() {
       total_amount: order.total_amount || ''
     });
     
-    // Convertir items de la orden a formato moderno para el componente
+    // Convertir items de la orden a formato moderno para el nuevo componente
     const modernItems = order.items?.map(item => {
-      // Determinar product_variant_id y product info
       let productVariantId = '';
-      let productInfo = null;
+      let productName = '';
+      let productCode = '';
       
       if (item.product_variant) {
         productVariantId = typeof item.product_variant === 'object' ? item.product_variant.id : item.product_variant;
-        productInfo = typeof item.product_variant === 'object' ? item.product_variant : null;
+        if (typeof item.product_variant === 'object') {
+          productName = item.product_variant.name || '';
+          productCode = item.product_variant.sku || item.product_variant.code || '';
+        }
       } else if (item.product) {
         productVariantId = typeof item.product === 'object' ? item.product.id : item.product;
-        productInfo = typeof item.product === 'object' ? item.product : null;
+        if (typeof item.product === 'object') {
+          productName = item.product.name || '';
+          productCode = item.product.sku || item.product.code || '';
+        }
       }
       
       return {
-        id: item.id || `temp_${Date.now()}_${Math.random()}`,
+        id: item.id,
         product_variant_id: productVariantId,
         quantity: item.quantity || 1,
         price: item.price || 0,
-        product: productInfo // Información del producto para mostrar
+        product_name: productName,
+        product_code: productCode
       };
     }) || [];
     
+    console.log('Loading order items for edit:', modernItems);
     setItems(modernItems);
     
-    // Mantener compatibilidad con details para funciones existentes
-    setDetails(
-      order.items?.map(item => ({
-        product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
-        quantity: item.quantity || '',
-        price: item.price || '',
-        id: item.id || '',
-        productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
-      })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
-    );
+    // Mantener compatibilidad temporal con details (será removido después)
+    setDetails([{ product: '', quantity: '', price: '', id:'', productSearch: '' }]);
     
     setShowForm(true);
   };
