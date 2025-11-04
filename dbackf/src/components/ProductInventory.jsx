@@ -31,9 +31,11 @@ const ProductInventory = ({ selectedProductObj }) => {
         });
       }
       // Obtener movimientos de inventario para el variant
+      console.log('🔍 Consultando inventory-movements para variant:', selectedProductObj.product_variant_id);
       api.get('/inventory-movements/', {
-        params: { product_variant_id: selectedProductObj.product_variant_id }
+        params: { variant: selectedProductObj.product_variant_id }
       }).then(res => {
+        console.log('📊 Respuesta inventory-movements:', res.data);
         setInventoryMovements(res.data.results || res.data);
       }).catch(err => {
         if (err.response && err.response.status === 404) {
@@ -119,23 +121,88 @@ const ProductInventory = ({ selectedProductObj }) => {
                 <table className="table table-bordered table-hover">
                   <thead className="table-dark">
                     <tr>
-                      <th>Fecha</th>
-                      <th>Tipo</th>
+                      <th>Fecha/Hora</th>
+                      <th>Tipo Movimiento</th>
+                      <th>Producto</th>
                       <th>SKU</th>
                       <th>Cantidad</th>
-                      <th>Stock después</th>
+                      <th>Precio Unit.</th>
+                      <th>Total</th>
+                      <th>Almacén</th>
+                      <th>Usuario</th>
+                      <th>Estado</th>
+                      <th>Referencia</th>
+                      <th>Notas</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {inventoryMovements.map((mov, idx) => (
-                      <tr key={mov.id || idx}>
-                        <td>{mov.created_at ? new Date(mov.created_at).toLocaleString('es-ES') : '-'}</td>
-                        <td><span className={`badge ${mov.type === 'IN' ? 'bg-success' : 'bg-danger'}`}>{mov.type === 'IN' ? 'Entrada' : 'Salida'}</span></td>
-                        <td>{mov.sku || (mov.details && mov.details[0] && mov.details[0].sku) || '-'}</td>
-                        <td>{mov.details && mov.details[0] ? mov.details[0].quantity : '-'}</td>
-                        <td>{mov.saldo !== undefined ? mov.saldo : '-'}</td>
-                      </tr>
-                    ))}
+                    {inventoryMovements.flatMap((mov, movIdx) => 
+                      mov.details && mov.details.length > 0 ? mov.details.map((detail, detIdx) => (
+                        <tr key={`${mov.id || movIdx}-${detail.id || detIdx}`}>
+                          <td>
+                            <small className="text-muted">
+                              {mov.created_at ? new Date(mov.created_at).toLocaleString('es-ES', {
+                                year: 'numeric', month: '2-digit', day: '2-digit',
+                                hour: '2-digit', minute: '2-digit'
+                              }) : '-'}
+                            </small>
+                          </td>
+                          <td>
+                            <span className={`badge ${mov.movement_type === 'IN' ? 'bg-success' : 'bg-danger'}`}>
+                              {mov.movement_type === 'IN' ? '📈 Entrada' : '📉 Salida'}
+                            </span>
+                          </td>
+                          <td>
+                            <strong className="text-primary">{detail.product_name || detail.product_variant_name || '-'}</strong>
+                          </td>
+                          <td>
+                            <code className="bg-light text-dark px-2 py-1 rounded">{detail.product_code || '-'}</code>
+                          </td>
+                          <td>
+                            <span className={`badge fs-6 ${mov.movement_type === 'IN' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                              {detail.quantity || 0}
+                            </span>
+                          </td>
+                          <td>
+                            <small className="text-muted">
+                              {detail.price ? `$${parseFloat(detail.price).toFixed(2)}` : '-'}
+                            </small>
+                          </td>
+                          <td>
+                            <strong className="text-info">
+                              {detail.total ? `$${parseFloat(detail.total).toFixed(2)}` : '-'}
+                            </strong>
+                          </td>
+                          <td>
+                            <small className="text-muted">{mov.warehouse_name || '-'}</small>
+                          </td>
+                          <td>
+                            <small className="text-muted">{mov.user_email || '-'}</small>
+                          </td>
+                          <td>
+                            {mov.is_cancelled ? (
+                              <span className="badge bg-secondary">❌ Cancelado</span>
+                            ) : mov.authorized ? (
+                              <span className="badge bg-success">✅ Autorizado</span>
+                            ) : (
+                              <span className="badge bg-warning text-dark">⏳ Pendiente</span>
+                            )}
+                          </td>
+                          <td>
+                            <small className="text-muted">{mov.reference_document || '-'}</small>
+                          </td>
+                          <td>
+                            <small className="text-muted">{detail.notes || mov.notes || '-'}</small>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr key={mov.id || movIdx}>
+                          <td colSpan="12" className="text-center text-muted">
+                            <em>Movimiento sin detalles</em>
+                          </td>
+                        </tr>
+                      )
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -186,19 +253,21 @@ const ProductInventory = ({ selectedProductObj }) => {
                 <thead className="table-primary">
                   <tr>
                     <th>SKU</th>
-                    <th>Nombre</th>
+                    <th>Nombre del Producto</th>
                     <th>Estado</th>
                     <th>Marca</th>
                     <th>Categoría</th>
-                    <th>Stock</th>
-                    <th>Mínimo</th>
-                    <th>Máximo</th>
+                    <th>Almacén</th>
+                    <th>Stock Actual</th>
+                    <th>Stock Mínimo</th>
+                    <th>Stock Máximo</th>
+                    <th>Nivel</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredProducts.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="text-center py-5">
+                      <td colSpan="10" className="text-center py-5">
                         <div className="text-muted">
                           <div className="h1 mb-3">📦</div>
                           <h5>{selectedProductObj ? 'No hay información de inventario para este producto' : 'No hay productos con existencia'}</h5>
@@ -206,18 +275,58 @@ const ProductInventory = ({ selectedProductObj }) => {
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((prod, idx) => (
-                      <tr key={idx}>
-                        <td><span className="fw-bold text-info">{prod.sku}</span></td>
-                        <td><span className="fw-bold text-primary">{prod.name}</span></td>
-                        <td><span className={`badge ${prod.status === 'REGULAR' ? 'bg-light text-dark' : 'bg-danger'}`}>{prod.status}</span></td>
-                        <td>{prod.brand || 'N/A'}</td>
-                        <td>{prod.category || 'N/A'}</td>
-                        <td><span className="badge bg-success fs-6">{prod.stock}</span></td>
-                        <td><span className="badge bg-warning text-dark">{prod.minimum_stock}</span></td>
-                        <td><span className="badge bg-warning text-dark">{prod.maximum_stock}</span></td>
-                      </tr>
-                    ))
+                    filteredProducts.map((prod, idx) => {
+                      const stockLevel = prod.stock || 0;
+                      const minStock = prod.minimum_stock || 0;
+                      const maxStock = prod.maximum_stock || 0;
+                      
+                      let levelStatus = 'normal';
+                      let levelText = 'Normal';
+                      let levelColor = 'bg-success';
+                      
+                      if (stockLevel <= minStock) {
+                        levelStatus = 'low';
+                        levelText = 'Bajo';
+                        levelColor = 'bg-danger';
+                      } else if (stockLevel >= maxStock && maxStock > 0) {
+                        levelStatus = 'high';
+                        levelText = 'Alto';
+                        levelColor = 'bg-warning text-dark';
+                      }
+                      
+                      return (
+                        <tr key={idx} className={stockLevel <= minStock ? 'table-warning' : ''}>
+                          <td><code className="bg-light text-dark px-2 py-1 rounded">{prod.sku || 'N/A'}</code></td>
+                          <td><strong className="text-primary">{prod.name || 'N/A'}</strong></td>
+                          <td>
+                            <span className={`badge ${prod.status === 'REGULAR' ? 'bg-success' : 'bg-danger'}`}>
+                              {prod.status === 'REGULAR' ? '✅ Regular' : '❌ ' + (prod.status || 'Inactivo')}
+                            </span>
+                          </td>
+                          <td><small className="text-muted">{prod.brand || 'N/A'}</small></td>
+                          <td><small className="text-muted">{prod.category || 'N/A'}</small></td>
+                          <td><small className="text-muted">{prod.warehouse_name || `Almacén ${prod.warehouse}`}</small></td>
+                          <td>
+                            <span className={`badge fs-6 ${stockLevel <= minStock ? 'bg-danger' : 'bg-success'}`}>
+                              {stockLevel}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="badge bg-info text-dark fs-6">{minStock}</span>
+                          </td>
+                          <td>
+                            <span className="badge bg-secondary fs-6">{maxStock || 'N/A'}</span>
+                          </td>
+                          <td>
+                            <span className={`badge ${levelColor}`}>
+                              {levelText}
+                              {levelStatus === 'low' && ' ⚠️'}
+                              {levelStatus === 'high' && ' 📈'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
