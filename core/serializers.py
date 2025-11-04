@@ -254,14 +254,13 @@ class PurchaseOrderItemSerializer(serializers.ModelSerializer):
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):
     items = PurchaseOrderItemSerializer(many=True, read_only=True, source='purchaseorderitem_set')
-    items_data = serializers.ListField(write_only=True, required=False)
     supplier_detail = serializers.SerializerMethodField(read_only=True)
     business = serializers.PrimaryKeyRelatedField(read_only=True)
     
     class Meta:
         model = PurchaseOrder
         fields = ['id', 'business', 'supplier', 'supplier_detail', 'order_date', 'expected_delivery_date', 
-                 'status', 'total_amount', 'notes', 'created_at', 'updated_at', 'items', 'items_data']
+                 'status', 'total_amount', 'notes', 'created_at', 'updated_at', 'items']
         extra_kwargs = {
             'order_date': {'required': False},
             'status': {'required': False},
@@ -280,7 +279,8 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         return None
     
     def create(self, validated_data):
-        items_data = validated_data.pop('items_data', [])
+        # Obtener items desde initial_data (datos sin procesar del request)
+        items_data = self.initial_data.get('items', [])
         
         # Asignar business automáticamente
         request = self.context.get('request')
@@ -318,10 +318,21 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         purchase_order = PurchaseOrder.objects.create(**validated_data)
         
         # Crear items
-        for item_data in items_data:
-            item_data['purchase_order'] = purchase_order
-            item_data['total_price'] = float(item_data['quantity']) * float(item_data['unit_price'])
-            PurchaseOrderItem.objects.create(**item_data)
+        try:
+            for item_data in items_data:
+                # Preparar datos del item
+                purchase_order_item_data = {
+                    'purchase_order': purchase_order,
+                    'product_variant_id': item_data.get('product_variant'),
+                    'quantity': float(item_data.get('quantity', 0)),
+                    'unit_price': float(item_data.get('unit_price', 0)),
+                    'total_price': float(item_data.get('quantity', 0)) * float(item_data.get('unit_price', 0))
+                }
+                PurchaseOrderItem.objects.create(**purchase_order_item_data)
+        except Exception as e:
+            # Si hay error creando items, registrar en logs o imprimir
+            print(f"Error creando items: {str(e)}")
+            print(f"Items data: {items_data}")
         
         return purchase_order
 
