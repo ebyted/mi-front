@@ -1,5 +1,6 @@
  import React, { useState, useEffect } from 'react';
 import ProductSelect from '../components/ProductSelect';
+import OrderItemsManager from '../components/OrderItemsManager';
 import api from '../services/api';
 
 const statusColors = {
@@ -41,9 +42,7 @@ function PurchaseOrders() {
     status: 'DRAFT',
     notes: ''
   });
-  const [items, setItems] = useState([
-    { product_variant: '', quantity: 1, unit_price: 0 }
-  ]);
+  const [items, setItems] = useState([]);
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
@@ -108,7 +107,7 @@ function PurchaseOrders() {
         status: 'DRAFT',
         notes: ''
       });
-      setItems([{ product_variant: '', quantity: 1, unit_price: 0 }]);
+      setItems([]);
       loadData();
     } catch (err) {
       setFormError('Error al guardar la orden.');
@@ -134,23 +133,17 @@ function PurchaseOrders() {
       order.items && Array.isArray(order.items)
         ? order.items.map(item => ({
             product_variant: item.product_variant || '',
+            product_name: item.product_variant_detail?.name || '',
+            product_code: item.product_variant_detail?.code || '',
             quantity: item.quantity || 1,
             unit_price: item.unit_price || 0
           }))
-        : [{ product_variant: '', quantity: 1, unit_price: 0 }]
+        : []
     );
     setShowForm(true);
   };
 
-  const addItem = () => {
-    setItems([...items, { product_variant: '', quantity: 1, unit_price: 0 }]);
-  };
 
-  const removeItem = (index) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
-  };
 
   const handleProductSearch = async (index, searchValue) => {
     setProductSearch(prev => ({ ...prev, [index]: searchValue }));
@@ -434,66 +427,7 @@ function PurchaseOrders() {
                     </div>
                   </div>
                   <hr />
-                  <h5 className="mb-3">Items de la Orden</h5>
-                  {items.map((item, index) => (
-                    <div key={index} className="card mb-3">
-                      <div className="card-body">
-                        <div className="row g-3 align-items-end">
-                          <div className="col-md-6">
-                            <ProductSelect
-                              value={item.product_variant}
-                              onChange={val => {
-                                const newItems = [...items];
-                                newItems[index].product_variant = val;
-                                setItems(newItems);
-                              }}
-                              placeholder="Buscar producto..."
-                              required
-                            />
-                          </div>
-                          <div className="col-md-3">
-                            <input
-                              type="number"
-                              className="form-control"
-                              value={item.quantity}
-                              onChange={e => {
-                                const newItems = [...items];
-                                newItems[index].quantity = e.target.value;
-                                setItems(newItems);
-                              }}
-                              min="1"
-                              required
-                              placeholder="Cantidad"
-                            />
-                          </div>
-                          <div className="col-md-3">
-                            <input
-                              type="number"
-                              className="form-control"
-                              value={item.unit_price}
-                              onChange={e => {
-                                const newItems = [...items];
-                                newItems[index].unit_price = e.target.value;
-                                setItems(newItems);
-                              }}
-                              min="0"
-                              step="0.01"
-                              required
-                              placeholder="Precio unitario"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-2 text-end">
-                          <button type="button" className="btn btn-danger btn-sm" onClick={() => removeItem(index)} disabled={items.length === 1}>
-                            Eliminar
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <button type="button" className="btn btn-success" onClick={addItem}>
-                    Agregar Producto
-                  </button>
+                  <OrderItemsManager items={items} setItems={setItems} />
                 </div>
                 <div className="modal-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>
