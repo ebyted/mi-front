@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
 import Products from './pages/Products';
+import ProductsOptimized from './components/ProductsOptimized';
 import Warehouses from './pages/Warehouses';
 import PurchaseOrders from './pages/PurchaseOrders';
 import QuotationsNew from './pages/QuotationsNew';
@@ -79,7 +80,7 @@ function AppContent() {
         <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
   <Route path="/users" element={renderWithSidebar(Users)} />
   <Route path="/product-center" element={renderWithSidebar(ProductCenter)} />
-  <Route path="/products" element={renderWithSidebar(Products)} />
+  <Route path="/products" element={renderWithSidebar(ProductsOptimized)} />
         <Route path="/warehouses" element={renderWithSidebar(Warehouses)} />
         <Route path="/purchase-orders" element={renderWithSidebar(PurchaseOrders)} />
         <Route path="/quotations" element={renderWithSidebar(QuotationsNew)} />

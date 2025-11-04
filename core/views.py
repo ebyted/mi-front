@@ -440,6 +440,84 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
+    def search_filtered(self, request):
+        """
+        Endpoint optimizado para búsqueda con filtros y paginación
+        """
+        # Parámetros de búsqueda
+        search_text = request.query_params.get('search', '').strip()
+        brand_id = request.query_params.get('brand', '')
+        category_id = request.query_params.get('category', '')
+        is_active = request.query_params.get('is_active', '')
+        stock_status = request.query_params.get('stock_status', '')
+        
+        # Parámetros de paginación
+        page = int(request.query_params.get('page', 1))
+        page_size = min(int(request.query_params.get('page_size', 50)), 200)  # Máximo 200
+        
+        # Base queryset con optimizaciones
+        queryset = Product.objects.select_related('category', 'brand').prefetch_related('variants')
+        
+        # Aplicar filtros
+        if search_text:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(name__icontains=search_text) |
+                Q(sku__icontains=search_text) |
+                Q(barcode__icontains=search_text) |
+                Q(description__icontains=search_text) |
+                Q(brand__name__icontains=search_text) |
+                Q(brand__description__icontains=search_text) |
+                Q(category__name__icontains=search_text) |
+                Q(category__description__icontains=search_text) |
+                Q(variants__name__icontains=search_text) |
+                Q(variants__sku__icontains=search_text)
+            ).distinct()
+        
+        if brand_id:
+            queryset = queryset.filter(brand_id=brand_id)
+            
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+            
+        if is_active == 'true':
+            queryset = queryset.filter(is_active=True)
+        elif is_active == 'false':
+            queryset = queryset.filter(is_active=False)
+            
+        # Filtro por stock (requiere lógica adicional si es necesario)
+        if stock_status == 'low':
+            queryset = queryset.filter(minimum_stock__lt=10)
+        elif stock_status == 'zero':
+            queryset = queryset.filter(current_stock=0)
+        elif stock_status == 'ok':
+            queryset = queryset.exclude(current_stock=0)
+        
+        # Ordenar
+        queryset = queryset.order_by('name')
+        
+        # Contar total (antes de paginación)
+        total_count = queryset.count()
+        
+        # Aplicar paginación
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated_queryset = queryset[start:end]
+        
+        # Serializar
+        serializer = self.get_serializer(paginated_queryset, many=True)
+        
+        return Response({
+            'results': serializer.data,
+            'count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total_count + page_size - 1) // page_size,
+            'has_next': end < total_count,
+            'has_previous': page > 1
+        })
+
+    @action(detail=False, methods=['get'])
     def simple_list(self, request):
         """
         Endpoint simple: devuelve id, nombre, categoria, marca y estado de todos los productos sin paginación ni filtros
