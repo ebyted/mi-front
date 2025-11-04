@@ -81,7 +81,7 @@ function AppContent() {
         
         {/* Rutas protegidas */}
         <Route path="/home" element={renderWithSidebar(Home)} />
-        <Route path="/summary" element={renderWithSidebar(TestSummary)} />
+        <Route path="/summary" element={renderWithSidebar(Summary)} />
         <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
   <Route path="/users" element={renderWithSidebar(Users)} />
   <Route path="/product-center" element={renderWithSidebar(ProductCenter)} />
