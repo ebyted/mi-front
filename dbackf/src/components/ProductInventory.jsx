@@ -147,12 +147,14 @@ const ProductInventory = ({ selectedProductObj }) => {
         >
           Kardex del Producto
         </button>
+        {/* Tercera pestaña oculta por solicitud del usuario
         <button
           className={`tab-btn ${activeTab === 2 ? 'active' : ''}`}
           onClick={() => setActiveTab(2)}
         >
           Inventario General
         </button>
+        */}
       </div>
       <div className="tab-content">
         {activeTab === 0 && (

@@ -82,42 +82,99 @@ function Products() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Filtro adicional por categoría y marca
+  // Filtro y búsqueda mejorados
   const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchDebounce, setSearchDebounce] = useState('');
+  
+  // Debounce para búsqueda de texto
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchDebounce(search);
+    }, 300); // 300ms de debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [search]);
+
   const applyFilters = () => {
+    console.log('🔍 Aplicando filtros...', { 
+      search: searchDebounce, 
+      filters, 
+      totalProducts: products.length 
+    });
+    
     const result = products.filter(p => {
       let matchesSearch = true;
-      if (search && search.trim()) {
-        const normalized = (txt) => String(txt || '').toLowerCase();
-        const s = normalized(search);
+      if (searchDebounce && searchDebounce.trim()) {
+        const normalized = (txt) => String(txt || '').toLowerCase().trim();
+        const s = normalized(searchDebounce);
+        
+        // Texto de marca (manejo robusto de objetos vs strings)
         const brandText = p.brand && typeof p.brand === 'object'
-          ? (p.brand.description ?? p.brand.name ?? '')
-          : (p.brand ?? '');
+          ? (p.brand.description || p.brand.name || p.brand_name || '')
+          : (p.brand || p.brand_name || '');
+          
+        // Texto de categoría (manejo robusto de objetos vs strings)
         const categoryText = p.category && typeof p.category === 'object'
-          ? (p.category.description ?? p.category.name ?? '')
-          : (p.category ?? '');
+          ? (p.category.description || p.category.name || p.category_name || '')
+          : (p.category || p.category_name || '');
+        
+        // Búsqueda en múltiples campos
         matchesSearch = normalized(p.name).includes(s)
           || normalized(p.sku).includes(s)
           || normalized(p.barcode).includes(s)
+          || normalized(p.description).includes(s)
           || normalized(brandText).includes(s)
-          || normalized(categoryText).includes(s);
+          || normalized(categoryText).includes(s)
+          // También buscar en variantes
+          || (p.variants && p.variants.some(v => 
+              normalized(v.name).includes(s) || 
+              normalized(v.sku).includes(s)
+            ));
       }
-      const matchesBrand = !filters.brand || String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
-      const matchesCategory = !filters.category || String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
-      const matchesActive = !filters.isActive || (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
+      
+      // Filtro por marca
+      const matchesBrand = !filters.brand || 
+        String(typeof p.brand === 'object' ? p.brand?.id : p.brand) === filters.brand;
+      
+      // Filtro por categoría  
+      const matchesCategory = !filters.category || 
+        String(typeof p.category === 'object' ? p.category?.id : p.category) === filters.category;
+      
+      // Filtro por estado activo
+      const matchesActive = !filters.isActive || 
+        (filters.isActive === 'true' ? p.is_active === true : p.is_active === false);
+      
+      // Filtro por stock
       let matchesStock = true;
       if (filters.stockStatus) {
-        if (filters.stockStatus === 'low' && p.minimum_stock) matchesStock = (p.minimum_stock || 0) < 10;
-        else if (filters.stockStatus === 'ok') matchesStock = (p.minimum_stock || 0) >= 10;
+        const currentStock = p.current_stock || 0;
+        const minStock = p.minimum_stock || 0;
+        if (filters.stockStatus === 'low') {
+          matchesStock = currentStock < minStock;
+        } else if (filters.stockStatus === 'ok') {
+          matchesStock = currentStock >= minStock;
+        } else if (filters.stockStatus === 'zero') {
+          matchesStock = currentStock === 0;
+        }
       }
+      
       return matchesSearch && matchesBrand && matchesCategory && matchesActive && matchesStock;
     });
+    
+    console.log('📊 Resultados filtrados:', result.length);
     setFilteredProducts(result);
     setPage(1);
   };
   useEffect(() => {
     setFilteredProducts(products);
   }, [products]);
+
+  // Auto-aplicar filtros cuando cambian los criterios de búsqueda (con debounce)
+  useEffect(() => {
+    if (products.length > 0) {
+      applyFilters();
+    }
+  }, [searchDebounce, filters, products]);
 
   // Paginación local sobre los productos filtrados
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -375,15 +432,31 @@ function Products() {
         <div className="col-md-4 mb-2 mb-md-0">
           <div className="input-group">
             <span className="input-group-text">
-              <i className="bi bi-search"></i>
+              {search !== searchDebounce ? (
+                <i className="bi bi-hourglass-split text-warning" title="Filtrando..."></i>
+              ) : (
+                <i className="bi bi-search"></i>
+              )}
             </span>
-            <input type="text" className="form-control" placeholder="Buscar productos..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input 
+              type="text" 
+              className="form-control" 
+              placeholder="Buscar por nombre, SKU, código de barras, marca..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)}
+            />
             {search && (
               <button className="btn btn-outline-secondary" onClick={() => setSearch('')} title="Limpiar búsqueda">
                 <i className="bi bi-x"></i>
               </button>
             )}
           </div>
+          {searchDebounce && (
+            <small className="text-muted mt-1 d-block">
+              <i className="bi bi-funnel"></i>
+              Mostrando {filteredProducts.length} de {products.length} productos
+            </small>
+          )}
         </div>
         <div className="col-md-3 mb-2 mb-md-0">
           <select className="form-select" value={filters.category} onChange={e => setFilters(f => ({ ...f, category: e.target.value }))}>
@@ -416,19 +489,14 @@ function Products() {
           </select>
         </div>
           <div className="col-md-2 text-end d-flex gap-2">
-            <button className="btn btn-outline-secondary" onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}>
+            <button className="btn btn-outline-secondary" onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')} title="Cambiar vista">
               <i className={`bi ${viewMode === 'table' ? 'bi-grid-3x3-gap' : 'bi-table'}`}></i>
-            </button>
-            <button className="btn btn-primary" onClick={applyFilters} title="Aplicar filtros">
-              <i className="bi bi-funnel"></i> Aplicar filtros
             </button>
             <button className="btn btn-outline-danger" onClick={() => {
               setFilters({ brand: '', category: '', warehouse: '', isActive: '', stockStatus: '' });
               setSearch('');
-              setFilteredProducts(products);
-              setPage(1);
-            }} title="Limpiar filtros">
-              <i className="bi bi-x-circle"></i> Limpiar filtros
+            }} title="Limpiar todos los filtros">
+              <i className="bi bi-x-circle"></i> Limpiar
             </button>
           </div>
       </div>
