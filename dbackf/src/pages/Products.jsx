@@ -539,7 +539,6 @@ function Products() {
         <table className="table table-hover">
           <thead className="table-primary">
             <tr>
-              <th>Imagen</th>
               <th>Nombre</th>
               <th>SKU</th>
               <th style={{background:'#e3f2fd'}}>Marca</th>
@@ -552,7 +551,7 @@ function Products() {
           <tbody>
             {loading ? (            
               <tr>
-                <td colSpan="8" className="text-center py-5">
+                <td colSpan="7" className="text-center py-5">
                   <div className="spinner-border text-primary" role="status">
                     <span className="visually-hidden">Cargando...</span>
                   </div>
@@ -570,13 +569,6 @@ function Products() {
               }
               return (
                 <tr key={p.id}>
-                  <td>
-                    {imgSrc ? (
-                      <img src={imgSrc} alt={p.name} style={{ maxWidth: 60, maxHeight: 60, borderRadius: 6, objectFit: 'cover', border: '1px solid #ddd' }} />
-                    ) : (
-                      <span className="text-muted">Sin imagen</span>
-                    )}
-                  </td>
                   <td>{p.name ?? ''}</td>
                   <td>{p.sku ?? ''}</td>
                   <td style={{ background: '#e3f2fd', fontWeight: 'bold' }}>{(() => {
@@ -614,6 +606,153 @@ function Products() {
           </tbody>
         </table>
       </div>
+
+      {/* Professional Footer Pagination */}
+      <div className="row align-items-center mt-3 p-3 border-top bg-light">
+        <div className="col-md-6">
+          <div className="d-flex align-items-center gap-2">
+            <small className="text-muted">Mostrar:</small>
+            <select 
+              className="form-select form-select-sm" 
+              style={{width: 'auto'}}
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1); // Reset to first page when changing items per page
+              }}
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <small className="text-muted">
+              productos por página
+            </small>
+          </div>
+        </div>
+        
+        <div className="col-md-6">
+          <div className="d-flex justify-content-end align-items-center gap-2">
+            <small className="text-muted me-3">
+              Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, totalProducts)} de {totalProducts} productos
+            </small>
+            
+            {/* Pagination Controls */}
+            <nav aria-label="Paginación de productos">
+              <ul className="pagination pagination-sm mb-0">
+                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link" 
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    title="Primera página"
+                  >
+                    <i className="fas fa-angle-double-left"></i>
+                  </button>
+                </li>
+                
+                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link" 
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    title="Página anterior"
+                  >
+                    <i className="fas fa-angle-left"></i>
+                  </button>
+                </li>
+
+                {/* Page Numbers */}
+                {(() => {
+                  const totalPages = Math.ceil(totalProducts / itemsPerPage);
+                  const maxVisiblePages = 5;
+                  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                  
+                  // Adjust start page if we're near the end
+                  if (endPage - startPage + 1 < maxVisiblePages) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                  }
+
+                  const pages = [];
+                  
+                  // Show first page if not visible
+                  if (startPage > 1) {
+                    pages.push(
+                      <li key={1} className="page-item">
+                        <button className="page-link" onClick={() => setCurrentPage(1)}>1</button>
+                      </li>
+                    );
+                    if (startPage > 2) {
+                      pages.push(
+                        <li key="start-ellipsis" className="page-item disabled">
+                          <span className="page-link">...</span>
+                        </li>
+                      );
+                    }
+                  }
+
+                  // Show visible page range
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(
+                      <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
+                        <button 
+                          className="page-link" 
+                          onClick={() => setCurrentPage(i)}
+                        >
+                          {i}
+                        </button>
+                      </li>
+                    );
+                  }
+
+                  // Show last page if not visible
+                  if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                      pages.push(
+                        <li key="end-ellipsis" className="page-item disabled">
+                          <span className="page-link">...</span>
+                        </li>
+                      );
+                    }
+                    pages.push(
+                      <li key={totalPages} className="page-item">
+                        <button className="page-link" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
+                      </li>
+                    );
+                  }
+
+                  return pages;
+                })()}
+
+                <li className={`page-item ${currentPage === Math.ceil(totalProducts / itemsPerPage) ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link" 
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === Math.ceil(totalProducts / itemsPerPage)}
+                    title="Página siguiente"
+                  >
+                    <i className="fas fa-angle-right"></i>
+                  </button>
+                </li>
+                
+                <li className={`page-item ${currentPage === Math.ceil(totalProducts / itemsPerPage) ? 'disabled' : ''}`}>
+                  <button 
+                    className="page-link" 
+                    onClick={() => setCurrentPage(Math.ceil(totalProducts / itemsPerPage))}
+                    disabled={currentPage === Math.ceil(totalProducts / itemsPerPage)}
+                    title="Última página"
+                  >
+                    <i className="fas fa-angle-double-right"></i>
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+
       {showForm && (
         <div
           className="modal fade show d-block"
