@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Row, Col, Form, Button, Alert, Table, Pagination, Badge, InputGroup } from 'react-bootstrap';
-import { FaSearch, FaFilter, FaClear, FaEye, FaEdit, FaTimes, FaSpinner } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import ProductModal from './ProductModal';
 import ProductFormModal from './ProductFormModal';
@@ -166,7 +165,7 @@ const ProductsOptimized = () => {
     const renderInitialState = () => (
         <div className="text-center py-5">
             <div className="mb-4">
-                <FaSearch size={48} className="text-muted mb-3" />
+                <i className="bi bi-search text-muted mb-3" style={{fontSize: '48px'}}></i>
                 <h4 className="text-muted">Buscar Productos</h4>
                 <p className="text-muted">
                     Utiliza los filtros para buscar entre más de 2000 productos.<br/>
@@ -229,7 +228,7 @@ const ProductsOptimized = () => {
                                         onClick={() => handleViewProduct(product)}
                                         title="Ver detalles"
                                     >
-                                        <FaEye />
+                                        <i className="bi bi-eye"></i>
                                     </Button>
                                     <Button
                                         variant="outline-secondary"
@@ -237,7 +236,7 @@ const ProductsOptimized = () => {
                                         onClick={() => handleEditProduct(product)}
                                         title="Editar"
                                     >
-                                        <FaEdit />
+                                        <i className="bi bi-pencil"></i>
                                     </Button>
                                 </div>
                             </td>
@@ -261,7 +260,7 @@ const ProductsOptimized = () => {
             <Card className="mb-4">
                 <Card.Header>
                     <div className="d-flex align-items-center gap-2">
-                        <FaFilter />
+                        <i className="bi bi-funnel"></i>
                         <strong>Filtros de Búsqueda</strong>
                     </div>
                 </Card.Header>
@@ -347,14 +346,14 @@ const ProductsOptimized = () => {
                             onClick={handleSearch}
                             disabled={loading}
                         >
-                            {loading ? <><FaSpinner className="fa-spin me-2" /> Buscando...</> : <><FaSearch className="me-2" /> Buscar</>}
+                            {loading ? <><i className="bi bi-arrow-repeat spin me-2"></i> Buscando...</> : <><i className="bi bi-search me-2"></i> Buscar</>}
                         </Button>
                         <Button 
                             variant="outline-secondary" 
                             onClick={handleClearFilters}
                             disabled={loading}
                         >
-                            <FaTimes className="me-2" /> Limpiar
+                            <i className="bi bi-x-circle me-2"></i> Limpiar
                         </Button>
                     </div>
                 </Card.Body>
@@ -383,7 +382,7 @@ const ProductsOptimized = () => {
                     
                     {loading && (
                         <div className="text-center py-4">
-                            <FaSpinner className="fa-spin me-2" size={24} />
+                            <i className="bi bi-arrow-repeat spin me-2" style={{fontSize: '24px'}}></i>
                             <span>Cargando productos...</span>
                         </div>
                     )}
@@ -463,6 +462,16 @@ const ProductsOptimized = () => {
             )}
             
             <ToastContainer />
+            
+            <style jsx>{`
+                .spin {
+                    animation: spin 1s linear infinite;
+                }
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 };
