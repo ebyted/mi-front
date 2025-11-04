@@ -66,11 +66,19 @@ const ProductInventory = ({ selectedProductObj }) => {
     if (filters.brand) params.brand = filters.brand;
     if (filters.category) params.category = filters.category;
     if (selectedProductObj && selectedProductObj.product_variant_id) {
+      // Filtrar por la variante específica del producto seleccionado
       params.product_variant_id = selectedProductObj.product_variant_id;
     }
+    console.log('🔍 Consultando inventory-general con params:', params);
     api.get('/inventory-general/', { params })
-      .then(res => setProducts(res.data.results || res.data))
-      .catch(() => setProducts([]));
+      .then(res => {
+        console.log('📊 Respuesta inventory-general:', res.data);
+        setProducts(res.data.results || res.data);
+      })
+      .catch(err => {
+        console.error('❌ Error inventory-general:', err);
+        setProducts([]);
+      });
   }, [filters.warehouse, filters.brand, filters.category, selectedProductObj]);
 
   return (
@@ -188,23 +196,17 @@ const ProductInventory = ({ selectedProductObj }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {(selectedProductObj && selectedProductObj.product_variant_id
-                    ? filteredProducts.filter(p => p.product_variant_id === selectedProductObj.product_variant_id)
-                    : filteredProducts
-                  ).length === 0 ? (
+                  {filteredProducts.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="text-center py-5">
                         <div className="text-muted">
                           <div className="h1 mb-3">📦</div>
-                          <h5>No hay productos con existencia</h5>
+                          <h5>{selectedProductObj ? 'No hay información de inventario para este producto' : 'No hay productos con existencia'}</h5>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    (selectedProductObj && selectedProductObj.product_variant_id
-                      ? filteredProducts.filter(p => p.product_variant_id === selectedProductObj.product_variant_id)
-                      : filteredProducts
-                    ).map((prod, idx) => (
+                    filteredProducts.map((prod, idx) => (
                       <tr key={idx}>
                         <td><span className="fw-bold text-info">{prod.sku}</span></td>
                         <td><span className="fw-bold text-primary">{prod.name}</span></td>

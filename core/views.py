@@ -628,7 +628,7 @@ class InventoryGeneralView(APIView):
     
     def get(self, request):
         # Get query parameters from the URL, default to None if not provided
-        product_variant_id = request.query_params.get('product_variant')
+        product_variant_id = request.query_params.get('product_variant_id') or request.query_params.get('product_variant')
         warehouse_id = request.query_params.get('warehouse')
         product_name = request.query_params.get('product')
         brand_name = request.query_params.get('brand')
@@ -657,12 +657,14 @@ class InventoryGeneralView(APIView):
         for stock in stocks:
             product = stock.product_variant.product
             data.append({
-                'id': stock.product_variant.id,
+                'id': stock.product_variant.id,  # ID del producto variant
+                'product_variant_id': stock.product_variant.id,  # Para consistencia con frontend
                 'name': stock.product_variant.name,
                 'sku': stock.product_variant.sku,
                 'brand': product.brand.name if product.brand else None,
                 'category': product.category.name if product.category else None,
                 'warehouse': stock.warehouse.id,
+                'warehouse_name': stock.warehouse.name,  # Añadir nombre del almacén
                 'stock': stock.quantity,
                 'status': product.status,
                 'minimum_stock': product.minimum_stock,
