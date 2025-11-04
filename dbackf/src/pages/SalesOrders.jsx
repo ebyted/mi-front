@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../services/api';
+import SalesOrderItemsManager from '../components/SalesOrderItemsManager';
 
 function SalesOrders() {
   const [orders, setOrders] = useState([]);
@@ -15,6 +16,7 @@ function SalesOrders() {
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [details, setDetails] = useState([{ product: '', quantity: '', price: '', id:'', productSearch: '' }]);
+  const [items, setItems] = useState([]); // New items structure for SalesOrderItemsManager
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [saving, setSaving] = useState(false);
@@ -134,32 +136,28 @@ function SalesOrders() {
     setSaving(true);
     
     // Validaciones
-    if (!formData.customer || !formData.order_date || !formData.status || details.some(d => !d.product || !d.quantity || !d.price)) {
+    if (!formData.customer || !formData.order_date || !formData.status || items.some(item => !item.product_variant_id || !item.quantity || !item.price)) {
       setFormError('Todos los campos y detalles son obligatorios.');
       setSaving(false);
       return;
     }
 
+    // Calcular total automáticamente
+    const calculatedTotal = items.reduce((sum, item) => sum + (parseFloat(item.quantity) * parseFloat(item.price)), 0);
+
     try {
-      // Preparar datos para enviar
+      // Preparar datos para enviar usando la estructura moderna
       const orderData = {
         customer: parseInt(formData.customer),
         order_date: formData.order_date,
         status: formData.status,
-        total_amount: parseFloat(formData.total_amount),
-        items: details.map(detail => {
-          const item = {
-            product: parseInt(detail.product),
-            quantity: parseFloat(detail.quantity),
-            price: parseFloat(detail.price),
-            // warehouse_id: detail.warehouse_id
-          };
-
-          if (detail.id) {
-            item.id = detail.id; // only add id if it exists
-          }
-          return item;
-        })
+        total_amount: calculatedTotal,
+        items: items.map(item => ({
+          product_variant: parseInt(item.product_variant_id),
+          quantity: parseFloat(item.quantity),
+          price: parseFloat(item.price),
+          ...(item.id ? { id: item.id } : {})
+        }))
       };
 
       let createdOrder = null;
@@ -239,6 +237,39 @@ function SalesOrders() {
     }
   };
 
+  // === NUEVAS FUNCIONES DE GESTIÓN (MODERNIZADAS) ===
+  
+  // Función para inicializar un nuevo pedido con campos limpios
+  const handleNewSalesOrder = () => {
+    const today = new Date();
+    const pad = n => n < 10 ? '0' + n : n;
+    const todayDate = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}T${pad(today.getHours())}:${pad(today.getMinutes())}`;
+    
+    setEditingOrder(null);
+    setFormData({
+      customer: '',
+      order_date: todayDate,
+      status: 'Pendiente',
+      total_amount: 0
+    });
+    setItems([]); // Usar nuevo items array
+    setDetails([{ product: '', quantity: '', price: '', id:'', productSearch: '' }]); // Mantener compatibilidad
+    setFormError('');
+    setShowForm(true);
+  };
+
+  // Función para cerrar formulario y limpiar estado
+  const handleCloseSalesForm = () => {
+    setShowForm(false);
+    setEditingOrder(null);
+    setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
+    setItems([]);
+    setDetails([{ product: '', quantity: '', price: '', id:'', productSearch: '' }]);
+    setFormError('');
+  };
+
+  // === FUNCIONES EXISTENTES ===
+
   // Funciones para las acciones
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
@@ -257,36 +288,44 @@ function SalesOrders() {
       status: order.status || '',
       total_amount: order.total_amount || ''
     });
-    // Si los productos aún no están cargados, espera a que se carguen antes de setDetails
-    if (!products || products.length === 0) {
-      // Espera a que los productos se carguen antes de setDetails
-      const interval = setInterval(() => {
-        if (products && products.length > 0) {
-          clearInterval(interval);
-          setDetails(
-            order.items?.map(item => ({
-              product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
-              quantity: item.quantity || '',
-              price: item.price || '',
-              id: item.id || '',
-              productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
-            })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
-          );
-          setShowForm(true);
-        }
-      }, 100);
-    } else {
-      setDetails(
-        order.items?.map(item => ({
-          product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
-          quantity: item.quantity || '',
-          price: item.price || '',
-          id: item.id || '',
-          productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
-        })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
-      );
-      setShowForm(true);
-    }
+    
+    // Convertir items de la orden a formato moderno para el componente
+    const modernItems = order.items?.map(item => {
+      // Determinar product_variant_id y product info
+      let productVariantId = '';
+      let productInfo = null;
+      
+      if (item.product_variant) {
+        productVariantId = typeof item.product_variant === 'object' ? item.product_variant.id : item.product_variant;
+        productInfo = typeof item.product_variant === 'object' ? item.product_variant : null;
+      } else if (item.product) {
+        productVariantId = typeof item.product === 'object' ? item.product.id : item.product;
+        productInfo = typeof item.product === 'object' ? item.product : null;
+      }
+      
+      return {
+        id: item.id || `temp_${Date.now()}_${Math.random()}`,
+        product_variant_id: productVariantId,
+        quantity: item.quantity || 1,
+        price: item.price || 0,
+        product: productInfo // Información del producto para mostrar
+      };
+    }) || [];
+    
+    setItems(modernItems);
+    
+    // Mantener compatibilidad con details para funciones existentes
+    setDetails(
+      order.items?.map(item => ({
+        product: (typeof item.product === 'object' && item.product !== null) ? item.product.id : item.product || '',
+        quantity: item.quantity || '',
+        price: item.price || '',
+        id: item.id || '',
+        productSearch: (typeof item.product === 'object' && item.product !== null) ? item.product.name : ''
+      })) || [{ product: '', quantity: '', price: '', productSearch: '' }]
+    );
+    
+    setShowForm(true);
   };
 
   const handleDeleteOrder = async (orderId) => {
@@ -363,8 +402,8 @@ function SalesOrders() {
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h2 className="display-5 text-primary">📋 Pedidos de Venta</h2>
-            <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-              <i className="bi bi-plus-circle me-2"></i>Nuevo pedido
+            <button className="btn btn-primary" onClick={handleNewSalesOrder}>
+              <i className="bi bi-plus-circle me-1"></i>Nuevo Pedido
             </button>
             <button className="btn btn-outline-secondary ms-2" onClick={() => window.location.reload()}>
               <i className="bi bi-arrow-clockwise me-2"></i>Refrescar
@@ -476,7 +515,7 @@ function SalesOrders() {
                 {orders.length === 0 ? (
                   <div>
                     <p className="text-muted mt-3">No hay pedidos registrados</p>
-                    <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+                    <button className="btn btn-primary" onClick={handleNewSalesOrder}>
                       <i className="bi bi-plus-circle me-2"></i>Crear primer pedido
                     </button>
                   </div>
@@ -604,12 +643,7 @@ function SalesOrders() {
                   <i className={`bi ${editingOrder ? 'bi-pencil' : 'bi-plus-circle'} me-2`}></i>
                   {editingOrder ? `Editar Pedido #${editingOrder.id}` : 'Crear Nuevo Pedido'}
                 </h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => {
-                  setShowForm(false);
-                  setEditingOrder(null);
-                  setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
-                  setDetails([{ product: '', quantity: '', price: '',id:'' }]);
-                }}></button>
+                <button type="button" className="btn-close btn-close-white" onClick={handleCloseSalesForm}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
@@ -672,123 +706,27 @@ function SalesOrders() {
                   
                   <hr className="my-4" />
                   
-                  {/* Sección de productos */}
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h5 className="mb-0">
-                      <i className="bi bi-bag me-2"></i>Detalle de artículos
-                    </h5>
-                    <button type="button" className="btn btn-outline-primary btn-sm" onClick={addDetail}>
-                      <i className="bi bi-plus me-1"></i>Agregar artículo
-                    </button>
-                  </div>
+                  {/* Sección de productos - Nuevo componente moderno */}
+                  <SalesOrderItemsManager
+                    items={items}
+                    onChange={setItems}
+                    products={products}
+                    readOnly={!!editingOrder}
+                  />
                   
-                  {details.map((d, idx) => (
-                    <div className="card mb-3" key={idx}>
-                      <div className="card-body">
-                        <div className="row g-2">
-                          <div className="col-md-5">
-                            <label className="form-label">Producto *</label>
-                            {editingOrder ? (
-                              <input
-                                type="text"
-                                className="form-control bg-light"
-                                value={(() => {
-                                  const prod = products.find(p => p.id == d.product);
-                                  return prod ? prod.name : d.productSearch || '';
-                                })()}
-                                readOnly
-                                tabIndex={-1}
-                              />
-                            ) : (
-                              <>
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  placeholder="Buscar producto por nombre o SKU..."
-                                  value={d.productSearch || ''}
-                                  onChange={e => {
-                                    const value = e.target.value;
-                                    const newDetails = [...details];
-                                    newDetails[idx].productSearch = value;
-                                    // Filtrar productos por nombre o SKU
-                                    newDetails[idx].filteredProducts = products.filter(p => {
-                                      const search = value.toLowerCase();
-                                      return (p.name && p.name.toLowerCase().includes(search)) ||
-                                             (p.sku && p.sku.toLowerCase().includes(search));
-                                    });
-                                    setDetails(newDetails);
-                                  }}
-                                />
-                                <input
-                                  type="text"
-                                  className="form-control mt-2 bg-light"
-                                  value={(() => {
-                                    const prod = (d.filteredProducts || products).find(p => p.id === d.product);
-                                    return prod ? `${prod.name}${prod.description ? ' - ' + prod.description : ''}` : '';
-                                  })()}
-                                  readOnly
-                                  placeholder="Descripción del producto"
-                                />
-                              </>
-                            )}
-                          </div>
-                          <div className="col-md-2">
-                            <label className="form-label">Cantidad *</label>
-                            <input
-                              type="number"
-                              name="quantity"
-                              className="form-control"
-                              placeholder="0"
-                              value={d.quantity}
-                              onChange={e => {
-                                handleDetailChange(idx, e);
-                                calculateTotal();
-                              }}
-                              required
-                              min="1"
-                            />
-                          </div>
-                          <div className="col-md-2">
-                            <label className="form-label">Precio *</label>
-                            <input
-                              type="number"
-                              name="price"
-                              className="form-control"
-                              placeholder="0.00"
-                              value={d.price}
-                              onChange={e => {
-                                handleDetailChange(idx, e);
-                                calculateTotal();
-                              }}
-                              required
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          <div className="col-md-2">
-                            <label className="form-label">Subtotal</label>
-                            <input
-                              type="text"
-                              className="form-control bg-light"
-                              value={`$${((parseFloat(d.quantity) || 0) * (parseFloat(d.price) || 0)).toFixed(2)}`}
-                              readOnly
-                            />
-                          </div>
-                          <div className="col-md-1 d-flex align-items-end">
-                            <button 
-                              type="button" 
-                              className="btn btn-outline-danger btn-sm w-100" 
-                              onClick={() => removeDetail(idx)} 
-                              disabled={details.length === 1}
-                              title="Eliminar item"
-                            >
-                              <i className="bi bi-trash"></i>
-                            </button>
-                          </div>
+                  {/* Total calculado */}
+                  <div className="d-flex justify-content-end mt-3">
+                    <div className="card bg-light border-0">
+                      <div className="card-body py-2 px-3">
+                        <div className="d-flex align-items-center gap-2">
+                          <strong>Total del Pedido:</strong>
+                          <span className="text-primary fs-5 fw-bold">
+                            ${items.reduce((sum, item) => sum + (parseFloat(item.quantity) * parseFloat(item.price)), 0).toFixed(2)}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
                   
                   {formError && (
                     <div className="alert alert-danger d-flex align-items-center">
@@ -798,12 +736,7 @@ function SalesOrders() {
                   )}
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => {
-                    setShowForm(false);
-                    setEditingOrder(null);
-                    setFormData({ customer: '', order_date: '', status: '', total_amount: '' });
-                    setDetails([{ product: '', quantity: '', price: '' }]);
-                  }}>
+                  <button type="button" className="btn btn-secondary" onClick={handleCloseSalesForm}>
                     <i className="bi bi-x-circle me-1"></i>Cancelar
                   </button>
                   <button type="submit" className="btn btn-primary" disabled={saving}>
