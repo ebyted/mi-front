@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 // import ProductSelect from '../components/ProductSelect';
 import api from '../services/api';
 import useDocumentTitle from '../hooks/useDocumentTitle';
@@ -55,7 +55,14 @@ function Products() {
   }, []);
 
   useEffect(() => {
+    console.log('📦 Cargando datos de productos...');
     setLoading(true);
+
+    // Timeout de seguridad
+    const timeoutId = setTimeout(() => {
+      console.warn('⏰ Timeout: Carga tomó más de 10 segundos');
+      setLoading(false);
+    }, 10000);
 
     Promise.all([
       api.get('products/search_all/'),
@@ -64,22 +71,36 @@ function Products() {
       api.get('warehouses/')
     ])
       .then(([productsRes, brandsRes, categoriesRes, warehousesRes]) => {
+        clearTimeout(timeoutId);
+        console.log('✅ Datos cargados:', {
+          products: productsRes.data?.length || 0,
+          brands: brandsRes.data?.length || 0,
+          categories: categoriesRes.data?.length || 0,
+          warehouses: warehousesRes.data?.length || 0
+        });
+        
         if (Array.isArray(productsRes.data)) {
           setProducts(productsRes.data);
         } else {
+          console.warn('⚠️ Products data is not an array:', productsRes.data);
           setProducts([]);
         }
         setBrands(brandsRes.data || []);
         setCategories(categoriesRes.data || []);
         setWarehouses(warehousesRes.data || []);
       })
-      .catch(() => {
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        console.error('❌ Error cargando datos:', error);
         setProducts([]);
         setBrands([]);
         setCategories([]);
         setWarehouses([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        console.log('🏁 Carga finalizada');
+        setLoading(false);
+      });
   }, []);
 
   // Filtro y búsqueda mejorados
@@ -95,7 +116,7 @@ function Products() {
     return () => clearTimeout(timeoutId);
   }, [search]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     console.log('🔍 Aplicando filtros...', { 
       search: searchDebounce, 
       filters, 
@@ -164,17 +185,20 @@ function Products() {
     console.log('📊 Resultados filtrados:', result.length);
     setFilteredProducts(result);
     setPage(1);
-  };
+  }, [products, searchDebounce, filters]);
+  // Inicializar filteredProducts cuando se cargan los productos
   useEffect(() => {
-    setFilteredProducts(products);
+    if (products.length > 0) {
+      console.log('🔄 Inicializando productos filtrados...');
+      setFilteredProducts(products);
+    }
   }, [products]);
 
   // Auto-aplicar filtros cuando cambian los criterios de búsqueda (con debounce)
   useEffect(() => {
-    if (products.length > 0) {
-      applyFilters();
-    }
-  }, [searchDebounce, filters, products]);
+    console.log('🔄 Aplicando filtros automáticamente...');
+    applyFilters();
+  }, [applyFilters]);
 
   // Paginación local sobre los productos filtrados
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
