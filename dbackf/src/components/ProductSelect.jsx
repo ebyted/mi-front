@@ -71,9 +71,6 @@ const selectedProduct = value && value.name ? value : products.find(p => p.id ==
    */
   const handleSelect = async (product) => {
     setCriticalError('');
-    if (typeof onChange === 'function') {
-      onChange(product.id);
-    }
     setInputValue(product.name);
     setIsOpen(false);
 
@@ -114,10 +111,16 @@ const selectedProduct = value && value.name ? value : products.find(p => p.id ==
     // Devuelve el objeto extendido con product_variant_id
     const productWithVariantId = { ...fullProduct, product_variant_id };
 
-  // Ya no se guarda en localStorage
     // Solo llamar si hay variante válida
-    if (!errorFetching && typeof onProductSelect === 'function') {
-      onProductSelect(productWithVariantId);
+    if (!errorFetching) {
+      // Llamar onChange con el ID y el producto completo
+      if (typeof onChange === 'function') {
+        onChange(product_variant_id, productWithVariantId);
+      }
+      // Llamar onProductSelect si existe
+      if (typeof onProductSelect === 'function') {
+        onProductSelect(productWithVariantId);
+      }
     }
 
     // Blur input para cerrar teclado móvil
@@ -153,7 +156,9 @@ const selectedProduct = value && value.name ? value : products.find(p => p.id ==
    * Limpiar selección
    */
   const clearSelection = () => {
-    onChange('');
+    if (typeof onChange === 'function') {
+      onChange('', null);
+    }
     setInputValue('');
     setIsOpen(false);
     resetProducts();

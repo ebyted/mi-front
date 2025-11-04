@@ -86,12 +86,13 @@ const OrderItemsManager = ({ items, setItems }) => {
                 <ProductSelect
                   value={newItem.product_variant}
                   onChange={(value, product) => {
+                    console.log('ProductSelect onChange:', { value, product });
                     setNewItem(prev => ({
                       ...prev, 
                       product_variant: value,
                       product_name: product?.name || '',
-                      product_code: product?.code || '',
-                      unit_price: product?.sale_price || 0
+                      product_code: product?.code || product?.sku || '',
+                      unit_price: product?.sale_price || product?.price || 0
                     }));
                   }}
                   placeholder="Seleccionar producto..."
