@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const modules = [
   { name: "Iniciar sesión", path: "/login", icon: "🔑" },
+  { name: "Resumen", path: "/summary", icon: "📊" },
   { name: "Usuarios", path: "/users", icon: "👤" },
   { name: "Product Center", path: "/product-center", icon: "🧩" },
   { name: "Roles", path: "/roles", icon: "🛡️" },
