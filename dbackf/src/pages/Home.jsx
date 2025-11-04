@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function Home() {
   // Hook para cambiar el título de la pestaña

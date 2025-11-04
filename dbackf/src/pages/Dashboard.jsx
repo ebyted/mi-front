@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 import api from '../services/api';
 
 function Dashboard() {
-  useDocumentTitle('Dashboard Gerencial');
+  useDocumentTitle('Dashboard - Maestro Inventario');
 
   // Estados principales
   const [loading, setLoading] = useState(true);
