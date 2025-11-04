@@ -34,29 +34,30 @@ function Home() {
         
         {/* Acceso rápido a paneles gerenciales */}
         <div className="row mb-4 justify-content-center">
-          <div className="col-md-6 mb-3">
-            <Link to="/summary" className="card border-0 shadow-lg text-center bg-gradient-primary text-decoration-none" style={{background: 'linear-gradient(135deg,#28a745 60%,#20c997 100%)', color: '#fff'}}>
-              <div className="card-body py-4">
-                <span className="display-1">📋</span>
-                <h4 className="card-title mt-3 mb-2">Resumen Gerencial</h4>
-                <p className="card-text">Vista ejecutiva, alertas críticas y operaciones del día</p>
-                <div className="mt-3">
-                  <span className="badge bg-light text-dark me-2">Alertas en Tiempo Real</span>
-                  <span className="badge bg-light text-dark">Resumen Ejecutivo</span>
-                </div>
+          <div className="col-md-4 mb-3">
+            <Link to="/summary" className="card border-0 shadow-sm text-center text-decoration-none bg-success text-white" style={{minHeight: '200px'}}>
+              <div className="card-body py-4 d-flex flex-column justify-content-center">
+                <span className="display-1 mb-3">📊</span>
+                <h4 className="card-title mb-2">Resumen Gerencial</h4>
+                <p className="card-text">Vista ejecutiva y alertas críticas</p>
               </div>
             </Link>
           </div>
-          <div className="col-md-6 mb-3">
-            <Link to="/dashboard" className="card border-0 shadow-lg text-center bg-gradient-primary text-decoration-none" style={{background: 'linear-gradient(135deg,#6f42c1 60%,#007bff 100%)', color: '#fff'}}>
-              <div className="card-body py-4">
-                <span className="display-1">📊</span>
-                <h4 className="card-title mt-3 mb-2">Dashboard Original</h4>
-                <p className="card-text">Panel de control tradicional del sistema</p>
-                <div className="mt-3">
-                  <span className="badge bg-light text-dark me-2">Menu Principal</span>
-                  <span className="badge bg-light text-dark">Navegación</span>
-                </div>
+          <div className="col-md-4 mb-3">
+            <Link to="/dashboard" className="card border-0 shadow-sm text-center text-decoration-none bg-primary text-white" style={{minHeight: '200px'}}>
+              <div className="card-body py-4 d-flex flex-column justify-content-center">
+                <span className="display-1 mb-3">🎛️</span>
+                <h4 className="card-title mb-2">Dashboard</h4>
+                <p className="card-text">Panel de control completo</p>
+              </div>
+            </Link>
+          </div>
+          <div className="col-md-4 mb-3">
+            <Link to="/inventory-movements" className="card border-0 shadow-sm text-center text-decoration-none bg-info text-white" style={{minHeight: '200px'}}>
+              <div className="card-body py-4 d-flex flex-column justify-content-center">
+                <span className="display-1 mb-3">📋</span>
+                <h4 className="card-title mb-2">Movimientos</h4>
+                <p className="card-text">Inventario y movimientos</p>
               </div>
             </Link>
           </div>
