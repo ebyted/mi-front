@@ -1147,29 +1147,43 @@ class DashboardSummaryAPIView(APIView):
         
         # 1. ALERTAS CRÍTICAS
         # Productos sin stock
-        zero_stock_products = ProductWarehouseStock.objects.filter(
+        zero_stock_query = ProductWarehouseStock.objects.filter(
             stock_quantity=0
-        ).values(
-            'product_variant__product__id',
-            'product_variant__product__name',
-            'product_variant__product__sku',
-            'product_variant__sku',
-            'stock_quantity',
-            'minimum_stock'
-        ).distinct()[:10]
+        ).select_related(
+            'product_variant__product'
+        ).distinct('product_variant__product__id')[:10]
+        
+        zero_stock_products = []
+        for stock in zero_stock_query:
+            if stock.product_variant and stock.product_variant.product:
+                zero_stock_products.append({
+                    'product_variant__product__id': stock.product_variant.product.id,
+                    'product_variant__product__name': stock.product_variant.product.name,
+                    'product_variant__product__sku': stock.product_variant.product.sku,
+                    'product_variant__sku': stock.product_variant.sku,
+                    'stock_quantity': stock.stock_quantity,
+                    'minimum_stock': stock.minimum_stock
+                })
         
         # Productos con stock bajo
-        low_stock_products = ProductWarehouseStock.objects.filter(
+        low_stock_query = ProductWarehouseStock.objects.filter(
             stock_quantity__gt=0,
             stock_quantity__lte=F('minimum_stock')
-        ).values(
-            'product_variant__product__id',
-            'product_variant__product__name',
-            'product_variant__product__sku',
-            'product_variant__sku',
-            'stock_quantity',
-            'minimum_stock'
-        ).distinct()[:10]
+        ).select_related(
+            'product_variant__product'
+        ).distinct('product_variant__product__id')[:10]
+        
+        low_stock_products = []
+        for stock in low_stock_query:
+            if stock.product_variant and stock.product_variant.product:
+                low_stock_products.append({
+                    'product_variant__product__id': stock.product_variant.product.id,
+                    'product_variant__product__name': stock.product_variant.product.name,
+                    'product_variant__product__sku': stock.product_variant.product.sku,
+                    'product_variant__sku': stock.product_variant.sku,
+                    'stock_quantity': stock.stock_quantity,
+                    'minimum_stock': stock.minimum_stock
+                })
         
         # Órdenes de compra pendientes
         pending_orders = PurchaseOrder.objects.filter(
@@ -1209,24 +1223,38 @@ class DashboardSummaryAPIView(APIView):
         movements_data = []
         for movement in latest_movements:
             product_names = []
+            total_quantity = 0
             for detail in movement.details.all()[:3]:  # Solo los primeros 3 productos
                 if detail.product_variant and detail.product_variant.product:
                     product_names.append(detail.product_variant.product.name)
+                total_quantity += detail.quantity or 0
+            
+            # Mapear tipos de movimiento
+            type_mapping = {
+                'IN': 'Entrada',
+                'OUT': 'Salida', 
+                'ADJUSTMENT': 'Ajuste',
+                'TRANSFER': 'Transferencia'
+            }
             
             movements_data.append({
                 'id': movement.id,
-                'date': movement.created_at.strftime('%Y-%m-%d %H:%M'),
+                'date': movement.created_at.strftime('%Y-%m-%d'),
                 'product': ', '.join(product_names) if product_names else 'Sin productos',
-                'type': movement.get_type_display(),
-                'quantity': sum([d.quantity for d in movement.details.all()]),
+                'type': type_mapping.get(movement.type, movement.type),
+                'quantity': total_quantity if movement.type == 'IN' else -total_quantity if movement.type == 'OUT' else total_quantity,
                 'user': movement.created_by.username if movement.created_by else 'Sistema'
             })
+        
+        # Contar totales para alertas
+        zero_stock_total = ProductWarehouseStock.objects.filter(stock_quantity=0).values('product_variant__product').distinct().count()
+        low_stock_total = ProductWarehouseStock.objects.filter(stock_quantity__gt=0, stock_quantity__lte=F('minimum_stock')).values('product_variant__product').distinct().count()
         
         # Estructurar respuesta
         data = {
             'alerts': {
                 'zeroStock': {
-                    'count': zero_stock_products.count(),
+                    'count': zero_stock_total,
                     'products': [
                         {
                             'id': p['product_variant__product__id'],
@@ -1238,7 +1266,7 @@ class DashboardSummaryAPIView(APIView):
                     ]
                 },
                 'lowStock': {
-                    'count': low_stock_products.count(),
+                    'count': low_stock_total,
                     'products': [
                         {
                             'id': p['product_variant__product__id'],
@@ -1277,7 +1305,108 @@ class DashboardSummaryAPIView(APIView):
             }
         }
         
+        # Si no hay datos del día actual, usar datos de los últimos 7 días para mostrar algo útil
+        if (po_created == 0 and so_new == 0 and entries == 0):
+            week_ago = today - timedelta(days=7)
+            
+            # Datos de la semana pasada para referencia
+            week_po = PurchaseOrder.objects.filter(created_at__date__gte=week_ago).count()
+            week_so = SalesOrder.objects.filter(created_at__date__gte=week_ago).count()
+            week_movements = InventoryMovement.objects.filter(created_at__date__gte=week_ago).count()
+            
+            # Agregar información adicional si no hay actividad hoy
+            data['weeklyContext'] = {
+                'purchaseOrders': week_po,
+                'salesOrders': week_so,
+                'movements': week_movements,
+                'note': 'No hay actividad hoy. Datos de los últimos 7 días.'
+            }
+        
         return Response(data)
+
+
+class InitializeTestDataAPIView(APIView):
+    """Vista para inicializar datos de prueba si no existen"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            from django.contrib.auth.models import User
+            
+            # Crear algunos productos de prueba si no existen
+            if Product.objects.count() == 0:
+                # Crear categoría y marca
+                category, _ = Category.objects.get_or_create(name='Electrónicos', defaults={'description': 'Productos electrónicos'})
+                brand, _ = Brand.objects.get_or_create(name='Samsung', defaults={'description': 'Marca Samsung'})
+                
+                # Crear productos
+                products_data = [
+                    {'name': 'Smartphone Galaxy S21', 'sku': 'SGS21001', 'description': 'Teléfono inteligente'},
+                    {'name': 'Tablet Galaxy Tab', 'sku': 'SGT001', 'description': 'Tablet Android'},
+                    {'name': 'Auriculares Bluetooth', 'sku': 'AUR001', 'description': 'Auriculares inalámbricos'}
+                ]
+                
+                for prod_data in products_data:
+                    product, created = Product.objects.get_or_create(
+                        sku=prod_data['sku'],
+                        defaults={
+                            'name': prod_data['name'],
+                            'description': prod_data['description'],
+                            'category': category,
+                            'brand': brand,
+                            'is_active': True
+                        }
+                    )
+                    
+                    if created:
+                        # Crear variante principal
+                        variant, _ = ProductVariant.objects.get_or_create(
+                            product=product,
+                            sku=f"{product.sku}-STD",
+                            defaults={'name': 'Estándar', 'is_main': True}
+                        )
+                        
+                        # Crear stock inicial (algunos con stock bajo o cero)
+                        if Warehouse.objects.exists():
+                            warehouse = Warehouse.objects.first()
+                            stock_qty = 0 if 'Galaxy S21' in product.name else (2 if 'Tab' in product.name else 50)
+                            min_stock = 10 if 'Galaxy S21' in product.name else (8 if 'Tab' in product.name else 15)
+                            
+                            ProductWarehouseStock.objects.get_or_create(
+                                product_variant=variant,
+                                warehouse=warehouse,
+                                defaults={
+                                    'stock_quantity': stock_qty,
+                                    'minimum_stock': min_stock
+                                }
+                            )
+            
+            # Crear algunos movimientos de prueba si no existen
+            if InventoryMovement.objects.count() == 0 and Warehouse.objects.exists():
+                warehouse = Warehouse.objects.first()
+                user = request.user
+                
+                # Crear movimientos de entrada
+                movement = InventoryMovement.objects.create(
+                    warehouse=warehouse,
+                    type='IN',
+                    notes='Movimiento de prueba - Entrada inicial',
+                    created_by=user
+                )
+                
+                if ProductVariant.objects.exists():
+                    variant = ProductVariant.objects.first()
+                    InventoryMovementDetail.objects.create(
+                        movement=movement,
+                        product_variant=variant,
+                        quantity=100,
+                        notes='Stock inicial'
+                    )
+            
+            return Response({'message': 'Datos de prueba inicializados correctamente'})
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
 
 
 class ProductsZeroStockAPIView(APIView):

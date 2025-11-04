@@ -54,6 +54,21 @@ function Summary() {
     }
   };
 
+  const initializeTestData = async () => {
+    try {
+      setLoading(true);
+      const response = await api.post('/dashboard/initialize-test-data/');
+      alert('Datos de prueba inicializados correctamente');
+      // Recargar dashboard después de inicializar
+      await loadSummaryData();
+    } catch (error) {
+      console.error('Error initializing test data:', error);
+      alert('Error al inicializar datos de prueba');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Función temporal para simular datos hasta crear los endpoints reales
   const simulateApiCall = async () => {
     return new Promise(resolve => {
@@ -303,6 +318,14 @@ function Summary() {
           <small className="text-muted">
             Última actualización: {lastUpdated.toLocaleTimeString('es-ES')}
           </small>
+          <button 
+            className="btn btn-outline-success btn-sm"
+            onClick={initializeTestData}
+            disabled={loading}
+          >
+            <i className="bi bi-database me-1"></i>
+            Datos de Prueba
+          </button>
           <button 
             className="btn btn-outline-primary btn-sm"
             onClick={loadSummaryData}
