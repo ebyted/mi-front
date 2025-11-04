@@ -32,17 +32,30 @@ function Home() {
           <p className="lead text-secondary">Bienvenido al sistema de inventario. Selecciona una opción:</p>
         </div>
         
-        {/* Acceso rápido al Dashboard Gerencial */}
+        {/* Acceso rápido a paneles gerenciales */}
         <div className="row mb-4 justify-content-center">
+          <div className="col-md-6 mb-3">
+            <Link to="/summary" className="card border-0 shadow-lg text-center bg-gradient-primary text-decoration-none" style={{background: 'linear-gradient(135deg,#28a745 60%,#20c997 100%)', color: '#fff'}}>
+              <div className="card-body py-4">
+                <span className="display-1">📋</span>
+                <h4 className="card-title mt-3 mb-2">Resumen Gerencial</h4>
+                <p className="card-text">Vista ejecutiva, alertas críticas y operaciones del día</p>
+                <div className="mt-3">
+                  <span className="badge bg-light text-dark me-2">Alertas en Tiempo Real</span>
+                  <span className="badge bg-light text-dark">Resumen Ejecutivo</span>
+                </div>
+              </div>
+            </Link>
+          </div>
           <div className="col-md-6 mb-3">
             <Link to="/dashboard" className="card border-0 shadow-lg text-center bg-gradient-primary text-decoration-none" style={{background: 'linear-gradient(135deg,#6f42c1 60%,#007bff 100%)', color: '#fff'}}>
               <div className="card-body py-4">
                 <span className="display-1">📊</span>
-                <h4 className="card-title mt-3 mb-2">Dashboard Gerencial</h4>
-                <p className="card-text">Resumen ejecutivo, alertas críticas y operaciones del día</p>
+                <h4 className="card-title mt-3 mb-2">Dashboard Original</h4>
+                <p className="card-text">Panel de control tradicional del sistema</p>
                 <div className="mt-3">
-                  <span className="badge bg-light text-dark me-2">Alertas en Tiempo Real</span>
-                  <span className="badge bg-light text-dark">Control Gerencial</span>
+                  <span className="badge bg-light text-dark me-2">Menu Principal</span>
+                  <span className="badge bg-light text-dark">Navegación</span>
                 </div>
               </div>
             </Link>
