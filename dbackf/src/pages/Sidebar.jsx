@@ -4,13 +4,13 @@ import logoSancho from '../assets/logo_sancho.png';
 
 const menuItems = [
   { name: "Inicio", path: "/home", icon: "bi-house" },
-  { name: "Resumen", path: "/summary", icon: "bi-clipboard-data" },
+  { name: "Resumen", path: "/summary", icon: "bi-graph-up" },
   { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
   { name: "Usuarios", path: "/users", icon: "bi-people" },
   { name: "Centro de Productos", path: "/product-center", icon: "bi-box-seam" },
   { name: "Productos", path: "/products", icon: "bi-box-seam" },
   { name: "Almacenes", path: "/warehouses", icon: "bi-building" },
-  { name: "Inventario General", path: "/inventory-general", icon: "bi-clipboard-data" },
+  //{ name: "Inventario General", path: "/inventory-general", icon: "bi-clipboard-data" },
   { name: "Órdenes de Compra", path: "/purchase-orders", icon: "bi-cart-plus" },
   { name: "Cotizaciones", path: "/quotations", icon: "bi-calculator" },
   { name: "Ventas", path: "/sales-orders", icon: "bi-receipt" },
@@ -28,6 +28,9 @@ export default function Sidebar({ onClose }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const active = menuItems.find(item => item.path === location.pathname);
+  
+  // Debug log para verificar que los menuItems se cargan correctamente
+  console.log('MenuItems:', menuItems);
 
   return (
     <aside

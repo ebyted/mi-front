@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import Summary from './pages/Summary';
+import TestSummary from './pages/TestSummary';
 import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
 import Products from './pages/Products';
@@ -80,7 +81,7 @@ function AppContent() {
         
         {/* Rutas protegidas */}
         <Route path="/home" element={renderWithSidebar(Home)} />
-        <Route path="/summary" element={renderWithSidebar(Summary)} />
+        <Route path="/summary" element={renderWithSidebar(TestSummary)} />
         <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
   <Route path="/users" element={renderWithSidebar(Users)} />
   <Route path="/product-center" element={renderWithSidebar(ProductCenter)} />
