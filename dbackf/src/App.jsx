@@ -6,6 +6,7 @@ import ProductCenter from './pages/ProductCenter';
 import Sidebar from './pages/Sidebar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
 import ProtectedRoute from './components/ProtectedRoute';
 import Users from './pages/Users';
 import Products from './pages/Products';
@@ -68,15 +69,16 @@ function AppContent() {
       <Routes>
         {/* Ruta raíz redirige según autenticación */}
         <Route path="/" element={
-          isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+          isAuthenticated() ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
         } />
         
         {/* Login - solo accesible si NO está autenticado */}
         <Route path="/login" element={
-          isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Login />
+          isAuthenticated() ? <Navigate to="/home" replace /> : <Login />
         } />
         
         {/* Rutas protegidas */}
+        <Route path="/home" element={renderWithSidebar(Home)} />
         <Route path="/dashboard" element={renderWithSidebar(Dashboard)} />
   <Route path="/users" element={renderWithSidebar(Users)} />
   <Route path="/product-center" element={renderWithSidebar(ProductCenter)} />
@@ -99,7 +101,7 @@ function AppContent() {
         
         {/* Cualquier otra ruta redirige según autenticación */}
         <Route path="*" element={
-          isAuthenticated() ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+          isAuthenticated() ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />
         } />
       </Routes>
     </Router>

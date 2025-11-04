@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import logoSancho from '../assets/logo_sancho.png';
 
 const menuItems = [
+  { name: "Inicio", path: "/home", icon: "bi-house" },
   { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
   { name: "Usuarios", path: "/users", icon: "bi-people" },
   { name: "Centro de Productos", path: "/product-center", icon: "bi-box-seam" },
