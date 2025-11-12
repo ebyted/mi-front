@@ -212,11 +212,11 @@ const EnhancedTijuanaStore = ({ user }) => {
         api.get('customers/')
       ]);
       // console.log("stockRes",stockRes)
-      // Filtrar productos con stock > 0 en TIJUANA
+      // Mapear TODOS los productos sin filtrar por stock
       const stockData = Array.isArray(stockRes.data) ? stockRes.data : (stockRes.data.results || []);
       // console.log("stockData",stockData)
-      const productsWithStock = stockData
-        // .filter(stock => parseFloat(stock.quantity || 0) > 0)
+      const allProducts = stockData
+        // Sin filtro de stock - mostrar TODOS los productos
         .map(stock => ({
           id: stock.product_variant?.id || stock.product_variant.product_id,
           name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
@@ -240,8 +240,8 @@ const EnhancedTijuanaStore = ({ user }) => {
           discount: Math.random() > 0.8 ? Math.floor(Math.random() * 30) + 5 : 0 // 20% tiene descuento
         }));
 
-      setProducts(productsWithStock);
-      setFeaturedProducts(productsWithStock.filter(p => p.is_featured).slice(0, 8));
+      setProducts(allProducts);
+      setFeaturedProducts(allProducts.filter(p => p.is_featured).slice(0, 8));
       setBrands(brandsRes.data || []);
       setCategories(categoriesRes.data || []);
       setAllCustomers(customersRes.data || []);
@@ -256,12 +256,35 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   // Funciones del carrito
   const addToCart = (product, quantity = 1) => {
+    // Validar que el producto existe
+    if (!product) {
+      showNotification('Producto no válido', 'error');
+      return;
+    }
+
     const existingItem = cart.find(item => item.id === product.id);
+    
     if (existingItem) {
-      updateCartQuantity(product.id, existingItem.quantity + quantity);
+      const newTotalQuantity = existingItem.quantity + quantity;
+      updateCartQuantity(product.id, newTotalQuantity);
+      
+      if (product.stock === 0) {
+        showNotification(`${product.name} agregado al carrito (Pedido especial - Sin stock)`, 'warning');
+      } else if (newTotalQuantity > product.stock) {
+        showNotification(`${product.name} agregado. Nota: Cantidad solicitada (${newTotalQuantity}) excede stock disponible (${product.stock})`, 'warning');
+      } else {
+        showNotification(`Cantidad de ${product.name} actualizada en el carrito`, 'success');
+      }
     } else {
-      setCart(prev => [...prev, { ...product, quantity }]);
-      showNotification(`${product.name} agregado al carrito`, 'success');
+      setCart(prev => [...prev, { ...product, quantity: quantity }]);
+      
+      if (product.stock === 0) {
+        showNotification(`${product.name} agregado al carrito (Pedido especial - Sin stock)`, 'warning');
+      } else if (quantity > product.stock) {
+        showNotification(`${product.name} agregado. Nota: Cantidad solicitada (${quantity}) excede stock disponible (${product.stock})`, 'warning');
+      } else {
+        showNotification(`${product.name} agregado al carrito`, 'success');
+      }
     }
   };
 
@@ -1908,6 +1931,16 @@ const EnhancedTijuanaStore = ({ user }) => {
           </div>
         </div>
 
+        {/* Indicador informativo - Todos los productos */}
+        <div className="d-flex justify-content-center mb-3">
+          <div className="alert alert-info d-inline-flex align-items-center py-2 px-3 mb-0" role="alert" style={{ fontSize: '0.9rem' }}>
+            <i className="bi bi-info-circle me-2"></i>
+            <span className="fw-medium">Mostrando todos los productos disponibles</span>
+            <span className="badge bg-light text-dark ms-2">{allProducts.length} total</span>
+            <small className="ms-2 text-muted">| Incluye productos sin stock</small>
+          </div>
+        </div>
+
         {/* Lista de productos */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-5">
@@ -1921,7 +1954,9 @@ const EnhancedTijuanaStore = ({ user }) => {
           <>
             <div className={viewMode === 'grid' ? 'row g-4' : ''}>
               {paginatedProducts.map(product => {
-                const stockColor = product.stock > 10 ? 'success' : product.stock > 5 ? 'warning' : 'danger';
+                const stockColor = product.stock > 10 ? 'success' : 
+                                   product.stock > 5 ? 'warning' : 
+                                   product.stock > 0 ? 'danger' : 'secondary';
                 const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
                 
                 if (viewMode === 'grid') {
@@ -1963,7 +1998,8 @@ const EnhancedTijuanaStore = ({ user }) => {
                         
                         <div className="position-relative">
                           <span className={`badge bg-${stockColor} stock-badge`}>
-                            Stock: {product.stock}
+                            {product.stock > 0 ? `Stock: ${product.stock}` : 'Sin Stock'}
+                            {product.stock === 0 && <i className="bi bi-x-circle ms-1"></i>}
                           </span>
                           <img
                             src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
@@ -2008,11 +2044,11 @@ const EnhancedTijuanaStore = ({ user }) => {
                             </div>
                             
                             <button
-                              className="btn btn-primary w-100"
+                              className={`btn w-100 ${product.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
                               onClick={() => addToCart(product)}
                             >
-                              <i className="bi bi-cart-plus me-2"></i>
-                              Agregar al carrito
+                              <i className={`bi ${product.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
+                              {product.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
                             </button>
                           </div>
                         </div>
@@ -2031,7 +2067,8 @@ const EnhancedTijuanaStore = ({ user }) => {
                               </div>
                             )}
                             <span className={`badge bg-${stockColor} stock-badge`}>
-                              Stock: {product.stock}
+                              {product.stock > 0 ? `Stock: ${product.stock}` : 'Sin Stock'}
+                              {product.stock === 0 && <i className="bi bi-x-circle ms-1"></i>}
                             </span>
                             <img
                               src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
@@ -2095,11 +2132,11 @@ const EnhancedTijuanaStore = ({ user }) => {
                                   <i className="bi bi-arrow-left-right"></i>
                                 </button>
                                 <button
-                                  className="btn btn-primary btn-lg"
+                                  className={`btn btn-lg ${product.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
                                   onClick={() => addToCart(product)}
                                 >
-                                  <i className="bi bi-cart-plus me-2"></i>
-                                  Agregar al carrito
+                                  <i className={`bi ${product.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
+                                  {product.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
                                 </button>
                               </div>
                             </div>
@@ -2253,6 +2290,18 @@ const EnhancedTijuanaStore = ({ user }) => {
                           ) : (
                             formatCurrency(item.price)
                           )}
+                          {item.stock === 0 && (
+                            <span className="badge bg-warning text-dark ms-2 small">
+                              <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                              Pedido especial
+                            </span>
+                          )}
+                          {item.quantity > item.stock && item.stock > 0 && (
+                            <span className="badge bg-info text-dark ms-2 small">
+                              <i className="bi bi-info-circle-fill me-1"></i>
+                              Excede stock ({item.stock} disp.)
+                            </span>
+                          )}
                         </div>
                         <div className="d-flex align-items-center mt-2">
                           <button
@@ -2265,7 +2314,6 @@ const EnhancedTijuanaStore = ({ user }) => {
                           <button
                             className="btn btn-outline-secondary btn-sm"
                             onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.stock}
                           >
                             <i className="bi bi-plus"></i>
                           </button>
@@ -2283,6 +2331,28 @@ const EnhancedTijuanaStore = ({ user }) => {
               </div>
 
               <div className="border-top pt-3">
+                {(() => {
+                  const productsWithoutStock = cart.filter(item => item.stock === 0);
+                  const productsExceedingStock = cart.filter(item => item.quantity > item.stock && item.stock > 0);
+                  
+                  return (productsWithoutStock.length > 0 || productsExceedingStock.length > 0) && (
+                    <div className="mb-3">
+                      {productsWithoutStock.length > 0 && (
+                        <div className="alert alert-warning py-2 small mb-1">
+                          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                          {productsWithoutStock.length} producto(s) en pedido especial
+                        </div>
+                      )}
+                      {productsExceedingStock.length > 0 && (
+                        <div className="alert alert-info py-2 small mb-1">
+                          <i className="bi bi-info-circle-fill me-2"></i>
+                          {productsExceedingStock.length} producto(s) exceden stock disponible
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                
                 <div className="d-flex justify-content-between mb-3">
                   <strong>Total:</strong>
                   <strong className="text-success h5">{formatCurrency(getCartTotal())}</strong>
@@ -2399,15 +2469,15 @@ const EnhancedTijuanaStore = ({ user }) => {
                 
                 <div className="d-grid gap-2 mt-4">
                   <button
-                    className="btn btn-primary btn-lg"
+                    className={`btn btn-lg ${quickViewProduct?.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
                     onClick={() => {
                       addToCart(quickViewProduct);
                       setShowQuickView(false);
                       setQuickViewProduct(null);
                     }}
                   >
-                    <i className="bi bi-cart-plus me-2"></i>
-                    Agregar al carrito
+                    <i className={`bi ${quickViewProduct?.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
+                    {quickViewProduct?.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
                   </button>
                   <div className="row">
                     <div className="col">

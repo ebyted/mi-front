@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Row, Col, Form, Button, Alert, Table, Pagination, Badge, InputGroup } from 'react-bootstrap';
+import { api } from '../services/api';
 // import ProductModal from './ProductModal';
 // import ProductFormModal from './ProductFormModal';
 
@@ -31,6 +32,7 @@ const ProductsOptimized = () => {
     // Estados para opciones de filtros
     const [brands, setBrands] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [loadingFilters, setLoadingFilters] = useState(true);
     
     // Estados de modales
     const [showModal, setShowModal] = useState(false);
@@ -40,28 +42,76 @@ const ProductsOptimized = () => {
     // Estado para controlar si se han aplicado filtros
     const [hasSearched, setHasSearched] = useState(false);
     
+    // Estado para mensaje de notificación
+    const [notification, setNotification] = useState('');
+    
     // Cargar opciones de filtros al montar
     useEffect(() => {
+        console.log('Cargando opciones de filtros...');
         loadFilterOptions();
     }, []);
     
     const loadFilterOptions = async () => {
         try {
-            // Cargar marcas
-            const brandsResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/brands/`);
-            if (brandsResponse.ok) {
-                const brandsData = await brandsResponse.json();
-                setBrands(brandsData.results || brandsData);
+            setLoadingFilters(true);
+            console.log('Iniciando carga de opciones de filtros...');
+            
+            // Cargar información de debug
+            try {
+                const debugResponse = await api.get('/debug/filters/');
+                console.log('Debug info:', debugResponse.data);
+            } catch (debugError) {
+                console.warn('Debug endpoint no disponible:', debugError.message);
             }
             
-            // Cargar categorías
-            const categoriesResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/categories/`);
-            if (categoriesResponse.ok) {
-                const categoriesData = await categoriesResponse.json();
-                setCategories(categoriesData.results || categoriesData);
+            // Cargar marcas y categorías en paralelo
+            const [brandsResponse, categoriesResponse] = await Promise.all([
+                api.get('/brands/'),
+                api.get('/categories/')
+            ]);
+            
+            const brandsData = brandsResponse.data.results || brandsResponse.data;
+            const categoriesData = categoriesResponse.data.results || categoriesResponse.data;
+            
+            setBrands(brandsData);
+            setCategories(categoriesData);
+            
+            console.log('Marcas cargadas:', brandsData.length, brandsData);
+            console.log('Categorías cargadas:', categoriesData.length, categoriesData);
+            
+            // Mostrar mensaje de éxito
+            if (brandsData.length > 0 || categoriesData.length > 0) {
+                console.log(`✅ Filtros cargados: ${brandsData.length} marcas, ${categoriesData.length} categorías`);
+            } else {
+                console.warn('⚠️ No se encontraron marcas ni categorías - considera crear datos de prueba');
+                // Sugerir crear datos de prueba
+                if (window.confirm('No se encontraron marcas ni categorías. ¿Deseas crear datos de prueba?')) {
+                    await createTestData();
+                }
             }
+            
         } catch (error) {
-            console.error('Error loading filter options:', error);
+            console.error('❌ Error loading filter options:', error);
+            setError(`Error al cargar las opciones de filtros: ${error.message}`);
+        } finally {
+            setLoadingFilters(false);
+        }
+    };
+
+    const createTestData = async () => {
+        try {
+            setNotification('Creando datos de prueba...');
+            await api.post('/dashboard/initialize-test-data/');
+            setNotification('✅ Datos de prueba creados exitosamente');
+            console.log('Datos de prueba creados, recargando filtros...');
+            // Recargar filtros después de crear datos
+            await loadFilterOptions();
+            // Limpiar notificación después de 3 segundos
+            setTimeout(() => setNotification(''), 3000);
+        } catch (error) {
+            console.error('Error creando datos de prueba:', error);
+            setNotification('❌ Error al crear datos de prueba');
+            setTimeout(() => setNotification(''), 5000);
         }
     };
     
@@ -78,13 +128,8 @@ const ProductsOptimized = () => {
                 )
             });
             
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/search_filtered/?${params}`);
-            
-            if (!response.ok) {
-                throw new Error('Error al buscar productos');
-            }
-            
-            const data = await response.json();
+            const response = await api.get(`/products/search_filtered/?${params}`);
+            const data = response.data;
             
             setProducts(data.results || []);
             setPagination({
@@ -249,11 +294,43 @@ const ProductsOptimized = () => {
     return (
         <div className="container-fluid">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2><strong>Gestión de Productos</strong></h2>
+                <div className="d-flex align-items-center gap-3">
+                    <h2><strong>Gestión de Productos</strong></h2>
+                    <Button 
+                        variant="outline-info" 
+                        size="sm" 
+                        onClick={loadFilterOptions}
+                        title="Recargar opciones de filtros"
+                        disabled={loadingFilters}
+                    >
+                        {loadingFilters ? (
+                            <><i className="bi bi-arrow-repeat spin"></i> Cargando...</>
+                        ) : (
+                            <><i className="bi bi-arrow-clockwise"></i> Recargar Filtros</>
+                        )}
+                    </Button>
+                    {(brands.length === 0 && categories.length === 0 && !loadingFilters) && (
+                        <Button 
+                            variant="outline-warning" 
+                            size="sm" 
+                            onClick={createTestData}
+                            title="Crear datos de prueba básicos"
+                        >
+                            <i className="bi bi-plus-circle"></i> Datos de Prueba
+                        </Button>
+                    )}
+                </div>
                 <Button variant="success" onClick={handleCreateProduct}>
                     Crear Producto
                 </Button>
             </div>
+            
+            {/* Notificación */}
+            {notification && (
+                <Alert variant={notification.includes('❌') ? 'danger' : notification.includes('✅') ? 'success' : 'info'} className="mb-3">
+                    {notification}
+                </Alert>
+            )}
             
             {/* Panel de Filtros */}
             <Card className="mb-4">
@@ -261,6 +338,15 @@ const ProductsOptimized = () => {
                     <div className="d-flex align-items-center gap-2">
                         <i className="bi bi-funnel"></i>
                         <strong>Filtros de Búsqueda</strong>
+                        <small className={`ms-2 ${loadingFilters ? 'text-info' : brands.length === 0 && categories.length === 0 ? 'text-warning' : 'text-success'}`}>
+                            {loadingFilters ? (
+                                <><i className="bi bi-arrow-repeat spin"></i> Cargando opciones...</>
+                            ) : brands.length === 0 && categories.length === 0 ? (
+                                <><i className="bi bi-exclamation-triangle"></i> Sin datos - crea datos de prueba</>
+                            ) : (
+                                <><i className="bi bi-check-circle"></i> Marcas: {brands.length}, Categorías: {categories.length}</>
+                            )}
+                        </small>
                     </div>
                 </Card.Header>
                 <Card.Body>
@@ -285,8 +371,11 @@ const ProductsOptimized = () => {
                                 <Form.Select
                                     value={filters.brand}
                                     onChange={(e) => handleFilterChange('brand', e.target.value)}
+                                    disabled={loadingFilters}
                                 >
-                                    <option value="">Todas las marcas</option>
+                                    <option value="">
+                                        {loadingFilters ? 'Cargando marcas...' : 'Todas las marcas'}
+                                    </option>
                                     {brands.map(brand => (
                                         <option key={brand.id} value={brand.id}>
                                             {brand.name}
@@ -301,8 +390,11 @@ const ProductsOptimized = () => {
                                 <Form.Select
                                     value={filters.category}
                                     onChange={(e) => handleFilterChange('category', e.target.value)}
+                                    disabled={loadingFilters}
                                 >
-                                    <option value="">Todas las categorías</option>
+                                    <option value="">
+                                        {loadingFilters ? 'Cargando categorías...' : 'Todas las categorías'}
+                                    </option>
                                     {categories.map(category => (
                                         <option key={category.id} value={category.id}>
                                             {category.name}

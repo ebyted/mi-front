@@ -1333,11 +1333,41 @@ class InitializeTestDataAPIView(APIView):
         try:
             from django.contrib.auth.models import User
             
+            # Crear marcas y categorías básicas primero
+            categories_data = [
+                {'name': 'Electrónicos', 'description': 'Productos electrónicos'},
+                {'name': 'Computación', 'description': 'Productos de computación'},
+                {'name': 'Accesorios', 'description': 'Accesorios y complementos'},
+                {'name': 'Hogar', 'description': 'Productos para el hogar'},
+            ]
+            
+            brands_data = [
+                {'name': 'Samsung', 'description': 'Marca Samsung'},
+                {'name': 'Apple', 'description': 'Marca Apple'},
+                {'name': 'Sony', 'description': 'Marca Sony'},
+                {'name': 'LG', 'description': 'Marca LG'},
+                {'name': 'Genérica', 'description': 'Marca genérica'},
+            ]
+            
+            # Crear categorías
+            for cat_data in categories_data:
+                Category.objects.get_or_create(
+                    name=cat_data['name'],
+                    defaults={'description': cat_data['description']}
+                )
+            
+            # Crear marcas
+            for brand_data in brands_data:
+                Brand.objects.get_or_create(
+                    name=brand_data['name'],
+                    defaults={'description': brand_data['description']}
+                )
+            
             # Crear algunos productos de prueba si no existen
             if Product.objects.count() == 0:
-                # Crear categoría y marca
-                category, _ = Category.objects.get_or_create(name='Electrónicos', defaults={'description': 'Productos electrónicos'})
-                brand, _ = Brand.objects.get_or_create(name='Samsung', defaults={'description': 'Marca Samsung'})
+                # Obtener categoría y marca por defecto
+                category = Category.objects.get(name='Electrónicos')
+                brand = Brand.objects.get(name='Samsung')
                 
                 # Crear productos
                 products_data = [
@@ -1524,5 +1554,30 @@ class PendingPurchaseOrdersAPIView(APIView):
                 'created_by': o['created_by__username']
             } for o in orders
         ]
+        
+        return Response(data)
+
+
+class DebugFiltersAPIView(APIView):
+    """Vista de debug para verificar marcas y categorías"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        from .models import Brand, Category
+        
+        brands = Brand.objects.all()
+        categories = Category.objects.all()
+        
+        data = {
+            'brands_count': brands.count(),
+            'categories_count': categories.count(),
+            'brands': [{'id': b.id, 'name': b.name} for b in brands[:10]],
+            'categories': [{'id': c.id, 'name': c.name} for c in categories[:10]],
+            'debug_info': {
+                'timestamp': timezone.now(),
+                'user': request.user.username,
+                'api_available': True
+            }
+        }
         
         return Response(data)

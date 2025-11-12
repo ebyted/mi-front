@@ -28,6 +28,7 @@ from .views import (
     UserProfileView,
     # Nuevas vistas para Dashboard
     DashboardSummaryAPIView, ProductsZeroStockAPIView, ProductsLowStockAPIView, PendingPurchaseOrdersAPIView,
+    DebugFiltersAPIView,
     InitializeTestDataAPIView
 )
 
@@ -118,6 +119,7 @@ urlpatterns = [
     path('dashboard/products/zero-stock/', ProductsZeroStockAPIView.as_view(), name='products-zero-stock'),
     path('dashboard/products/low-stock/', ProductsLowStockAPIView.as_view(), name='products-low-stock'),
     path('dashboard/orders/pending/', PendingPurchaseOrdersAPIView.as_view(), name='pending-purchase-orders'),
+    path('debug/filters/', DebugFiltersAPIView.as_view(), name='debug-filters'),
     path('dashboard/initialize-test-data/', InitializeTestDataAPIView.as_view(), name='initialize-test-data'),
     
     path('', include(router.urls)),
