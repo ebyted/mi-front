@@ -12,6 +12,7 @@ import 'swiper/css/effect-coverflow';
 const EnhancedTijuanaStore = ({ user }) => {
   // Estados principales
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Agregar estado para todos los productos
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -215,7 +216,7 @@ const EnhancedTijuanaStore = ({ user }) => {
       // Mapear TODOS los productos sin filtrar por stock
       const stockData = Array.isArray(stockRes.data) ? stockRes.data : (stockRes.data.results || []);
       // console.log("stockData",stockData)
-      const allProducts = stockData
+      const productsData = stockData
         // Sin filtro de stock - mostrar TODOS los productos
         .map(stock => ({
           id: stock.product_variant?.id || stock.product_variant.product_id,
@@ -240,8 +241,9 @@ const EnhancedTijuanaStore = ({ user }) => {
           discount: Math.random() > 0.8 ? Math.floor(Math.random() * 30) + 5 : 0 // 20% tiene descuento
         }));
 
-      setProducts(allProducts);
-      setFeaturedProducts(allProducts.filter(p => p.is_featured).slice(0, 8));
+      setAllProducts(productsData); // Guardar todos los productos en el estado
+      setProducts(productsData);
+      setFeaturedProducts(productsData.filter(p => p.is_featured).slice(0, 8));
       setBrands(brandsRes.data || []);
       setCategories(categoriesRes.data || []);
       setAllCustomers(customersRes.data || []);
