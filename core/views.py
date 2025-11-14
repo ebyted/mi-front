@@ -550,7 +550,8 @@ class ProductWarehouseStockViewSet(viewsets.ModelViewSet):
     serializer_class = ProductWarehouseStockSerializer
 
     def get_queryset(self):
-        queryset = ProductWarehouseStock.objects.filter(quantity__gt=0)
+        # Mostrar TODOS los productos, incluidos los con stock 0 o negativo
+        queryset = ProductWarehouseStock.objects.all()
         
         # Optional: Add filtering by warehouse if provided
         warehouse_id = self.request.query_params.get('warehouse')

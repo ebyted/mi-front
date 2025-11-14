@@ -26,6 +26,7 @@ const EnhancedTijuanaStore = ({ user }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [sortBy, setSortBy] = useState('name');
+  const [showOutOfStock, setShowOutOfStock] = useState(true); // Nuevo filtro para mostrar productos sin stock
 
   // Estados de vista
   const [viewMode, setViewMode] = useState('grid');
@@ -587,6 +588,9 @@ const EnhancedTijuanaStore = ({ user }) => {
       const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
       if (priceRange.min && finalPrice < parseFloat(priceRange.min)) return false;
       if (priceRange.max && finalPrice > parseFloat(priceRange.max)) return false;
+
+      // Filtro de stock - incluir/excluir productos sin stock
+      if (!showOutOfStock && product.stock <= 0) return false;
 
       return true;
     }).sort((a, b) => {
@@ -1918,6 +1922,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                   setSelectedCategory('');
                   setSelectedBrand('');
                   setPriceRange({ min: '', max: '' });
+                  setShowOutOfStock(true); // Reset filtro de stock
                   setPage(1);
                 }}
               >
@@ -1926,8 +1931,26 @@ const EnhancedTijuanaStore = ({ user }) => {
               </button>
             </div>
             <div className="col-md-3">
+              <div className="form-check form-switch d-flex justify-content-center align-items-center">
+                <input
+                  className="form-check-input me-2"
+                  type="checkbox"
+                  role="switch"
+                  id="showOutOfStockSwitch"
+                  checked={showOutOfStock}
+                  onChange={(e) => {
+                    setShowOutOfStock(e.target.checked);
+                    setPage(1);
+                  }}
+                />
+                <label className="form-check-label" htmlFor="showOutOfStockSwitch">
+                  <small>Mostrar sin stock</small>
+                </label>
+              </div>
+            </div>
+            <div className="col-md-3">
               <div className="text-muted text-center pt-2">
-                {page} de {filteredProducts.length} productos
+                {filteredProducts.length} de {allProducts.length} productos
               </div>
             </div>
           </div>
@@ -1937,9 +1960,11 @@ const EnhancedTijuanaStore = ({ user }) => {
         <div className="d-flex justify-content-center mb-3">
           <div className="alert alert-info d-inline-flex align-items-center py-2 px-3 mb-0" role="alert" style={{ fontSize: '0.9rem' }}>
             <i className="bi bi-info-circle me-2"></i>
-            <span className="fw-medium">Mostrando todos los productos disponibles</span>
-            <span className="badge bg-light text-dark ms-2">{allProducts.length} total</span>
-            <small className="ms-2 text-muted">| Incluye productos sin stock</small>
+            <span className="fw-medium">
+              {showOutOfStock ? 'Mostrando todos los productos' : 'Mostrando solo productos con stock'}
+            </span>
+            <span className="badge bg-light text-dark ms-2">{filteredProducts.length} mostrados</span>
+            <small className="ms-2 text-muted">| {allProducts.length} total en catálogo</small>
           </div>
         </div>
 
