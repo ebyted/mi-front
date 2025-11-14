@@ -406,19 +406,15 @@ function PurchaseOrders() {
                       <input
                         type="date"
                         name="order_date"
-                        className={`form-control form-control-lg ${!editingOrder ? 'bg-light' : ''}`}
+                        className="form-control form-control-lg"
                         value={formData.order_date}
                         onChange={handleFormChange}
-                        readOnly={!editingOrder} // Solo lectura en nuevas órdenes
                         required
-                        title={!editingOrder ? "La fecha de orden se establece automáticamente al día de hoy" : ""}
                       />
-                      {!editingOrder && (
-                        <small className="text-muted">
-                          <i className="bi bi-info-circle me-1"></i>
-                          Fecha establecida automáticamente
-                        </small>
-                      )}
+                      <small className="text-muted">
+                        <i className="bi bi-info-circle me-1"></i>
+                        {!editingOrder ? 'Por defecto: fecha actual' : 'Fecha editable'}
+                      </small>
                     </div>
                     <div className="col-md-3">
                       <label className="form-label fw-bold">Fecha de Entrega</label>
