@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 
-const ProductFormModal = ({ show, onClose, product, onSaved, brands = [], categories = [] }) => {
+const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categories = [] }) => {
     const [form, setForm] = useState({
         name: '',
         sku: '',
@@ -19,8 +19,8 @@ const ProductFormModal = ({ show, onClose, product, onSaved, brands = [], catego
                 sku: product.sku || '',
                 barcode: product.barcode || '',
                 description: product.description || '',
-                brand: product.brand?.id || '',
-                category: product.category?.id || '',
+                brand: product.brand?.id ? String(product.brand.id) : '',
+                category: product.category?.id ? String(product.category.id) : '',
                 is_active: product.is_active !== undefined ? product.is_active : true,
             });
         } else {
@@ -46,11 +46,11 @@ const ProductFormModal = ({ show, onClose, product, onSaved, brands = [], catego
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSaved(form);
+        onSave(form);
     };
 
     return (
-        <Modal show={show} onHide={onClose} centered>
+        <Modal show={show} onHide={onHide} centered>
             <Modal.Header closeButton>
                 <Modal.Title>{product ? 'Editar producto' : 'Crear producto'}</Modal.Title>
             </Modal.Header>
@@ -136,7 +136,7 @@ const ProductFormModal = ({ show, onClose, product, onSaved, brands = [], catego
                     </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={onClose}>
+                    <Button variant="secondary" onClick={onHide}>
                         Cancelar
                     </Button>
                     <Button variant="primary" type="submit">
