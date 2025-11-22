@@ -3,6 +3,7 @@ import { Card, Row, Col, Form, Button, Alert, Table, Pagination, Badge, InputGro
 import { api } from '../services/api';
 // import ProductModal from './ProductModal';
 // import ProductFormModal from './ProductFormModal';
+import ProductFormModal from './ProductFormModal';
 
 const ProductsOptimized = () => {
     // Estados principales
@@ -255,7 +256,7 @@ const ProductsOptimized = () => {
                                 <Badge bg={product.current_stock > 0 ? 'success' : 'danger'}>
                                     {product.current_stock || 0}
                                 </Badge>
-                                {product.minimum_stock && (
+                                {Boolean(product.minimum_stock) && (
                                     <div><small className="text-muted">Min: {product.minimum_stock}</small></div>
                                 )}
                             </td>
@@ -552,10 +553,22 @@ const ProductsOptimized = () => {
                 />
             )}
             */}
+            {
+                showFormModal && (
+                    <ProductFormModal
+                        show={showFormModal}
+                        onHide={() => setShowFormModal(false)}
+                        product={selectedProduct}
+                        brands={brands}
+                        categories={categories}
+                        onSave={handleProductSaved}
+                    />
+                )
+            }
             
             <style jsx>{`
                 .spin {
-                    animation: spin 1s linear infinite;
+                    animation: spfrpin 1s linear infinite;
                 }
                 @keyframes spin {
                     0% { transform: rotate(0deg); }

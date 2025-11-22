@@ -831,3 +831,10 @@ class SupplierPayment(models.Model):
         
     def __str__(self):
         return f"Pago a {self.supplier.name} - ${self.amount}"
+
+
+# ProductImage
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='product_images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
