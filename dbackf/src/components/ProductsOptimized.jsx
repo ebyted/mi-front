@@ -198,12 +198,32 @@ const ProductsOptimized = () => {
         setShowFormModal(true);
     };
     
-    const handleProductSaved = () => {
-        setShowFormModal(false);
-        if (hasSearched) {
-            searchProducts(); // Refrescar la lista actual
+    const handleProductSaved = async (form) => {
+        try {
+            if (selectedProduct && selectedProduct.id) {
+                // Editar producto existente
+                await api.put(`/products/${selectedProduct.id}/`, {
+                    ...form,
+                    brand: form.brand ? Number(form.brand) : null,
+                    category: form.category ? Number(form.category) : null,
+                });
+            } else {
+                // Crear nuevo producto
+                await api.post('/products/', {
+                    ...form,
+                    brand: form.brand ? Number(form.brand) : null,
+                    category: form.category ? Number(form.category) : null,
+                });
+            }
+            setShowFormModal(false);
+            if (hasSearched) {
+                searchProducts(); // Refrescar la lista actual
+            }
+            alert('Producto guardado exitosamente');
+        } catch (error) {
+            alert('Error al guardar el producto');
+            console.error('Error al guardar el producto:', error);
         }
-        alert('Producto guardado exitosamente');
     };
     
     // Función para renderizar el estado inicial

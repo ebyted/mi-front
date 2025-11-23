@@ -52,12 +52,15 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
     return (
         <Modal show={show} onHide={onHide} centered>
             <Modal.Header closeButton>
-                <Modal.Title>{product ? 'Editar producto' : 'Crear producto'}</Modal.Title>
+                <Modal.Title>
+                    <i className={`bi ${product ? 'bi-pencil' : 'bi-person-plus'} me-2`}></i>
+                    {product ? 'Editar producto' : 'Crear producto'}
+                </Modal.Title>
             </Modal.Header>
             <Form onSubmit={handleSubmit}>
                 <Modal.Body>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Nombre</Form.Label>
+                    <Form.Group className="mb-3 form-control">
+                        <Form.Label for="name" >Nombre</Form.Label>
                         <Form.Control
                             type="text"
                             name="name"
@@ -66,9 +69,9 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                             placeholder="Nombre del producto"
                             required
                         />
-                    </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>SKU</Form.Label>
+                    </Form.Group >
+                    <Form.Group className="mb-3 form-control">
+                        <Form.Label for="sku">SKU</Form.Label>
                         <Form.Control
                             type="text"
                             name="sku"
@@ -77,8 +80,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                             placeholder="SKU"
                         />
                     </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Código de barras</Form.Label>
+                    <Form.Group className="mb-3 form-control">
+                        <Form.Label for="barcode">Código de barras</Form.Label>
                         <Form.Control
                             type="text"
                             name="barcode"
@@ -87,8 +90,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                             placeholder="Código de barras"
                         />
                     </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Descripción</Form.Label>
+                    <Form.Group className="mb-3 form-control">
+                        <Form.Label for="description">Descripción</Form.Label>
                         <Form.Control
                             as="textarea"
                             name="description"
@@ -97,8 +100,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                             placeholder="Descripción"
                         />
                     </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Marca</Form.Label>
+                    <Form.Group className="mb-3 form-control">
+                        <Form.Label for="brand">Marca</Form.Label>
                         <Form.Select
                             name="brand"
                             value={form.brand}
@@ -111,8 +114,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                             ))}
                         </Form.Select>
                     </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Categoría</Form.Label>
+                    <Form.Group className="mb-3 form-control">
+                        <Form.Label for="category" >Categoría</Form.Label>
                         <Form.Select
                             name="category"
                             value={form.category}
@@ -125,7 +128,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                             ))}
                         </Form.Select>
                     </Form.Group>
-                    <Form.Group className="mb-3" controlId="is_active">
+                    <Form.Group className="mb-3 form-control" controlId="is_active">
                         <Form.Check
                             type="checkbox"
                             name="is_active"
@@ -136,11 +139,13 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                     </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={onHide}>
-                        Cancelar
-                    </Button>
-                    <Button variant="primary" type="submit">
+                    
+                    <Button  className="form-control btn btn-outline-secondary" variant="primary" type="submit">
                         Guardar
+                    </Button>
+                    <Button className="form-control btn btn-warning" variant="secondary" onClick={onHide}>
+                        <i className="bi bi-x-lg me-1"></i>
+                        Cancelar
                     </Button>
                 </Modal.Footer>
             </Form>
