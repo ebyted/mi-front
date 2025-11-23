@@ -250,8 +250,8 @@ const ProductsOptimized = () => {
                                     <div><small className="text-muted">{product.description}</small></div>
                                 )}
                             </td>
-                            <td>{product.brand?.name || 'Sin marca'}</td>
-                            <td>{product.category?.name || 'Sin categoría'}</td>
+                            <td>{product.brand_name || 'Sin marca'}</td>
+                            <td>{product.category_name || 'Sin categoría'}</td>
                             <td>
                                 <Badge bg={product.current_stock > 0 ? 'success' : 'danger'}>
                                     {product.current_stock || 0}

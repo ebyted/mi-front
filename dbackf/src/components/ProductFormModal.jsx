@@ -19,8 +19,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                 sku: product.sku || '',
                 barcode: product.barcode || '',
                 description: product.description || '',
-                brand: product.brand?.id ? String(product.brand.id) : '',
-                category: product.category?.id ? String(product.category.id) : '',
+                brand: product.brand ? String(product.brand) : '',
+                category: product.category ? String(product.category) : '',
                 is_active: product.is_active !== undefined ? product.is_active : true,
             });
         } else {
@@ -107,7 +107,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                         >
                             <option value="">Selecciona una marca</option>
                             {brands.map((b) => (
-                                <option key={b.id} value={b.id}>{b.name}</option>
+                                <option key={b.id} value={String(b.id)}>{b.name}</option>
                             ))}
                         </Form.Select>
                     </Form.Group>
@@ -121,7 +121,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                         >
                             <option value="">Selecciona una categoría</option>
                             {categories.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
+                                <option key={c.id} value={String(c.id)}>{c.name}</option>
                             ))}
                         </Form.Select>
                     </Form.Group>
