@@ -11,7 +11,9 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
         category: '',
         is_active: true,
     });
-    const [key, setKey] = useState('home');
+    const [key, setKey] = useState('principal');
+    const [preview, setPreview] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
 
     useEffect(() => {
         if (product) {
@@ -35,6 +37,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                 is_active: true,
             });
         }
+        setKey('principal'); // Activa el primer tab al abrir el modal
     }, [product, show]);
 
     const handleChange = (e) => {
@@ -48,6 +51,34 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
     const handleSubmit = (e) => {
         e.preventDefault();
         onSave(form);
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        setSelectedFile(file);
+        if (file) {
+            setPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleImageUpload = async (e) => {
+        e.preventDefault();
+        if (!selectedFile || !product?.id) return;
+        const formData = new FormData();
+        formData.append('product', product.id);
+        formData.append('image', selectedFile);
+
+        try {
+            await api.post('/api/product-images/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            // Recarga las imágenes del producto (puedes llamar a una función para refrescar el producto)
+            onImageUploaded && onImageUploaded();
+            setSelectedFile(null);
+            setPreview(null);
+        } catch (err) {
+            alert('Error al subir la imagen');
+        }
     };
 
     return (
@@ -150,8 +181,25 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                             </Form.Group>
 
                         </Tab>
-                        <Tab eventKey="imagenes" title="Imagenes">
-                            Aqui van las imagenes
+                        <Tab eventKey="imagenes" title="Imágenes">
+                            <div>
+                                <h5>Imágenes del producto</h5>
+                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    {product?.images?.map(img => (
+                                        <img key={img.id} src={img.image} alt="Producto" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8 }} />
+                                    ))}
+                                </div>
+                                <form onSubmit={handleImageUpload}>
+                                    <input type="file" accept="image/*" onChange={handleFileChange} />
+                                    <button type="submit" className="btn btn-primary mt-2">Subir imagen</button>
+                                </form>
+                                {preview && (
+                                    <div>
+                                        <h6>Vista previa:</h6>
+                                        <img src={preview} alt="Preview" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8 }} />
+                                    </div>
+                                )}
+                            </div>
                         </Tab>
                     </Tabs>
                     

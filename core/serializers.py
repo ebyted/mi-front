@@ -5,7 +5,8 @@ from .models import (
     User, Business, Category, Brand, Unit, Product, ProductVariant, Warehouse, ProductWarehouseStock,
     Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem,
     InventoryMovement, ExchangeRate, CustomerType, Customer, SalesOrder, SalesOrderItem, Quotation, QuotationItem,
-    Role, MenuOption, InventoryMovementDetail, CustomerProductDiscount, PurchaseOrderPayment, Sale, SalePayment
+    Role, MenuOption, InventoryMovementDetail, CustomerProductDiscount, PurchaseOrderPayment, Sale, SalePayment,
+    ProductImage
 )
 
 
@@ -1108,3 +1109,8 @@ class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ['id', 'name', 'menu_options']
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'product', 'image', 'uploaded_at']
