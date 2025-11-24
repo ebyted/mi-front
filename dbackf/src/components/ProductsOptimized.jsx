@@ -3,6 +3,7 @@ import { Card, Row, Col, Form, Button, Alert, Table, Pagination, Badge, InputGro
 import { api } from '../services/api';
 // import ProductModal from './ProductModal';
 // import ProductFormModal from './ProductFormModal';
+import ProductFormModal from './ProductFormModal';
 
 const ProductsOptimized = () => {
     // Estados principales
@@ -197,12 +198,32 @@ const ProductsOptimized = () => {
         setShowFormModal(true);
     };
     
-    const handleProductSaved = () => {
-        setShowFormModal(false);
-        if (hasSearched) {
-            searchProducts(); // Refrescar la lista actual
+    const handleProductSaved = async (form) => {
+        try {
+            if (selectedProduct && selectedProduct.id) {
+                // Editar producto existente
+                await api.put(`/products/${selectedProduct.id}/`, {
+                    ...form,
+                    brand: form.brand ? Number(form.brand) : null,
+                    category: form.category ? Number(form.category) : null,
+                });
+            } else {
+                // Crear nuevo producto
+                await api.post('/products/', {
+                    ...form,
+                    brand: form.brand ? Number(form.brand) : null,
+                    category: form.category ? Number(form.category) : null,
+                });
+            }
+            setShowFormModal(false);
+            if (hasSearched) {
+                searchProducts(); // Refrescar la lista actual
+            }
+            alert('Producto guardado exitosamente');
+        } catch (error) {
+            alert('Error al guardar el producto');
+            console.error('Error al guardar el producto:', error);
         }
-        alert('Producto guardado exitosamente');
     };
     
     // Función para renderizar el estado inicial
@@ -249,13 +270,13 @@ const ProductsOptimized = () => {
                                     <div><small className="text-muted">{product.description}</small></div>
                                 )}
                             </td>
-                            <td>{product.brand?.name || 'Sin marca'}</td>
-                            <td>{product.category?.name || 'Sin categoría'}</td>
+                            <td>{product.brand_name || 'Sin marca'}</td>
+                            <td>{product.category_name || 'Sin categoría'}</td>
                             <td>
                                 <Badge bg={product.current_stock > 0 ? 'success' : 'danger'}>
                                     {product.current_stock || 0}
                                 </Badge>
-                                {product.minimum_stock && (
+                                {Boolean(product.minimum_stock) && (
                                     <div><small className="text-muted">Min: {product.minimum_stock}</small></div>
                                 )}
                             </td>
@@ -552,10 +573,22 @@ const ProductsOptimized = () => {
                 />
             )}
             */}
+            {
+                showFormModal && (
+                    <ProductFormModal
+                        show={showFormModal}
+                        onHide={() => setShowFormModal(false)}
+                        product={selectedProduct}
+                        brands={brands}
+                        categories={categories}
+                        onSave={handleProductSaved}
+                    />
+                )
+            }
             
             <style jsx>{`
                 .spin {
-                    animation: spin 1s linear infinite;
+                    animation: spfrpin 1s linear infinite;
                 }
                 @keyframes spin {
                     0% { transform: rotate(0deg); }

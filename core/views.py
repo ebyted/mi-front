@@ -456,7 +456,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         page_size = min(int(request.query_params.get('page_size', 50)), 200)  # Máximo 200
         
         # Base queryset con optimizaciones
-        queryset = Product.objects.select_related('category', 'brand').prefetch_related('variants')
+        queryset = Product.objects.select_related('category', 'brand').prefetch_related('productvariant_set')
         
         # Aplicar filtros
         if search_text:
