@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Tab, Tabs } from 'react-bootstrap';
+import api from '../api.js';
 
 const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categories = [] }) => {
     const [form, setForm] = useState({
@@ -61,23 +62,21 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
         }
     };
 
-    const handleImageUpload = async (e) => {
-        e.preventDefault();
+    const handleImageUpload = async () => {
         if (!selectedFile || !product?.id) return;
         const formData = new FormData();
         formData.append('product', product.id);
         formData.append('image', selectedFile);
 
         try {
-            await api.post('/api/product-images/', formData, {
+            await api.post('/product-images/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            // Recarga las imágenes del producto (puedes llamar a una función para refrescar el producto)
-            onImageUploaded && onImageUploaded();
+            // Recarga las imágenes del producto si es necesario
             setSelectedFile(null);
             setPreview(null);
         } catch (err) {
-            alert('Error al subir la imagen');
+            alert('Error al subir la imagen' + err.message);
         }
     };
 
@@ -101,8 +100,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                         >
                         <Tab eventKey="principal" title="Principal">
                             
-                            <Form.Group className="mb-3 form-control">
-                                <Form.Label for="name" >Nombre</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="name">Nombre</Form.Label>
                                 <Form.Control
                                     type="text"
                                     name="name"
@@ -112,8 +111,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     required
                                 />
                             </Form.Group >
-                            <Form.Group className="mb-3 form-control">
-                                <Form.Label for="sku">SKU</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="sku">SKU</Form.Label>
                                 <Form.Control
                                     type="text"
                                     name="sku"
@@ -122,8 +121,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     placeholder="SKU"
                                 />
                             </Form.Group>
-                            <Form.Group className="mb-3 form-control">
-                                <Form.Label for="barcode">Código de barras</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="barcode">Código de barras</Form.Label>
                                 <Form.Control
                                     type="text"
                                     name="barcode"
@@ -132,8 +131,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     placeholder="Código de barras"
                                 />
                             </Form.Group>
-                            <Form.Group className="mb-3 form-control">
-                                <Form.Label for="description">Descripción</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="description">Descripción</Form.Label>
                                 <Form.Control
                                     as="textarea"
                                     name="description"
@@ -142,8 +141,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     placeholder="Descripción"
                                 />
                             </Form.Group>
-                            <Form.Group className="mb-3 form-control">
-                                <Form.Label for="brand">Marca</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="brand">Marca</Form.Label>
                                 <Form.Select
                                     name="brand"
                                     value={form.brand}
@@ -156,8 +155,8 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     ))}
                                 </Form.Select>
                             </Form.Group>
-                            <Form.Group className="mb-3 form-control">
-                                <Form.Label for="category" >Categoría</Form.Label>
+                            <Form.Group className="mb-3">
+                                <Form.Label htmlFor="category" >Categoría</Form.Label>
                                 <Form.Select
                                     name="category"
                                     value={form.category}
@@ -170,7 +169,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     ))}
                                 </Form.Select>
                             </Form.Group>
-                            <Form.Group className="mb-3 form-control" controlId="is_active">
+                            <Form.Group className="mb-3" controlId="is_active">
                                 <Form.Check
                                     type="checkbox"
                                     name="is_active"
@@ -184,15 +183,27 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                         <Tab eventKey="imagenes" title="Imágenes">
                             <div>
                                 <h5>Imágenes del producto</h5>
-                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                    {product?.images?.map(img => (
-                                        <img key={img.id} src={img.image} alt="Producto" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8 }} />
-                                    ))}
-                                </div>
-                                <form onSubmit={handleImageUpload}>
+                                {product?.images?.length > 0 && (
+                                    <div className="mb-3">
+                                        <h6>Vistas preliminares:</h6>
+                                        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                            {product.images.map(img => (
+                                                <img
+                                                    key={img.id}
+                                                    src={img.image}
+                                                    alt={`Vista previa ${img.id}`}
+                                                    style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd' }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                <div>
                                     <input type="file" accept="image/*" onChange={handleFileChange} />
-                                    <button type="submit" className="btn btn-primary mt-2">Subir imagen</button>
-                                </form>
+                                    <Button className="btn btn-primary mt-2" onClick={handleImageUpload}>
+                                        Subir imagen
+                                    </Button>
+                                </div>
                                 {preview && (
                                     <div>
                                         <h6>Vista previa:</h6>
@@ -207,10 +218,10 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                 </Modal.Body>
                 <Modal.Footer>
                     
-                    <Button  className="form-control btn btn-outline-secondary" variant="primary" type="submit">
+                    <Button  className="btn btn-outline-secondary" variant="primary" type="submit">
                         Guardar
                     </Button>
-                    <Button className="form-control btn btn-warning" variant="secondary" onClick={onHide}>
+                    <Button className="btn btn-warning" variant="secondary" onClick={onHide}>
                         <i className="bi bi-x-lg me-1"></i>
                         Cancelar
                     </Button>

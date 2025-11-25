@@ -1113,4 +1113,11 @@ class RoleSerializer(serializers.ModelSerializer):
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ['id', 'product', 'image', 'uploaded_at']
+        fields = ['id', 'image', 'uploaded_at', 'product']
+
+class ProductSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)  # Usa el related_name 'images'
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'sku', 'barcode', 'description', 'brand', 'category', 'is_active', 'images']
