@@ -586,7 +586,7 @@ const ProductsOptimized = () => {
                 )
             }
             
-            <style jsx>{`
+            <style>{`
                 .spin {
                     animation: spfrpin 1s linear infinite;
                 }
