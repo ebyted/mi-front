@@ -29,7 +29,7 @@ const EnhancedTijuanaStore = ({ user }) => {
   // Estados de vista
   const [viewMode, setViewMode] = useState('grid');
   const [page, setPage] = useState(1);
-  const pageSize = 12;
+  const [pageSize, setPageSize] = useState(12);
 
   // Estados del carrito y wishlist
   const [cart, setCart] = useState([]);
@@ -177,7 +177,7 @@ const EnhancedTijuanaStore = ({ user }) => {
   // Reset página cuando cambien los filtros
   useEffect(() => {
     setPage(1);
-  }, [search, selectedBrand, selectedCategory, priceRange.min, priceRange.max, showOutOfStock, sortBy]);
+  }, [search, selectedBrand, selectedCategory, priceRange.min, priceRange.max, showOutOfStock, sortBy, pageSize]);
 
   // Cerrar dropdown de clientes al hacer clic fuera
   useEffect(() => {
@@ -1565,42 +1565,135 @@ const EnhancedTijuanaStore = ({ user }) => {
               )}
             </div>
 
-            {/* Paginación */}
-            {totalPages > 1 && (
-              <nav className="mt-4">
-                <ul className="pagination justify-content-center">
-                  <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => setPage(page - 1)}
-                      disabled={page === 1}
-                    >
-                      Anterior
-                    </button>
-                  </li>
+            {/* Información y controles de paginación */}
+            {filteredProducts.length > 0 && (
+              <div className="mt-4">
+                {/* Contador de resultados y selector de items por página */}
+                <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                  <div className="text-muted">
+                    Mostrando {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, filteredProducts.length)} de {filteredProducts.length} productos
+                  </div>
                   
-                  {[...Array(totalPages)].map((_, i) => (
-                    <li key={i + 1} className={`page-item ${page === i + 1 ? 'active' : ''}`}>
-                      <button
-                        className={`page-link ${page === i + 1 ? 'bg-primary border-primary' : 'text-primary'}`}
-                        onClick={() => setPage(i + 1)}
-                      >
-                        {i + 1}
-                      </button>
-                    </li>
-                  ))}
-                  
-                  <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => setPage(page + 1)}
-                      disabled={page === totalPages}
+                  <div className="d-flex align-items-center gap-2">
+                    <label className="mb-0 text-muted small">Productos por página:</label>
+                    <select 
+                      className="form-select form-select-sm" 
+                      style={{ width: 'auto' }}
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setPage(1);
+                      }}
                     >
-                      Siguiente
-                    </button>
-                  </li>
-                </ul>
-              </nav>
+                      <option value="12">12</option>
+                      <option value="24">24</option>
+                      <option value="48">48</option>
+                      <option value="96">96</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Paginación mejorada */}
+                {totalPages > 1 && (
+                  <nav>
+                    <ul className="pagination justify-content-center flex-wrap">
+                      {/* Primera página */}
+                      <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                        <button
+                          className="page-link"
+                          onClick={() => setPage(1)}
+                          disabled={page === 1}
+                          title="Primera página"
+                        >
+                          <i className="bi bi-chevron-double-left"></i>
+                        </button>
+                      </li>
+
+                      {/* Anterior */}
+                      <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                        <button
+                          className="page-link"
+                          onClick={() => setPage(page - 1)}
+                          disabled={page === 1}
+                        >
+                          <i className="bi bi-chevron-left"></i> Anterior
+                        </button>
+                      </li>
+                      
+                      {/* Números de página (mostrar máximo 7 páginas) */}
+                      {(() => {
+                        const maxPagesToShow = 7;
+                        let startPage = Math.max(1, page - Math.floor(maxPagesToShow / 2));
+                        let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+                        
+                        // Ajustar si estamos cerca del final
+                        if (endPage - startPage < maxPagesToShow - 1) {
+                          startPage = Math.max(1, endPage - maxPagesToShow + 1);
+                        }
+
+                        const pages = [];
+                        
+                        // Mostrar "..." si no empezamos en 1
+                        if (startPage > 1) {
+                          pages.push(
+                            <li key="start-ellipsis" className="page-item disabled">
+                              <span className="page-link">...</span>
+                            </li>
+                          );
+                        }
+
+                        // Páginas numeradas
+                        for (let i = startPage; i <= endPage; i++) {
+                          pages.push(
+                            <li key={i} className={`page-item ${page === i ? 'active' : ''}`}>
+                              <button
+                                className={`page-link ${page === i ? 'bg-primary border-primary text-white' : 'text-primary'}`}
+                                onClick={() => setPage(i)}
+                              >
+                                {i}
+                              </button>
+                            </li>
+                          );
+                        }
+
+                        // Mostrar "..." si no terminamos en la última
+                        if (endPage < totalPages) {
+                          pages.push(
+                            <li key="end-ellipsis" className="page-item disabled">
+                              <span className="page-link">...</span>
+                            </li>
+                          );
+                        }
+
+                        return pages;
+                      })()}
+                      
+                      {/* Siguiente */}
+                      <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+                        <button
+                          className="page-link"
+                          onClick={() => setPage(page + 1)}
+                          disabled={page === totalPages}
+                        >
+                          Siguiente <i className="bi bi-chevron-right"></i>
+                        </button>
+                      </li>
+
+                      {/* Última página */}
+                      <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+                        <button
+                          className="page-link"
+                          onClick={() => setPage(totalPages)}
+                          disabled={page === totalPages}
+                          title="Última página"
+                        >
+                          <i className="bi bi-chevron-double-right"></i>
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                )}
+              </div>
             )}
           </>
         )}
