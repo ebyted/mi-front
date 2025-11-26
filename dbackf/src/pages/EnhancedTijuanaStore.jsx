@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import api from '../services/api';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay, EffectCoverflow } from 'swiper/modules';
+import { FixedSizeGrid } from 'react-window';
+import { useDebounce } from 'use-debounce';
 
 // Importar estilos de Swiper
 import 'swiper/css';
@@ -11,11 +13,7 @@ import 'swiper/css/effect-coverflow';
 
 const EnhancedTijuanaStore = ({ user }) => {
   // Estados principales
-  const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]); // Agregar estado para todos los productos
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // TODOS los productos (2000+)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tijuanaWarehouse, setTijuanaWarehouse] = useState(null);
@@ -26,7 +24,7 @@ const EnhancedTijuanaStore = ({ user }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [sortBy, setSortBy] = useState('name');
-  const [showOutOfStock, setShowOutOfStock] = useState(true); // Nuevo filtro para mostrar productos sin stock
+  const [showOutOfStock, setShowOutOfStock] = useState(true);
 
   // Estados de vista
   const [viewMode, setViewMode] = useState('grid');
@@ -78,11 +76,108 @@ const EnhancedTijuanaStore = ({ user }) => {
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
 
+  // Cargar marcas y categorías únicas desde allProducts
+  const brands = useMemo(() => {
+    const uniqueBrands = [...new Set(allProducts.map(p => p.brand.name))];
+    return uniqueBrands.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allProducts]);
+
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(allProducts.map(p => p.category.name))];
+    return uniqueCategories.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allProducts]);
+
+  // Productos destacados (los primeros 8 con is_featured = true)
+  const featuredProducts = useMemo(() => {
+    return allProducts.filter(p => p.is_featured).slice(0, 8);
+  }, [allProducts]);
+
+  // Verificar si hay ALGÚN filtro activo
+  const hasActiveFilters = useMemo(() => {
+    return Boolean(
+      search || 
+      selectedBrand || 
+      selectedCategory || 
+      priceRange.min || 
+      priceRange.max ||
+      !showOutOfStock
+    );
+  }, [search, selectedBrand, selectedCategory, priceRange.min, priceRange.max, showOutOfStock]);
+
+  // Filtrar productos (solo cuando hay filtros activos)
+  const filteredProducts = useMemo(() => {
+    // Si NO hay filtros activos, mostrar solo productos destacados
+    if (!hasActiveFilters) {
+      return featuredProducts;
+    }
+
+    // Si hay filtros, aplicarlos sobre TODOS los productos
+    return allProducts.filter(product => {
+      // Filtro de búsqueda
+      if (search) {
+        const searchLower = search.toLowerCase();
+        const matchesSearch = 
+          product.name.toLowerCase().includes(searchLower) ||
+          product.sku.toLowerCase().includes(searchLower) ||
+          product.description?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Filtro de marca
+      if (selectedBrand && String(product.brand.name) !== String(selectedBrand)) return false;
+
+      // Filtro de categoría
+      if (selectedCategory && String(product.category.name) !== String(selectedCategory)) return false;
+
+      // Filtro de precio
+      const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
+      if (priceRange.min && finalPrice < parseFloat(priceRange.min)) return false;
+      if (priceRange.max && finalPrice > parseFloat(priceRange.max)) return false;
+
+      // Filtro de stock
+      if (!showOutOfStock && product.stock <= 0) return false;
+
+      return true;
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'price':
+          return (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price) - 
+                 (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price);
+        case 'price-desc':
+          return (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price) - 
+                 (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price);
+        case 'stock':
+          return b.stock - a.stock;
+        case 'rating':
+          return b.rating - a.rating;
+        case 'discount':
+          return b.discount - a.discount;
+        case 'name':
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+  }, [allProducts, featuredProducts, hasActiveFilters, search, selectedBrand, selectedCategory, priceRange, showOutOfStock, sortBy]);
+
+  // Paginación
+  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(
+      (page - 1) * pageSize,
+      page * pageSize
+    );
+  }, [filteredProducts, page, pageSize]);
+
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
     loadFromLocalStorage();
   }, []);
+
+  // Reset página cuando cambien los filtros
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedBrand, selectedCategory, priceRange.min, priceRange.max, showOutOfStock, sortBy]);
 
   // Cerrar dropdown de clientes al hacer clic fuera
   useEffect(() => {
@@ -128,37 +223,6 @@ const EnhancedTijuanaStore = ({ user }) => {
       setFilteredCustomers([]);
     }
   }, [customerSearch, allCustomers]);
-
-  // Monitor showCheckout state changes
-  useEffect(() => {
-    console.log('🔍 showCheckout cambió a:', showCheckout);
-    if (showCheckout) {
-      console.log('🎬 Modal de checkout debería estar visible ahora');
-      console.log('🛒 Estado del cart al abrir modal:', cart);
-      console.log('📦 Cart length al abrir modal:', cart.length);
-      console.log('💰 Total al abrir modal:', getCartTotal());
-      console.log('📱 localStorage al abrir modal:', localStorage.getItem('tijuana_cart'));
-      // Verificar si hay conflictos de estilos
-      setTimeout(() => {
-        const modalElement = document.querySelector('[style*="rgba(255,0,0"]');
-        if (modalElement) {
-          console.log('✅ Modal encontrado en DOM:', modalElement);
-          console.log('📏 Modal styles:', window.getComputedStyle(modalElement));
-          console.log('🔢 Modal z-index computed:', window.getComputedStyle(modalElement).zIndex);
-          console.log('👁️ Modal visibility:', window.getComputedStyle(modalElement).visibility);
-          console.log('🎭 Modal opacity:', window.getComputedStyle(modalElement).opacity);
-          console.log('📦 Modal display:', window.getComputedStyle(modalElement).display);
-        } else {
-          console.log('❌ Modal NO encontrado en DOM');
-        }
-      }, 100);
-    } else {
-      console.log('❌ Modal de checkout se cerró');
-      console.log('🛒 Estado del cart al cerrar modal:', cart);
-      console.log('📦 Cart length al cerrar modal:', cart.length);
-      console.log('📱 localStorage al cerrar modal:', localStorage.getItem('tijuana_cart'));
-    }
-  }, [showCheckout]);
 
   const loadFromLocalStorage = () => {
     const savedCart = localStorage.getItem('tijuana_cart');
@@ -206,51 +270,51 @@ const EnhancedTijuanaStore = ({ user }) => {
 
       setTijuanaWarehouse(tijuana);
 
-      // Cargar datos en paralelo
-      const [stockRes, brandsRes, categoriesRes, customersRes] = await Promise.all([
-        api.get(`product-warehouse-stocks/?warehouse=${tijuana.id}`),
-        api.get('brands/'),
-        api.get('categories/'),
-        api.get('customers/')
-      ]);
-      // console.log("stockRes",stockRes)
-      // Mapear TODOS los productos sin filtrar por stock
-      const stockData = Array.isArray(stockRes.data) ? stockRes.data : (stockRes.data.results || []);
-      // console.log("stockData",stockData)
-      const productsData = stockData
-        // Sin filtro de stock - mostrar TODOS los productos
-        .map(stock => ({
-          id: stock.product_variant?.id || stock.product_variant.product_id,
-          name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
-          sku: stock.product_code || stock.product_variant?.sku || 'N/A',
-          price: parseFloat(stock.sale_price || stock.product_variant.price || 0),
-          stock: parseFloat(stock.quantity || 0),
-          brand: {
-            id: stock.brand_id,
-            name: stock.brand_name || 'Sin marca'
-          },
-          category: {
-            id: stock.category_id,
-            name: stock.category_name || 'Sin categoría'
-          },
-          image: stock.product_variant?.image || stock.image,
-          description: stock.product_variant?.description || '',
-          warehouse_name: stock.warehouse_name,
-          is_active: true,
-          is_featured: Math.random() > 0.7, // 30% probabilidad de ser destacado
-          rating: Math.floor(Math.random() * 5) + 1, // Rating simulado
-          discount: Math.random() > 0.8 ? Math.floor(Math.random() * 30) + 5 : 0 // 20% tiene descuento
-        }));
+      // Cargar TODOS los productos (sin límite de página)
+      console.log('🔄 Cargando TODOS los productos del almacén TIJUANA...');
+      const stockRes = await api.get(`product-warehouse-stocks/?warehouse=${tijuana.id}&page_size=10000`);
+      
+      // Mapear TODOS los productos
+      const stockData = Array.isArray(stockRes.data) 
+        ? stockRes.data 
+        : (stockRes.data.results || []);
 
-      setAllProducts(productsData); // Guardar todos los productos en el estado
-      setProducts(productsData);
-      setFeaturedProducts(productsData.filter(p => p.is_featured).slice(0, 8));
-      setBrands(brandsRes.data || []);
-      setCategories(categoriesRes.data || []);
+      console.log(`✅ Productos cargados: ${stockData.length}`);
+
+      const productsData = stockData.map(stock => ({
+        id: stock.product_variant?.id || stock.product_variant?.product_id,
+        variant_id: stock.product_variant?.id,
+        name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
+        sku: stock.product_code || stock.product_variant?.sku || 'N/A',
+        price: parseFloat(stock.sale_price || stock.product_variant?.price || 0),
+        stock: parseFloat(stock.quantity || 0),
+        brand: {
+          id: stock.brand_id,
+          name: stock.brand_name || 'Sin marca'
+        },
+        category: {
+          id: stock.category_id,
+          name: stock.category_name || 'Sin categoría'
+        },
+        image: stock.product_variant?.image || stock.image,
+        description: stock.product_variant?.description || '',
+        warehouse_name: stock.warehouse_name,
+        is_active: true,
+        is_featured: Math.random() > 0.85, // 15% son destacados
+        rating: Math.floor(Math.random() * 5) + 1,
+        discount: Math.random() > 0.9 ? Math.floor(Math.random() * 30) + 5 : 0
+      }));
+
+      setAllProducts(productsData);
+
+      // Cargar clientes
+      const customersRes = await api.get('customers/');
       setAllCustomers(customersRes.data || []);
 
+      console.log(`✅ Sistema listo: ${productsData.length} productos, ${productsData.filter(p => p.is_featured).length} destacados`);
+
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error loading data:', error);
       setError(error.message || 'Error al cargar los datos');
     } finally {
       setLoading(false);
@@ -298,7 +362,7 @@ const EnhancedTijuanaStore = ({ user }) => {
     }
     
     setCart(prev => prev.map(item => 
-      item.id === productId ? { ...item, quantity: Math.min(newQuantity, item.stock) } : item
+      item.id === productId ? { ...item, quantity: newQuantity } : item
     ));
   };
 
@@ -307,7 +371,6 @@ const EnhancedTijuanaStore = ({ user }) => {
     showNotification('Producto eliminado del carrito', 'info');
   };
 
-  // Funciones de wishlist
   const toggleWishlist = (product) => {
     const isInWishlist = wishlist.some(item => item.id === product.id);
     if (isInWishlist) {
@@ -323,7 +386,6 @@ const EnhancedTijuanaStore = ({ user }) => {
     return wishlist.some(item => item.id === productId);
   };
 
-  // Funciones de comparación
   const toggleCompare = (product) => {
     const isInCompare = compareList.some(item => item.id === product.id);
     if (isInCompare) {
@@ -341,7 +403,6 @@ const EnhancedTijuanaStore = ({ user }) => {
     return compareList.some(item => item.id === productId);
   };
 
-  // Utilidades
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -363,7 +424,6 @@ const EnhancedTijuanaStore = ({ user }) => {
     }
   };
 
-  // Función para obtener la clase CSS del badge según el nivel del cliente
   const getLevelBadgeClass = (level) => {
     switch (level) {
       case 1:
@@ -379,252 +439,6 @@ const EnhancedTijuanaStore = ({ user }) => {
     }
   };
 
-  // Funciones de búsqueda de clientes mejoradas
-  const searchCustomers = (searchTerm) => {
-    if (!searchTerm || searchTerm.length < 2) {
-      setFilteredCustomers([]);
-      setShowCustomerDropdown(false);
-      return;
-    }
-
-    const searchLower = searchTerm.toLowerCase().trim();
-    
-    // Función para normalizar texto y quitar acentos
-    const normalizeText = (text) => {
-      if (!text) return '';
-      return text.toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^\w\s@.-]/g, '');
-    };
-
-    const filtered = allCustomers.filter(customer => {
-      // Buscar en nombre
-      const nameMatch = normalizeText(customer.name || '').includes(normalizeText(searchTerm));
-      
-      // Buscar en email
-      const emailMatch = normalizeText(customer.email || '').includes(normalizeText(searchTerm));
-      
-      // Buscar en teléfono (buscar números exactos)
-      const phoneMatch = (customer.phone || '').replace(/\s+/g, '').includes(searchTerm.replace(/\s+/g, ''));
-      
-      // Buscar en dirección
-      const addressMatch = normalizeText(customer.address || '').includes(normalizeText(searchTerm));
-      
-      // Buscar por ID si es número
-      const idMatch = !isNaN(searchTerm) && customer.id.toString().includes(searchTerm);
-      
-      return nameMatch || emailMatch || phoneMatch || addressMatch || idMatch;
-    });
-
-    // Ordenar resultados por relevancia
-    const sortedFiltered = filtered.sort((a, b) => {
-      // Priorizar coincidencias exactas en nombre
-      const aNameExact = normalizeText(a.name || '').startsWith(normalizeText(searchTerm));
-      const bNameExact = normalizeText(b.name || '').startsWith(normalizeText(searchTerm));
-      
-      if (aNameExact && !bNameExact) return -1;
-      if (!aNameExact && bNameExact) return 1;
-      
-      // Luego por nombre alfabético
-      return (a.name || '').localeCompare(b.name || '');
-    });
-
-    setFilteredCustomers(sortedFiltered.slice(0, 10)); // Limitar a 10 resultados
-    setShowCustomerDropdown(sortedFiltered.length > 0);
-  };
-
-  const handleCustomerSearch = (value) => {
-    setCustomerSearchTerm(value);
-    searchCustomers(value);
-  };
-
-  const selectCustomer = (customer) => {
-    setSelectedCustomer(customer);
-    setCustomerData({
-      name: customer.name || '',
-      email: customer.email || '',
-      phone: customer.phone || '',
-      address: customer.address || '',
-      level: customer.level || 1
-    });
-    setCustomerSearchTerm(customer.name || '');
-    setShowCustomerDropdown(false);
-  };
-
-  const clearCustomerSelection = () => {
-    setSelectedCustomer(null);
-    setCustomerData({
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-      level: 1
-    });
-    setCustomerSearchTerm('');
-    setShowCustomerDropdown(false);
-    setIsEditingCustomer(false);
-    setCustomerFormErrors({});
-    setShowNewCustomerForm(false);
-  };
-
-  // Funciones para manejo de clientes
-  const validateCustomerData = () => {
-    const errors = {};
-    
-    if (!customerData.name?.trim()) {
-      errors.name = 'El nombre es requerido';
-    }
-    
-    if (customerData.email && !customerData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      errors.email = 'Email no válido';
-    }
-    
-    if (customerData.phone && customerData.phone.length < 10) {
-      errors.phone = 'Teléfono debe tener al menos 10 dígitos';
-    }
-    
-    setCustomerFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const saveCustomer = async () => {
-    if (!validateCustomerData()) {
-      showNotification('Por favor, corrige los errores en el formulario', 'warning');
-      return false;
-    }
-
-    setSavingCustomer(true);
-    
-    try {
-      let response;
-      if (selectedCustomer && isEditingCustomer) {
-        // Actualizar cliente existente
-        response = await api.put(`customers/${selectedCustomer.id}/`, customerData);
-        showNotification('Cliente actualizado exitosamente', 'success');
-      } else {
-        // Crear nuevo cliente
-        response = await api.post('customers/', customerData);
-        showNotification('Cliente creado exitosamente', 'success');
-        
-        // Agregar a la lista de clientes
-        setAllCustomers(prev => [response.data, ...prev]);
-      }
-      
-      // Actualizar cliente seleccionado
-      setSelectedCustomer(response.data);
-      setCustomerSearchTerm(response.data.name);
-      setIsEditingCustomer(false);
-      setShowNewCustomerForm(false);
-      setShowCustomerDropdown(false);
-      
-      return true;
-    } catch (error) {
-      console.error('Error al guardar cliente:', error);
-      const errorMessage = error.response?.data?.message || 'Error al guardar cliente';
-      showNotification(errorMessage, 'error');
-      return false;
-    } finally {
-      setSavingCustomer(false);
-    }
-  };
-
-  const enableCustomerEditing = () => {
-    setIsEditingCustomer(true);
-    setShowNewCustomerForm(true);
-  };
-
-  const cancelCustomerEditing = () => {
-    if (selectedCustomer) {
-      // Restaurar datos originales
-      setCustomerData({
-        name: selectedCustomer.name || '',
-        email: selectedCustomer.email || '',
-        phone: selectedCustomer.phone || '',
-        address: selectedCustomer.address || '',
-        level: selectedCustomer.level || 1
-      });
-      setIsEditingCustomer(false);
-    } else {
-      // Limpiar formulario nuevo
-      setCustomerData({
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-        level: 1
-      });
-      setShowNewCustomerForm(false);
-    }
-    setCustomerFormErrors({});
-  };
-
-  const startNewCustomer = () => {
-    clearCustomerSelection();
-    setShowNewCustomerForm(true);
-    setIsEditingCustomer(false);
-  };
-
-  // Filtrar productos
-  const getFilteredProducts = () => {
-    const filtered = products.filter(product => {
-      // Filtro de búsqueda
-      if (search) {
-        const searchLower = search.toLowerCase();
-        const matchesSearch = 
-          product.name.toLowerCase().includes(searchLower) ||
-          product.sku.toLowerCase().includes(searchLower) ||
-          product.description?.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      // Filtro de marca (comparar como string para manejar tipos mixtos)
-      if (selectedBrand && String(product.brand.name) !== String(selectedBrand)) return false;
-
-      // Filtro de categoría (comparar como string para manejar tipos mixtos)
-      if (selectedCategory && String(product.category.name) !== String(selectedCategory)) return false;
-
-      // Filtro de precio
-      const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
-      if (priceRange.min && finalPrice < parseFloat(priceRange.min)) return false;
-      if (priceRange.max && finalPrice > parseFloat(priceRange.max)) return false;
-
-      // Filtro de stock - incluir/excluir productos sin stock
-      if (!showOutOfStock && product.stock <= 0) return false;
-
-      return true;
-    }).sort((a, b) => {
-      switch (sortBy) {
-        case 'price':
-          return (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price) - 
-                 (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price);
-        case 'price-desc':
-          return (b.discount > 0 ? getDiscountedPrice(b.price, b.discount) : b.price) - 
-                 (a.discount > 0 ? getDiscountedPrice(a.price, a.discount) : a.price);
-        case 'stock':
-          return b.stock - a.stock;
-        case 'rating':
-          return b.rating - a.rating;
-        case 'discount':
-          return b.discount - a.discount;
-        case 'name':
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
-    console.log("filterrr",filtered)
-    return filtered;
-  };
-
-  // Paginación
-  const filteredProducts = getFilteredProducts();
-  // console.log("filteredProducts",filteredProducts)
-  const totalPages = Math.ceil(filteredProducts.length / pageSize);
-  const paginatedProducts = filteredProducts.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
-  // console.log("paginatedProducts",paginatedProducts)
   const getCartTotal = () => {
     return cart.reduce((sum, item) => {
       const price = item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price;
@@ -632,7 +446,6 @@ const EnhancedTijuanaStore = ({ user }) => {
     }, 0);
   };
 
-  // Función para cargar todos los clientes
   const loadCustomers = async () => {
     try {
       console.log('📋 Cargando clientes...');
@@ -863,6 +676,9 @@ const EnhancedTijuanaStore = ({ user }) => {
     }));
   };
 
+  // Debounce para la búsqueda
+  const [debouncedSearch] = useDebounce(search, 300);
+
   if (loading) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
@@ -871,7 +687,7 @@ const EnhancedTijuanaStore = ({ user }) => {
             <span className="visually-hidden">Cargando...</span>
           </div>
           <h4 className="text-primary">Cargando Tienda TIJUANA...</h4>
-          <p className="text-muted">Obteniendo productos disponibles</p>
+          <p className="text-muted">Cargando {allProducts.length > 0 ? allProducts.length : '2000+'} productos...</p>
         </div>
       </div>
     );
@@ -890,489 +706,6 @@ const EnhancedTijuanaStore = ({ user }) => {
             <i className="bi bi-arrow-clockwise me-2"></i>
             Reintentar
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Si está en modo checkout, mostrar página de checkout completa
-  if (showCheckout) {
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: '#f8f9fa',
-        zIndex: 99999,
-        overflow: 'auto'
-      }}>
-        {/* Header del Checkout */}
-        <div style={{
-          backgroundColor: '#28a745',
-          color: 'white',
-          padding: '1rem 2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2>🛒 Finalizar Compra</h2>
-          <button
-            onClick={() => setShowCheckout(false)}
-            style={{
-              backgroundColor: 'transparent',
-              border: '2px solid white',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
-            ← Volver a la Tienda
-          </button>
-        </div>
-
-        {/* Contenido del Checkout */}
-        <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
-            
-            {/* Resumen del Carrito */}
-            <div style={{
-              backgroundColor: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-            }}>
-              <h3>📦 Resumen del Pedido</h3>
-              <div style={{ marginBottom: '1rem' }}>
-                {cart.map((item, index) => (
-                  <div key={index} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '0.5rem 0',
-                    borderBottom: '1px solid #eee'
-                  }}>
-                    <span>{item.name} x {item.quantity}</span>
-                    <span style={{ fontWeight: 'bold' }}>
-                      {formatCurrency(item.price * item.quantity)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                marginTop: '1rem',
-                paddingTop: '1rem',
-                borderTop: '2px solid #28a745'
-              }}>
-                <span>Total:</span>
-                <span>{formatCurrency(getCartTotal())}</span>
-              </div>
-            </div>
-
-            {/* Información del Cliente */}
-            <div style={{
-              backgroundColor: 'white',
-              padding: '2rem',
-              borderRadius: '10px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-            }}>
-              <h3>👤 Información del Cliente</h3>
-              
-              {!showCreateCustomer ? (
-                <>
-                  <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-                    {selectedCustomer ? 'Cliente seleccionado:' : 'Busque un cliente existente o cree uno nuevo'}
-                  </p>
-                  
-                  {selectedCustomer && (
-                    <div style={{
-                      backgroundColor: '#e7f5e7',
-                      padding: '1rem',
-                      borderRadius: '8px',
-                      marginBottom: '1rem',
-                      border: '2px solid #28a745'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <h4 style={{ margin: 0, color: '#28a745' }}>{selectedCustomer.name}</h4>
-                          <p style={{ margin: '0.25rem 0', color: '#666' }}>{selectedCustomer.email}</p>
-                          <p style={{ margin: '0.25rem 0', color: '#666' }}>{selectedCustomer.phone}</p>
-                        </div>
-                        <button
-                          onClick={() => setSelectedCustomer(null)}
-                          style={{
-                            backgroundColor: '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '50%',
-                            width: '30px',
-                            height: '30px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {!selectedCustomer && (
-                    <>
-                      <div style={{ marginBottom: '1rem', position: 'relative' }}>
-                        <input
-                          type="text"
-                          placeholder="Buscar cliente por nombre, email o teléfono..."
-                          value={customerSearch}
-                          onChange={(e) => setCustomerSearch(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem',
-                            border: '1px solid #ddd',
-                            borderRadius: '5px',
-                            fontSize: '1rem'
-                          }}
-                        />
-                        
-                        {/* Dropdown de resultados */}
-                        {filteredCustomers.length > 0 && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: 0,
-                            right: 0,
-                            backgroundColor: 'white',
-                            border: '1px solid #ddd',
-                            borderTop: 'none',
-                            borderRadius: '0 0 5px 5px',
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            zIndex: 1000,
-                            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-                          }}>
-                            {filteredCustomers.map(customer => (
-                              <div
-                                key={customer.id}
-                                onClick={() => {
-                                  setSelectedCustomer(customer);
-                                  setCustomerSearch('');
-                                  setFilteredCustomers([]);
-                                }}
-                                style={{
-                                  padding: '0.75rem',
-                                  borderBottom: '1px solid #eee',
-                                  cursor: 'pointer',
-                                  transition: 'background-color 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
-                              >
-                                <div style={{ fontWeight: 'bold' }}>{customer.name}</div>
-                                <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                                  {customer.email} • {customer.phone}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div style={{ marginBottom: '1.5rem' }}>
-                        <button 
-                          onClick={() => setShowCreateCustomer(true)}
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: 'pointer',
-                            fontSize: '1rem'
-                          }}
-                        >
-                          + Crear Nuevo Cliente
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </>
-              ) : (
-                /* Formulario para crear nuevo cliente */
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h4>📝 Nuevo Cliente</h4>
-                    <button
-                      onClick={() => {
-                        setShowCreateCustomer(false);
-                        setCustomerData({
-                          name: '',
-                          email: '',
-                          phone: '',
-                          address: '',
-                          code: '',
-                          customer_type: 1
-                        });
-                        setCustomerFormErrors({});
-                      }}
-                      style={{
-                        backgroundColor: '#6c757d',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        padding: '0.5rem 1rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-
-                  <div style={{ marginBottom: '1rem' }}>
-                    <input
-                      type="text"
-                      placeholder="Nombre completo *"
-                      value={customerData.name}
-                      onChange={(e) => setCustomerData({...customerData, name: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: customerFormErrors.name ? '1px solid #dc3545' : '1px solid #ddd',
-                        borderRadius: '5px',
-                        fontSize: '1rem'
-                      }}
-                    />
-                    {customerFormErrors.name && (
-                      <small style={{ color: '#dc3545' }}>{customerFormErrors.name}</small>
-                    )}
-                  </div>
-
-                  <div style={{ marginBottom: '1rem' }}>
-                    <input
-                      type="text"
-                      placeholder="Código único *"
-                      value={customerData.code}
-                      onChange={(e) => setCustomerData({...customerData, code: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: customerFormErrors.code ? '1px solid #dc3545' : '1px solid #ddd',
-                        borderRadius: '5px',
-                        fontSize: '1rem'
-                      }}
-                    />
-                    {customerFormErrors.code && (
-                      <small style={{ color: '#dc3545' }}>{customerFormErrors.code}</small>
-                    )}
-                  </div>
-
-                  <div style={{ marginBottom: '1rem' }}>
-                    <input
-                      type="email"
-                      placeholder="Email *"
-                      value={customerData.email}
-                      onChange={(e) => setCustomerData({...customerData, email: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: customerFormErrors.email ? '1px solid #dc3545' : '1px solid #ddd',
-                        borderRadius: '5px',
-                        fontSize: '1rem'
-                      }}
-                    />
-                    {customerFormErrors.email && (
-                      <small style={{ color: '#dc3545' }}>{customerFormErrors.email}</small>
-                    )}
-                  </div>
-
-                  <div style={{ marginBottom: '1rem' }}>
-                    <input
-                      type="tel"
-                      placeholder="Teléfono *"
-                      value={customerData.phone}
-                      onChange={(e) => setCustomerData({...customerData, phone: e.target.value})}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: customerFormErrors.phone ? '1px solid #dc3545' : '1px solid #ddd',
-                        borderRadius: '5px',
-                        fontSize: '1rem'
-                      }}
-                    />
-                    {customerFormErrors.phone && (
-                      <small style={{ color: '#dc3545' }}>{customerFormErrors.phone}</small>
-                    )}
-                  </div>
-
-                  <div style={{ marginBottom: '1rem' }}>
-                    <textarea
-                      placeholder="Dirección (opcional)"
-                      value={customerData.address}
-                      onChange={(e) => setCustomerData({...customerData, address: e.target.value})}
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '1px solid #ddd',
-                        borderRadius: '5px',
-                        fontSize: '1rem',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <select
-                      value={customerData.customer_type}
-                      onChange={(e) => setCustomerData({...customerData, customer_type: parseInt(e.target.value)})}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '1px solid #ddd',
-                        borderRadius: '5px',
-                        fontSize: '1rem'
-                      }}
-                    >
-                      <option value={1}>🥉 Nivel 1 - Básico</option>
-                      <option value={2}>🥈 Nivel 2 - Estándar</option>
-                      <option value={3}>🥇 Nivel 3 - Premium</option>
-                      <option value={4}>💎 Nivel 4 - VIP</option>
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={async () => {
-                      // Validar formulario
-                      const errors = {};
-                      if (!customerData.name?.trim()) errors.name = 'Nombre requerido';
-                      if (!customerData.code?.trim()) errors.code = 'Código requerido';
-                      if (!customerData.email?.trim()) errors.email = 'Email requerido';
-                      if (!customerData.phone?.trim()) errors.phone = 'Teléfono requerido';
-                      
-                      setCustomerFormErrors(errors);
-                      
-                      if (Object.keys(errors).length === 0) {
-                        try {
-                          const response = await api.post('/customers/', {
-                            ...customerData,
-                            business: 1 // ID del business por defecto
-                          });
-                          
-                          setSelectedCustomer(response.data);
-                          setShowCreateCustomer(false);
-                          setCustomerData({
-                            name: '',
-                            email: '',
-                            phone: '',
-                            address: '',
-                            code: '',
-                            customer_type: 1
-                          });
-                          showNotification('Cliente creado exitosamente', 'success');
-                          loadCustomers(); // Recargar lista de clientes
-                        } catch (error) {
-                          console.error('Error creando cliente:', error);
-                          showNotification('Error al crear cliente: ' + (error.response?.data?.detail || error.message), 'error');
-                        }
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      fontSize: '1rem',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    💾 Guardar Cliente
-                  </button>
-                </>
-              )}
-
-              {selectedCustomer && (
-                <div style={{ marginTop: '2rem' }}>
-                  <button 
-                    onClick={async () => {
-                      if (!selectedCustomer) {
-                        showNotification('Debe seleccionar un cliente', 'warning');
-                        return;
-                      }
-
-                      setCheckoutLoading(true);
-                      
-                      try {
-                        // Procesar la venta
-                        const salesOrderData = {
-                          customer: selectedCustomer.id,
-                          warehouse: tijuanaWarehouse?.id || 1,
-                          order_date: new Date().toISOString().split('T')[0],
-                          notes: orderNotes || `Venta realizada desde tienda en línea - Cliente: ${selectedCustomer.name}`,
-                          total_amount: getCartTotal(),
-                          status: 'completed',
-                          items: cart.map(item => ({
-                            product_variant: item.variant_id || item.id,
-                            quantity: item.quantity,
-                            unit_price: item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price,
-                            subtotal: (item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price) * item.quantity
-                          }))
-                        };
-
-                        console.log('📤 Enviando orden de venta:', salesOrderData);
-                        
-                        const response = await api.post('/sales-orders/', salesOrderData);
-                        console.log('✅ Venta procesada:', response.data);
-                        
-                        // Limpiar carrito y cerrar checkout
-                        setCart([]);
-                        localStorage.removeItem('tijuana_cart');
-                        setShowCheckout(false);
-                        setSelectedCustomer(null);
-                        setCustomerSearch('');
-                        
-                        showNotification(`¡Venta procesada exitosamente! Orden #${response.data.id} para ${selectedCustomer.name}`, 'success');
-                        
-                      } catch (error) {
-                        console.error('❌ Error procesando venta:', error);
-                        showNotification('Error al procesar la venta: ' + (error.response?.data?.detail || error.message), 'error');
-                      } finally {
-                        setCheckoutLoading(false);
-                      }
-                    }}
-                    disabled={checkoutLoading || cart.length === 0 || !selectedCustomer}
-                    style={{
-                      width: '100%',
-                      padding: '1rem',
-                      backgroundColor: selectedCustomer ? '#28a745' : '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '5px',
-                      cursor: selectedCustomer ? 'pointer' : 'not-allowed',
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold',
-                      opacity: checkoutLoading ? 0.7 : 1
-                    }}
-                  >
-                    {checkoutLoading ? (
-                      '⏳ Procesando...'
-                    ) : selectedCustomer ? (
-                      `✅ Confirmar Venta (${formatCurrency(getCartTotal())})`
-                    ) : (
-                      '❌ Seleccione un Cliente'
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-
-          </div>
         </div>
       </div>
     );
@@ -1701,15 +1034,15 @@ const EnhancedTijuanaStore = ({ user }) => {
                 </div>
                 <div className="badge bg-success p-3">
                   <i className="bi bi-box-seam me-2"></i>
-                  {products.length} productos disponibles
+                  {allProducts.length} productos disponibles
                 </div>
                 <div className="badge bg-warning p-3">
-                  <i className="bi bi-percent me-2"></i>
-                  {products.filter(p => p.discount > 0).length} ofertas activas
+                  <i className="bi bi-star-fill me-2"></i>
+                  {featuredProducts.length} productos destacados
                 </div>
                 <div className="badge bg-info p-3">
-                  <i className="bi bi-truck me-2"></i>
-                  Envío gratuito
+                  <i className="bi bi-percent me-2"></i>
+                  {allProducts.filter(p => p.discount > 0).length} ofertas activas
                 </div>
               </div>
             </div>
@@ -1758,6 +1091,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                         ⭐ Destacado
                       </span>
                       <img
+                        loading="lazy"
                         src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
                         alt={product.name}
                         className="card-img-top"
@@ -1922,7 +1256,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                   setSelectedCategory('');
                   setSelectedBrand('');
                   setPriceRange({ min: '', max: '' });
-                  setShowOutOfStock(true); // Reset filtro de stock
+                  setShowOutOfStock(true);
                   setPage(1);
                 }}
               >
@@ -1950,230 +1284,285 @@ const EnhancedTijuanaStore = ({ user }) => {
             </div>
             <div className="col-md-3">
               <div className="text-muted text-center pt-2">
-                {filteredProducts.length} de {allProducts.length} productos
+                {filteredProducts.length} {hasActiveFilters ? 'encontrados' : 'destacados'} de {allProducts.length} total
               </div>
             </div>
           </div>
         </div>
 
-        {/* Indicador informativo - Todos los productos */}
+        {/* Indicador informativo */}
         <div className="d-flex justify-content-center mb-3">
-          <div className="alert alert-info d-inline-flex align-items-center py-2 px-3 mb-0" role="alert" style={{ fontSize: '0.9rem' }}>
-            <i className="bi bi-info-circle me-2"></i>
+          <div className={`alert ${hasActiveFilters ? 'alert-info' : 'alert-success'} d-inline-flex align-items-center py-2 px-3 mb-0`} role="alert" style={{ fontSize: '0.9rem' }}>
+            <i className={`bi ${hasActiveFilters ? 'bi-funnel' : 'bi-star-fill'} me-2`}></i>
             <span className="fw-medium">
-              {showOutOfStock ? 'Mostrando todos los productos' : 'Mostrando solo productos con stock'}
+              {hasActiveFilters 
+                ? `Filtrando ${filteredProducts.length} producto(s)` 
+                : `Mostrando ${featuredProducts.length} productos destacados`
+              }
             </span>
-            <span className="badge bg-light text-dark ms-2">{filteredProducts.length} mostrados</span>
-            <small className="ms-2 text-muted">| {allProducts.length} total en catálogo</small>
+            {hasActiveFilters && (
+              <button 
+                className="btn btn-sm btn-outline-secondary ms-3"
+                onClick={() => {
+                  setSearch('');
+                  setSelectedCategory('');
+                  setSelectedBrand('');
+                  setPriceRange({ min: '', max: '' });
+                  setShowOutOfStock(true);
+                }}
+              >
+                <i className="bi bi-x me-1"></i>
+                Ver destacados
+              </button>
+            )}
           </div>
         </div>
 
         {/* Lista de productos */}
-        {filteredProducts.length === 0 ? (
+        {paginatedProducts.length === 0 ? (
           <div className="text-center py-5">
             <div className="mb-4" style={{ fontSize: '5rem', opacity: 0.3 }}>
               <i className="bi bi-search"></i>
             </div>
-            <h4 className="text-secondary">No se encontraron productos</h4>
-            <p className="text-muted">Intenta ajustar los filtros de búsqueda</p>
+            <h4 className="text-secondary">
+              {hasActiveFilters ? 'No se encontraron productos con esos filtros' : 'No hay productos destacados disponibles'}
+            </h4>
+            <p className="text-muted">
+              {hasActiveFilters 
+                ? 'Intenta ajustar los criterios de búsqueda' 
+                : 'Los productos destacados aparecerán aquí cuando estén disponibles'
+              }
+            </p>
+            {hasActiveFilters && (
+              <button 
+                className="btn btn-primary mt-3"
+                onClick={() => {
+                  setSearch('');
+                  setSelectedCategory('');
+                  setSelectedBrand('');
+                  setPriceRange({ min: '', max: '' });
+                  setShowOutOfStock(true);
+                }}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Ver productos destacados
+              </button>
+            )}
           </div>
         ) : (
           <>
             <div className={viewMode === 'grid' ? 'row g-4' : ''}>
-              {paginatedProducts.map(product => {
+              {viewMode === 'grid' && paginatedProducts.map(product => {
                 const stockColor = product.stock > 10 ? 'success' : 
                                    product.stock > 5 ? 'warning' : 
                                    product.stock > 0 ? 'danger' : 'secondary';
                 const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
                 
-                if (viewMode === 'grid') {
-                  return (
-                    <div key={product.id} className="col-md-6 col-lg-4 col-xl-3">
-                      <div className="card product-card h-100">
-                        {product.discount > 0 && (
-                          <div className="discount-badge">
-                            -{product.discount}%
-                          </div>
-                        )}
-                        
-                        <div className="product-actions">
-                          <button
-                            className={`btn btn-sm ${isInWishlist(product.id) ? 'btn-danger' : 'btn-outline-danger'} me-1`}
-                            onClick={() => toggleWishlist(product)}
-                            title="Agregar a favoritos"
-                          >
-                            <i className={`bi bi-heart${isInWishlist(product.id) ? '-fill' : ''}`}></i>
-                          </button>
-                          <button
-                            className={`btn btn-sm ${isInCompare(product.id) ? 'btn-warning' : 'btn-outline-warning'} me-1`}
-                            onClick={() => toggleCompare(product)}
-                            title="Comparar producto"
-                          >
-                            <i className="bi bi-arrow-left-right"></i>
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-info"
-                            onClick={() => {
-                              setQuickViewProduct(product);
-                              setShowQuickView(true);
-                            }}
-                            title="Vista rápida"
-                          >
-                            <i className="bi bi-eye"></i>
-                          </button>
+                return (
+                  <div key={product.id} className="col-md-6 col-lg-4 col-xl-3">
+                    <div className="card product-card h-100">
+                      {product.discount > 0 && (
+                        <div className="discount-badge">
+                          -{product.discount}%
                         </div>
-                        
-                        <div className="position-relative">
-                          <span className={`badge bg-${stockColor} stock-badge`}>
-                            {product.stock > 0 ? `Stock: ${product.stock}` : 'Sin Stock'}
-                            {product.stock === 0 && <i className="bi bi-x-circle ms-1"></i>}
-                          </span>
-                          <img
-                            src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
-                            alt={product.name}
-                            className="card-img-top"
-                            onError={e => { e.target.src = '/img/producto-fallback.svg'; }}
-                          />
-                        </div>
-                        
-                        <div className="card-body d-flex flex-column">
-                          <h6 className="card-title fw-bold text-truncate" title={product.name}>
-                            {product.name}
-                          </h6>
-                          <p className="text-muted small mb-2">
-                            <i className="bi bi-tag me-1"></i>{product.brand.name}
-                            <br />
-                            <i className="bi bi-collection me-1"></i>{product.category.name}
-                            <br />
-                            <i className="bi bi-upc me-1"></i>{product.sku}
-                          </p>
-                          
-                          <div className="rating mb-2">
-                            {[...Array(5)].map((_, i) => (
-                              <i key={i} className={`bi bi-star${i < product.rating ? '-fill' : ''}`}></i>
-                            ))}
-                            <small className="text-muted ms-2">({product.rating}/5)</small>
-                          </div>
-                          
-                          <div className="mt-auto">
-                            <div className="mb-3">
-                              {product.discount > 0 ? (
-                                <div>
-                                  <span className="h5 text-success mb-0">{formatCurrency(finalPrice)}</span>
-                                  <br />
-                                  <small className="text-muted text-decoration-line-through">
-                                    {formatCurrency(product.price)}
-                                  </small>
-                                </div>
-                              ) : (
-                                <span className="h5 text-success mb-0">{formatCurrency(product.price)}</span>
-                              )}
-                            </div>
-                            
-                            <button
-                              className={`btn w-100 ${product.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
-                              onClick={() => addToCart(product)}
-                            >
-                              <i className={`bi ${product.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
-                              {product.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
-                            </button>
-                          </div>
-                        </div>
+                      )}
+                      
+                      <div className="product-actions">
+                        <button
+                          className={`btn btn-sm ${isInWishlist(product.id) ? 'btn-danger' : 'btn-outline-danger'} me-1`}
+                          onClick={() => toggleWishlist(product)}
+                          title="Agregar a favoritos"
+                        >
+                          <i className={`bi bi-heart${isInWishlist(product.id) ? '-fill' : ''}`}></i>
+                        </button>
+                        <button
+                          className={`btn btn-sm ${isInCompare(product.id) ? 'btn-warning' : 'btn-outline-warning'} me-1`}
+                          onClick={() => toggleCompare(product)}
+                          title="Comparar producto"
+                        >
+                          <i className="bi bi-arrow-left-right"></i>
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-info"
+                          onClick={() => {
+                            setQuickViewProduct(product);
+                            setShowQuickView(true);
+                          }}
+                          title="Vista rápida"
+                        >
+                          <i className="bi bi-eye"></i>
+                        </button>
                       </div>
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div key={product.id} className="card mb-3 product-card">
-                      <div className="row g-0">
-                        <div className="col-md-3">
-                          <div className="position-relative">
-                            {product.discount > 0 && (
-                              <div className="discount-badge">
-                                -{product.discount}%
-                              </div>
-                            )}
-                            <span className={`badge bg-${stockColor} stock-badge`}>
-                              {product.stock > 0 ? `Stock: ${product.stock}` : 'Sin Stock'}
-                              {product.stock === 0 && <i className="bi bi-x-circle ms-1"></i>}
-                            </span>
-                            <img
-                              src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
-                              alt={product.name}
-                              className="img-fluid rounded-start h-100"
-                              style={{ objectFit: 'cover', minHeight: '200px' }}
-                              onError={e => { e.target.src = '/img/producto-fallback.svg'; }}
-                            />
-                          </div>
+                      
+                      <div className="position-relative">
+                        <span className={`badge bg-${stockColor} stock-badge`}>
+                          {product.stock > 0 ? `Stock: ${product.stock}` : 'Sin Stock'}
+                          {product.stock === 0 && <i className="bi bi-x-circle ms-1"></i>}
+                        </span>
+                        <img
+                          loading="lazy"
+                          src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
+                          alt={product.name}
+                          className="card-img-top"
+                          onError={e => { e.target.src = '/img/producto-fallback.svg'; }}
+                        />
+                      </div>
+                      
+                      <div className="card-body d-flex flex-column">
+                        <h6 className="card-title fw-bold text-truncate" title={product.name}>
+                          {product.name}
+                        </h6>
+                        <p className="text-muted small mb-2">
+                          <i className="bi bi-tag me-1"></i>{product.brand.name}
+                          <br />
+                          <i className="bi bi-collection me-1"></i>{product.category.name}
+                          <br />
+                          <i className="bi bi-upc me-1"></i>{product.sku}
+                        </p>
+                        
+                        <div className="rating mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <i key={i} className={`bi bi-star${i < product.rating ? '-fill' : ''}`}></i>
+                          ))}
+                          <small className="text-muted ms-2">({product.rating}/5)</small>
                         </div>
-                        <div className="col-md-9">
-                          <div className="card-body d-flex flex-column h-100">
-                            <div>
-                              <h5 className="card-title fw-bold">{product.name}</h5>
-                              <p className="text-muted">
-                                <i className="bi bi-tag me-1"></i>{product.brand.name} | 
-                                <i className="bi bi-collection ms-2 me-1"></i>{product.category.name} | 
-                                <i className="bi bi-upc ms-2 me-1"></i>{product.sku}
-                              </p>
-                              
-                              <div className="rating mb-2">
-                                {[...Array(5)].map((_, i) => (
-                                  <i key={i} className={`bi bi-star${i < product.rating ? '-fill' : ''}`}></i>
-                                ))}
-                                <small className="text-muted ms-2">({product.rating}/5)</small>
-                              </div>
-                              
-                              {product.description && (
-                                <p className="card-text">{product.description}</p>
-                              )}
-                            </div>
-                            <div className="mt-auto d-flex justify-content-between align-items-center">
+                        
+                        <div className="mt-auto">
+                          <div className="mb-3">
+                            {product.discount > 0 ? (
                               <div>
-                                {product.discount > 0 ? (
-                                  <div>
-                                    <span className="h4 text-success">{formatCurrency(finalPrice)}</span>
-                                    <br />
-                                    <small className="text-muted text-decoration-line-through">
-                                      {formatCurrency(product.price)}
-                                    </small>
-                                  </div>
-                                ) : (
-                                  <span className="h4 text-success">{formatCurrency(product.price)}</span>
-                                )}
+                                <span className="h5 text-success mb-0">{formatCurrency(finalPrice)}</span>
                                 <br />
-                                <small className="text-muted">Stock disponible: {product.stock}</small>
+                                <small className="text-muted text-decoration-line-through">
+                                  {formatCurrency(product.price)}
+                                </small>
                               </div>
-                              <div className="d-flex gap-2">
-                                <button
-                                  className={`btn ${isInWishlist(product.id) ? 'btn-danger' : 'btn-outline-danger'}`}
-                                  onClick={() => toggleWishlist(product)}
-                                  title="Favoritos"
-                                >
-                                  <i className={`bi bi-heart${isInWishlist(product.id) ? '-fill' : ''}`}></i>
-                                </button>
-                                <button
-                                  className={`btn ${isInCompare(product.id) ? 'btn-warning' : 'btn-outline-warning'}`}
-                                  onClick={() => toggleCompare(product)}
-                                  title="Comparar"
-                                >
-                                  <i className="bi bi-arrow-left-right"></i>
-                                </button>
-                                <button
-                                  className={`btn btn-lg ${product.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
-                                  onClick={() => addToCart(product)}
-                                >
-                                  <i className={`bi ${product.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
-                                  {product.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
-                                </button>
+                            ) : (
+                              <span className="h5 text-success mb-0">{formatCurrency(product.price)}</span>
+                            )}
+                          </div>
+                          
+                          <button
+                            className={`btn w-100 ${product.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
+                            onClick={() => addToCart(product)}
+                          >
+                            <i className={`bi ${product.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
+                            {product.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {viewMode === 'list' && (
+                <FixedSizeGrid
+                  columnCount={1}
+                  rowHeight={120}
+                  height={Math.min(paginatedProducts.length * 120, 600)}
+                  width="100%"
+                  className="mb-4"
+                >
+                  {paginatedProducts.map((product, index) => {
+                    const stockColor = product.stock > 10 ? 'success' : 
+                                       product.stock > 5 ? 'warning' : 
+                                       product.stock > 0 ? 'danger' : 'secondary';
+                    const finalPrice = product.discount > 0 ? getDiscountedPrice(product.price, product.discount) : product.price;
+                    
+                    return (
+                      <div key={product.id} className="card mb-3 product-card" style={{ cursor: 'pointer' }}>
+                        <div className="row g-0">
+                          <div className="col-md-4">
+                            <div className="position-relative">
+                              {product.discount > 0 && (
+                                <div className="discount-badge">
+                                  -{product.discount}%
+                                </div>
+                              )}
+                              <span className={`badge bg-${stockColor} stock-badge`}>
+                                {product.stock > 0 ? `Stock: ${product.stock}` : 'Sin Stock'}
+                                {product.stock === 0 && <i className="bi bi-x-circle ms-1"></i>}
+                              </span>
+                              <img
+                                loading="lazy"
+                                src={isValidUrl(product.image) ? product.image : '/img/producto-fallback.svg'}
+                                alt={product.name}
+                                className="img-fluid rounded-start h-100"
+                                style={{ objectFit: 'cover', minHeight: '200px' }}
+                                onError={e => { e.target.src = '/img/producto-fallback.svg'; }}
+                              />
+                            </div>
+                          </div>
+                          <div className="col-md-8">
+                            <div className="card-body d-flex flex-column h-100">
+                              <div>
+                                <h5 className="card-title fw-bold">{product.name}</h5>
+                                <p className="text-muted">
+                                  <i className="bi bi-tag me-1"></i>{product.brand.name} | 
+                                  <i className="bi bi-collection ms-2 me-1"></i>{product.category.name} | 
+                                  <i className="bi bi-upc ms-2 me-1"></i>{product.sku}
+                                </p>
+                                
+                                <div className="rating mb-2">
+                                  {[...Array(5)].map((_, i) => (
+                                    <i key={i} className={`bi bi-star${i < product.rating ? '-fill' : ''}`}></i>
+                                  ))}
+                                  <small className="text-muted ms-2">({product.rating}/5)</small>
+                                </div>
+                                
+                                {product.description && (
+                                  <p className="card-text">{product.description}</p>
+                                )}
+                              </div>
+                              <div className="mt-auto d-flex justify-content-between align-items-center">
+                                <div>
+                                  {product.discount > 0 ? (
+                                    <div>
+                                      <span className="h4 text-success">{formatCurrency(finalPrice)}</span>
+                                      <br />
+                                      <small className="text-muted text-decoration-line-through">
+                                        {formatCurrency(product.price)}
+                                      </small>
+                                    </div>
+                                  ) : (
+                                    <span className="h4 text-success">{formatCurrency(product.price)}</span>
+                                  )}
+                                  <br />
+                                  <small className="text-muted">Stock disponible: {product.stock}</small>
+                                </div>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    className={`btn ${isInWishlist(product.id) ? 'btn-danger' : 'btn-outline-danger'}`}
+                                    onClick={() => toggleWishlist(product)}
+                                    title="Favoritos"
+                                  >
+                                    <i className={`bi bi-heart${isInWishlist(product.id) ? '-fill' : ''}`}></i>
+                                  </button>
+                                  <button
+                                    className={`btn ${isInCompare(product.id) ? 'btn-warning' : 'btn-outline-warning'}`}
+                                    onClick={() => toggleCompare(product)}
+                                    title="Comparar"
+                                  >
+                                    <i className="bi bi-arrow-left-right"></i>
+                                  </button>
+                                  <button
+                                    className={`btn btn-lg ${product.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
+                                    onClick={() => addToCart(product)}
+                                  >
+                                    <i className={`bi ${product.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
+                                    {product.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                }
-              })}
+                    );
+                  })}
+                </FixedSizeGrid>
+              )}
             </div>
 
             {/* Paginación */}
@@ -2326,7 +1715,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                           {item.quantity > item.stock && item.stock > 0 && (
                             <span className="badge bg-info text-dark ms-2 small">
                               <i className="bi bi-info-circle-fill me-1"></i>
-                              Excede stock ({item.stock} disp.)
+                              Excede stock disponible
                             </span>
                           )}
                         </div>
@@ -2538,6 +1927,7 @@ const EnhancedTijuanaStore = ({ user }) => {
             style={{ 
               backgroundColor: 'rgba(255,0,0,0.98)', 
               zIndex: 9999999,
+             
               position: 'fixed',
               top: 0,
               left: 0,
