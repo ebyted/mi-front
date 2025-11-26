@@ -548,6 +548,7 @@ class WarehouseViewSet(viewsets.ModelViewSet):
 class ProductWarehouseStockViewSet(viewsets.ModelViewSet):
     queryset = ProductWarehouseStock.objects.all()
     serializer_class = ProductWarehouseStockSerializer
+    pagination_class = None  # Sin paginación - devuelve todos los productos
 
     def get_queryset(self):
         # Mostrar TODOS los productos, incluidos los con stock 0 o negativo
