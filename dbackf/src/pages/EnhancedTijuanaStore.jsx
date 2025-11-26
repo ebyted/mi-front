@@ -29,7 +29,7 @@ const EnhancedTijuanaStore = ({ user }) => {
   // Estados de vista
   const [viewMode, setViewMode] = useState('grid');
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(10000); // Mostrar todos por defecto
 
   // Estados del carrito y wishlist
   const [cart, setCart] = useState([]);
@@ -159,9 +159,13 @@ const EnhancedTijuanaStore = ({ user }) => {
     });
   }, [allProducts, featuredProducts, hasActiveFilters, search, selectedBrand, selectedCategory, priceRange, showOutOfStock, sortBy]);
 
-  // Paginación
+  // Paginación - Mostrar todos si pageSize es muy grande
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
   const paginatedProducts = useMemo(() => {
+    // Si pageSize >= 1000, mostrar todos sin paginar
+    if (pageSize >= 1000) {
+      return filteredProducts;
+    }
     return filteredProducts.slice(
       (page - 1) * pageSize,
       page * pageSize
@@ -1571,7 +1575,10 @@ const EnhancedTijuanaStore = ({ user }) => {
                 {/* Contador de resultados y selector de items por página */}
                 <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                   <div className="text-muted">
-                    Mostrando {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, filteredProducts.length)} de {filteredProducts.length} productos
+                    {pageSize >= 1000 
+                      ? `Mostrando todos los ${filteredProducts.length} productos`
+                      : `Mostrando ${((page - 1) * pageSize) + 1} - ${Math.min(page * pageSize, filteredProducts.length)} de ${filteredProducts.length} productos`
+                    }
                   </div>
                   
                   <div className="d-flex align-items-center gap-2">
@@ -1585,6 +1592,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                         setPage(1);
                       }}
                     >
+                      <option value="10000">Todos</option>
                       <option value="12">12</option>
                       <option value="24">24</option>
                       <option value="48">48</option>
@@ -1593,8 +1601,8 @@ const EnhancedTijuanaStore = ({ user }) => {
                   </div>
                 </div>
 
-                {/* Paginación mejorada */}
-                {totalPages > 1 && (
+                {/* Paginación mejorada - solo si no estamos mostrando todos */}
+                {totalPages > 1 && pageSize < 1000 && (
                   <nav>
                     <ul className="pagination justify-content-center flex-wrap">
                       {/* Primera página */}
