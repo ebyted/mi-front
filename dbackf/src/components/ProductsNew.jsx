@@ -1,21 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import api from '../services/api'; // Asegúrate que api.js esté correctamente configurado
+import api from '../services/api';
 
 const ProductsNew = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [isActive, setIsActive] = useState(null);
 
-    useEffect(() => {        
-        fetchProducts();
-    }, []);
+    useEffect(() => {
+        fetchProducts(search, isActive);
+    }, [search, isActive]);
 
-    const fetchProducts = async (searchTerm = '') => {
+    const fetchProducts = async (searchTerm = '', activeFilter = null) => {
         setLoading(true);
         try {
-            const params = searchTerm ? { search: searchTerm } : {};
+            const params = {};
+            if (searchTerm) params.search = searchTerm;
+            if (activeFilter !== null) params.is_active = activeFilter ? 'true' : 'false';
             const response = await api.get('/products/', { params });
-            setProducts(response.data.results || response.data); // Ajusta según tu backend
+            setProducts(response.data.results || response.data);
         } catch (err) {
             setProducts([]);
         } finally {
@@ -25,13 +28,13 @@ const ProductsNew = () => {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        fetchProducts(search);
+        // El estado 'search' ya dispara el efecto
     };
-    
+
     return (
         <div className="container py-5">
             <h2>Listado de productos</h2>
-            <form className="mb-4 d-flex gap-2" onSubmit={handleSearch}>
+            <form className="mb-4 d-flex gap-2 align-items-center" onSubmit={handleSearch}>
                 <input
                     type="text"
                     className="form-control"
@@ -39,6 +42,26 @@ const ProductsNew = () => {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
+                <div className="form-check ms-2">
+                    <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="activo"
+                        checked={isActive === true}
+                        onChange={() => setIsActive(isActive === true ? null : true)}
+                    />
+                    <label className="form-check-label" htmlFor="activo">Activo</label>
+                </div>
+                <div className="form-check ms-2">
+                    <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="inactivo"
+                        checked={isActive === false}
+                        onChange={() => setIsActive(isActive === false ? null : false)}
+                    />
+                    <label className="form-check-label" htmlFor="inactivo">Inactivo</label>
+                </div>
                 <button className="btn btn-primary" type="submit">
                     Buscar
                 </button>
