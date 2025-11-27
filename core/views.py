@@ -425,8 +425,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 Q(name__icontains=search) |
                 Q(sku__icontains=search) |
-                Q(code__icontains=search) |
-                Q(brand__name__icontains=search)
+                Q(brand__name__icontains=search) |
+                Q(category__name__icontains=search)
             ).distinct()
         return queryset.order_by('name')
     

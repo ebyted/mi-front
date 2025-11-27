@@ -30,6 +30,8 @@ import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
 import InventoryGeneral from './pages/InventoryGeneral';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import ProductsNew from './components/ProductsNew.jsx';
+
 
 function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -99,7 +101,8 @@ function AppContent() {
         <Route path="/suppliers" element={renderWithSidebar(Suppliers)} />
         <Route path="/test-customers" element={renderWithSidebar(TestCustomers)} />
         <Route path="/enhanced-store" element={renderWithSidebar(() => <EnhancedTijuanaStore user={null} />)} />
-  <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
+        <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
+        <Route path="/products-new" element={renderWithSidebar(ProductsNew)} />
   {/* <Route path="/product-investigation" element={renderWithSidebar(ProductInvestigation)} /> */}
         
         {/* Cualquier otra ruta redirige según autenticación */}
