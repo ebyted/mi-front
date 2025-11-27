@@ -21,6 +21,7 @@ const menuItems = [
   { name: "Marcas", path: "/brands", icon: "bi-star" },
   { name: "Tasas de Cambio", path: "/exchange-rates", icon: "bi-currency-exchange" },
   { name: "Tienda Tijuana", path: "/enhanced-store", icon: "bi-shop" },
+  { name: "Productos New", path: "/products-new", icon: "bi-shop" },
 ];
 
 export default function Sidebar({ onClose }) {
