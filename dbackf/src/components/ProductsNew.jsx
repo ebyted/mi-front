@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { Badge } from 'react-bootstrap';
+import ProductFormModal from './ProductFormModal';
 import api from '../services/api';
 
 const ProductsNew = () => {
     const [products, setProducts] = useState([]);
+        const [editProduct, setEditProduct] = useState(null);
+        const [showEditModal, setShowEditModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [isActive, setIsActive] = useState(null);
@@ -124,7 +128,9 @@ const ProductsNew = () => {
                             <th>SKU</th>
                             <th>Marca</th>
                             <th>Categoría</th>
+                            <th>Stock</th>
                             <th>Activo</th>
+                            <th>Editar</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -135,11 +141,30 @@ const ProductsNew = () => {
                                 <td>{product.sku}</td>
                                 <td>{product.brand_name}</td>
                                 <td>{product.category_name}</td>
+                                <td>
+                                    <Badge bg={product.current_stock > 0 ? 'success' : 'danger'}>
+                                    {product.current_stock || 0}
+                                    </Badge>
+                                    {Boolean(product.minimum_stock) && (
+                                        <div><small className="text-muted">Min: {product.minimum_stock}</small></div>
+                                    )}
+                                </td>
                                 <td>{product.is_active ? 'Sí' : 'No'}</td>
+                                <td>
+                                    <button className="btn btn-sm btn-outline-primary" title="Editar" onClick={() => { setEditProduct(product); setShowEditModal(true); }}>
+                                        <span className="bi bi-pencil" aria-hidden="true"></span>
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
+                <ProductFormModal
+                    show={showEditModal}
+                    onHide={() => setShowEditModal(false)}
+                    product={editProduct}
+                    onSave={() => { setShowEditModal(false); fetchProducts(search, isActive, page); }}
+                />
                 </>
             )}
         </div>
