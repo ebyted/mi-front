@@ -89,8 +89,8 @@ const ProductsNew = () => {
                         />
                         <label className="form-check-label" htmlFor="inactivo">Inactivo</label>
                     </div>
-                <button className="btn btn-primary" type="submit">
-                    Buscar
+                <button className="btn btn-primary" type="submit" aria-label="Buscar">
+                    <span className="bi bi-search" aria-hidden="true"></span>
                 </button>
             </form>
             {loading ? (
@@ -98,17 +98,21 @@ const ProductsNew = () => {
             ) : (
                 <>
                 <nav className="d-flex justify-content-center align-items-center mb-3" style={{maxWidth: '100vw', overflowX: 'auto'}}>
-                    <ul className="pagination mb-0 flex-wrap" style={{maxWidth: '100%', flexWrap: 'wrap'}}>
+                    <ul className="pagination mb-0" style={{maxWidth: '100%'}}>
                         <li className={`page-item${page === 1 ? ' disabled' : ''}`}>
-                            <button className="page-link" onClick={() => setPage(page - 1)} disabled={page === 1}>&laquo;</button>
+                            <button className="page-link" onClick={() => setPage(1)} disabled={page === 1} title="Primera">&#171;</button>
                         </li>
-                        {[...Array(totalPages)].map((_, idx) => (
-                            <li key={idx + 1} className={`page-item${page === idx + 1 ? ' active' : ''}`}>
-                                <button className="page-link" onClick={() => setPage(idx + 1)}>{idx + 1}</button>
-                            </li>
-                        ))}
+                        <li className={`page-item${page === 1 ? ' disabled' : ''}`}>
+                            <button className="page-link" onClick={() => setPage(page - 1)} disabled={page === 1} title="Anterior">&#8249;</button>
+                        </li>
+                        <li className="page-item active">
+                            <span className="page-link" style={{minWidth: 60}}>{page} / {totalPages}</span>
+                        </li>
                         <li className={`page-item${page === totalPages ? ' disabled' : ''}`}>
-                            <button className="page-link" onClick={() => setPage(page + 1)} disabled={page === totalPages}>&raquo;</button>
+                            <button className="page-link" onClick={() => setPage(page + 1)} disabled={page === totalPages} title="Siguiente">&#8250;</button>
+                        </li>
+                        <li className={`page-item${page === totalPages ? ' disabled' : ''}`}>
+                            <button className="page-link" onClick={() => setPage(totalPages)} disabled={page === totalPages} title="Última">&#187;</button>
                         </li>
                     </ul>
                 </nav>
