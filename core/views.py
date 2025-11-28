@@ -385,11 +385,26 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
 
 class CustomPageNumberPagination(PageNumberPagination):
-    page_size = 50
+    page_size = 52
     page_size_query_param = 'page_size'
     max_page_size = 200
 
 class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            print("Filtro recibido is_active:", is_active)  # Para depuración
+            # Ajusta el valor según lo que envíes desde el frontend
+            if is_active in ['true', 'True', '1', True]:
+                queryset = queryset.filter(is_active=True)
+            elif is_active in ['false', 'False', '0', False]:
+                queryset = queryset.filter(is_active=False)
+        return queryset
+    
     @action(detail=False, methods=['get'])
     def show_all(self, request):
         """
@@ -413,22 +428,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         from .serializers_product_search import ProductWithMainVariantSerializer
         serializer = ProductWithMainVariantSerializer(queryset, many=True)
         return Response(serializer.data)
-    queryset = Product.objects.select_related('category', 'brand').all()
-    serializer_class = ProductSerializer
-    pagination_class = CustomPageNumberPagination
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        search = self.request.query_params.get('search', None)
-        # Solo aplicar filtro si search no es None y no está vacío o solo espacios
-        if search and search.strip():
-            queryset = queryset.filter(
-                Q(name__icontains=search) |
-                Q(sku__icontains=search) |
-                Q(brand__name__icontains=search) |
-                Q(category__name__icontains=search)
-            ).distinct()
-        return queryset.order_by('name')
     
     @action(detail=False, methods=['get'])
     def search_all(self, request):

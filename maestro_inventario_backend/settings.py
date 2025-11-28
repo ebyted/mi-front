@@ -173,7 +173,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    'DEFAULT_PAGINATION_CLASS': None,  # Desactivar paginación por defecto
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',  # Cambiado a paginación por número de página
+    'PAGE_SIZE': 52,  # Tamaño de página para la paginación por defecto
 }
 
 # SimpleJWT settings

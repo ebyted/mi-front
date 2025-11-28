@@ -6,21 +6,35 @@ const ProductsNew = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [isActive, setIsActive] = useState(null);
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(52);
+    const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
-        fetchProducts(search, isActive);
-    }, [search, isActive]);
+        fetchProducts(search, isActive, page);
+    }, [search, isActive, page]);
 
     const fetchProducts = async (searchTerm = '', activeFilter = null) => {
         setLoading(true);
         try {
             const params = {};
             if (searchTerm) params.search = searchTerm;
-            if (activeFilter !== null) params.is_active = activeFilter ? 'true' : 'false';
+            if (activeFilter !== null) {
+                params.is_active = activeFilter ? true : false;
+            }
+            params.page = page;
+            params.page_size = pageSize;
             const response = await api.get('/products/', { params });
             setProducts(response.data.results || response.data);
+            // Si la respuesta tiene paginación estándar DRF
+            if (response.data.count !== undefined && response.data.results !== undefined) {
+                setTotalPages(Math.ceil(response.data.count / pageSize));
+            } else {
+                setTotalPages(1);
+            }
         } catch (err) {
             setProducts([]);
+            setTotalPages(1);
         } finally {
             setLoading(false);
         }
@@ -28,7 +42,7 @@ const ProductsNew = () => {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        // El estado 'search' ya dispara el efecto
+        setPage(1); // Reinicia a la primera página al buscar
     };
 
     return (
@@ -42,26 +56,39 @@ const ProductsNew = () => {
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
-                <div className="form-check ms-2">
-                    <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="activo"
-                        checked={isActive === true}
-                        onChange={() => setIsActive(isActive === true ? null : true)}
-                    />
-                    <label className="form-check-label" htmlFor="activo">Activo</label>
-                </div>
-                <div className="form-check ms-2">
-                    <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="inactivo"
-                        checked={isActive === false}
-                        onChange={() => setIsActive(isActive === false ? null : false)}
-                    />
-                    <label className="form-check-label" htmlFor="inactivo">Inactivo</label>
-                </div>
+                    <div className="form-check ms-2">
+                        <input
+                            className="form-check-input"
+                            type="radio"
+                            name="activoInactivo"
+                            id="todos"
+                            checked={isActive === null}
+                            onChange={() => setIsActive(null)}
+                        />
+                        <label className="form-check-label" htmlFor="todos">Todos</label>
+                    </div>
+                    <div className="form-check ms-2">
+                        <input
+                            className="form-check-input"
+                            type="radio"
+                            name="activoInactivo"
+                            id="activo"
+                            checked={isActive === true}
+                            onChange={() => setIsActive(true)}
+                        />
+                        <label className="form-check-label" htmlFor="activo">Activo</label>
+                    </div>
+                    <div className="form-check ms-2">
+                        <input
+                            className="form-check-input"
+                            type="radio"
+                            name="activoInactivo"
+                            id="inactivo"
+                            checked={isActive === false}
+                            onChange={() => setIsActive(false)}
+                        />
+                        <label className="form-check-label" htmlFor="inactivo">Inactivo</label>
+                    </div>
                 <button className="btn btn-primary" type="submit">
                     Buscar
                 </button>
@@ -69,6 +96,22 @@ const ProductsNew = () => {
             {loading ? (
                 <p>Cargando...</p>
             ) : (
+                <>
+                <nav className="d-flex justify-content-center align-items-center mb-3" style={{maxWidth: '100vw', overflowX: 'auto'}}>
+                    <ul className="pagination mb-0 flex-wrap" style={{maxWidth: '100%', flexWrap: 'wrap'}}>
+                        <li className={`page-item${page === 1 ? ' disabled' : ''}`}>
+                            <button className="page-link" onClick={() => setPage(page - 1)} disabled={page === 1}>&laquo;</button>
+                        </li>
+                        {[...Array(totalPages)].map((_, idx) => (
+                            <li key={idx + 1} className={`page-item${page === idx + 1 ? ' active' : ''}`}>
+                                <button className="page-link" onClick={() => setPage(idx + 1)}>{idx + 1}</button>
+                            </li>
+                        ))}
+                        <li className={`page-item${page === totalPages ? ' disabled' : ''}`}>
+                            <button className="page-link" onClick={() => setPage(page + 1)} disabled={page === totalPages}>&raquo;</button>
+                        </li>
+                    </ul>
+                </nav>
                 <table className="table table-striped">
                     <thead>
                         <tr>
@@ -93,6 +136,7 @@ const ProductsNew = () => {
                         ))}
                     </tbody>
                 </table>
+                </>
             )}
         </div>
     );
