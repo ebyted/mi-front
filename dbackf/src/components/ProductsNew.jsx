@@ -149,7 +149,17 @@ const ProductsNew = () => {
                                         <div><small className="text-muted">Min: {product.minimum_stock}</small></div>
                                     )}
                                 </td>
-                                <td>{product.is_active ? 'Sí' : 'No'}</td>
+                                <td className="text-center">
+                                    {product.is_active ? (
+                                        <span className="text-success">
+                                            <i className="bi bi-check-circle-fill" style={{fontSize: '1.3em'}}></i>
+                                        </span>
+                                    ) : (
+                                        <span className="text-danger">
+                                            <i className="bi bi-x-circle-fill" style={{fontSize: '1.3em'}}></i>
+                                        </span>
+                                    )}
+                                </td>
                                 <td>
                                     <button className="btn btn-sm btn-outline-primary" title="Editar" onClick={() => { setEditProduct(product); setShowEditModal(true); }}>
                                         <span className="bi bi-pencil" aria-hidden="true"></span>
