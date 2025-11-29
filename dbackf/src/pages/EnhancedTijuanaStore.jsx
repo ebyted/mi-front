@@ -261,8 +261,10 @@ const EnhancedTijuanaStore = ({ user }) => {
     try {
       // Cargar almacenes y encontrar TIJUANA
       const warehousesRes = await api.get('warehouses/');
-      const warehouses = warehousesRes.data || [];
-      const tijuana = warehouses.find(w => 
+      const warehousesData = Array.isArray(warehousesRes.data)
+        ? warehousesRes.data
+        : warehousesRes.data.results || [];
+      const tijuana = warehousesData.find(w => 
         w.name.toLowerCase().includes('tijuana') || 
         w.code?.toLowerCase().includes('tij') ||
         w.address?.toLowerCase().includes('tijuana')
