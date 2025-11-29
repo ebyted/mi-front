@@ -63,20 +63,31 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
     };
 
     const handleImageUpload = async () => {
-        if (!selectedFile || !product?.id) return;
+        if (!selectedFile || !product?.id) {
+            alert('Por favor selecciona un archivo y asegúrate de que el producto existe.');
+            return;
+        }
+        
         const formData = new FormData();
         formData.append('product', product.id);
         formData.append('image', selectedFile);
 
         try {
-            await api.post('/product-images/', formData, {
+            const response = await api.post('/product-images/', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
+            alert('✅ Imagen subida exitosamente');
             // Recarga las imágenes del producto si es necesario
             setSelectedFile(null);
             setPreview(null);
+            if (onSave) onSave(); // Recargar lista de productos
         } catch (err) {
-            alert('Error al subir la imagen' + err.message);
+            console.error('Error al subir imagen:', err);
+            const errorMsg = err.response?.data?.error || 
+                           err.response?.data?.message || 
+                           err.message || 
+                           'Error de conexión con el servidor';
+            alert('❌ Error al subir la imagen: ' + errorMsg);
         }
     };
 
