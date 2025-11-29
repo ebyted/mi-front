@@ -29,7 +29,9 @@ const ProductsNew = () => {
             params.page = page;
             params.page_size = pageSize;
             const response = await api.get('/products/', { params });
-            setProducts(response.data.results || response.data);
+            // Validar que la respuesta sea un array
+            const productsData = response.data.results || response.data;
+            setProducts(Array.isArray(productsData) ? productsData : []);
             // Si la respuesta tiene paginación estándar DRF
             if (response.data.count !== undefined && response.data.results !== undefined) {
                 setTotalPages(Math.ceil(response.data.count / pageSize));
@@ -37,6 +39,7 @@ const ProductsNew = () => {
                 setTotalPages(1);
             }
         } catch (err) {
+            console.error('Error fetching products:', err);
             setProducts([]);
             setTotalPages(1);
         } finally {
@@ -134,7 +137,7 @@ const ProductsNew = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {products.map(product => (
+                        {Array.isArray(products) && products.map(product => (
                             <tr key={product.id}>
                                 <td>{product.id}</td>
                                 <td>{product.name}</td>
