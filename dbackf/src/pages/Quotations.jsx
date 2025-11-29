@@ -59,8 +59,10 @@ function Quotations() {
 
   const loadProducts = async () => {
     try {
-      const response = await api.get('/products/');
+      // Cargar TODOS los productos sin límite de paginación
+      const response = await api.get('/products/?page_size=10000');
       setProducts(response.data.results || response.data || []);
+      console.log(`✅ Productos cargados para cotizaciones: ${(response.data.results || response.data || []).length}`);
     } catch (err) {
       console.error('Error loading products:', err);
       setProducts([]);
@@ -128,7 +130,7 @@ function Quotations() {
       p.name?.toLowerCase().includes(searchLower) ||
       p.sku?.toLowerCase().includes(searchLower) ||
       p.barcode?.includes(term)
-    ).slice(0, 10); // Limitar a 10 resultados
+    ).slice(0, 50); // Limitar a 50 resultados
     
     setFilteredProducts(filtered);
   };
