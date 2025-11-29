@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Tab, Tabs } from 'react-bootstrap';
-import api from '../api.js';
+import api from '../services/api';
 
 const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categories = [] }) => {
     const [form, setForm] = useState({
