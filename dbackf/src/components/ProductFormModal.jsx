@@ -150,7 +150,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     required
                                 >
                                     <option value="">Selecciona una marca</option>
-                                    {brands.map((b) => (
+                                    {Array.isArray(brands) && brands.map((b) => (
                                         <option key={b.id} value={String(b.id)}>{b.name}</option>
                                     ))}
                                 </Form.Select>
@@ -164,7 +164,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                                     required
                                 >
                                     <option value="">Selecciona una categoría</option>
-                                    {categories.map((c) => (
+                                    {Array.isArray(categories) && categories.map((c) => (
                                         <option key={c.id} value={String(c.id)}>{c.name}</option>
                                     ))}
                                 </Form.Select>
@@ -183,7 +183,7 @@ const ProductFormModal = ({ show, onHide, product, onSave, brands = [], categori
                         <Tab eventKey="imagenes" title="Imágenes">
                             <div>
                                 <h5>Imágenes del producto</h5>
-                                {product?.images?.length > 0 && (
+                                {Array.isArray(product?.images) && product.images.length > 0 && (
                                     <div className="mb-3">
                                         <h6>Vistas preliminares:</h6>
                                         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>

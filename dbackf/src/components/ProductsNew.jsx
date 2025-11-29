@@ -5,18 +5,39 @@ import api from '../services/api';
 
 const ProductsNew = () => {
     const [products, setProducts] = useState([]);
-        const [editProduct, setEditProduct] = useState(null);
-        const [showEditModal, setShowEditModal] = useState(false);
+    const [editProduct, setEditProduct] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [isActive, setIsActive] = useState(null);
     const [page, setPage] = useState(1);
     const [pageSize] = useState(52);
     const [totalPages, setTotalPages] = useState(1);
+    const [brands, setBrands] = useState([]);
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+        fetchBrandsAndCategories();
+    }, []);
 
     useEffect(() => {
         fetchProducts(search, isActive, page);
     }, [search, isActive, page]);
+
+    const fetchBrandsAndCategories = async () => {
+        try {
+            const [brandsRes, categoriesRes] = await Promise.all([
+                api.get('/brands/'),
+                api.get('/categories/')
+            ]);
+            setBrands(Array.isArray(brandsRes.data) ? brandsRes.data : []);
+            setCategories(Array.isArray(categoriesRes.data) ? categoriesRes.data : []);
+        } catch (err) {
+            console.error('Error fetching brands/categories:', err);
+            setBrands([]);
+            setCategories([]);
+        }
+    };
 
     const fetchProducts = async (searchTerm = '', activeFilter = null) => {
         setLoading(true);
@@ -176,6 +197,8 @@ const ProductsNew = () => {
                     show={showEditModal}
                     onHide={() => setShowEditModal(false)}
                     product={editProduct}
+                    brands={brands}
+                    categories={categories}
                     onSave={() => { setShowEditModal(false); fetchProducts(search, isActive, page); }}
                 />
                 </>
