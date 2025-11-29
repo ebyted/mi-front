@@ -1,3 +1,4 @@
+// Tienda mejorada Tijuana - v2.0
 import React, { useEffect, useState, useMemo } from 'react';
 import api from '../services/api';
 import { Swiper, SwiperSlide } from 'swiper/react';
