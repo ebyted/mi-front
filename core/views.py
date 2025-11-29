@@ -392,6 +392,10 @@ class CustomPageNumberPagination(PageNumberPagination):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'sku', 'code', 'barcode', 'brand__name', 'category__name']
+    ordering_fields = ['name', 'created_at', 'price']
+    ordering = ['name']
 
     def get_queryset(self):
         queryset = super().get_queryset()
