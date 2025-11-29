@@ -260,20 +260,46 @@ const EnhancedTijuanaStore = ({ user }) => {
     setLoading(true);
     try {
       // Cargar almacenes y encontrar TIJUANA
+      console.log('📦 Cargando almacenes...');
       const warehousesRes = await api.get('warehouses/');
-      const warehousesData = Array.isArray(warehousesRes.data)
-        ? warehousesRes.data
-        : warehousesRes.data.results || [];
-      const tijuana = warehousesData.find(w => 
-        w.name.toLowerCase().includes('tijuana') || 
-        w.code?.toLowerCase().includes('tij') ||
-        w.address?.toLowerCase().includes('tijuana')
-      );
+      const warehouses = warehousesRes.data || [];
+      
+      console.log(`🏢 Almacenes encontrados: ${warehouses.length}`);
+      warehouses.forEach((w, idx) => {
+        console.log(`   ${idx + 1}. ${w.name} (ID: ${w.id}, Código: ${w.code || 'N/A'}, Dirección: ${w.address || 'N/A'})`);
+      });
+      
+      // Buscar TIJUANA con múltiples criterios (case insensitive)
+      let tijuana = warehouses.find(w => {
+        const name = (w.name || '').toLowerCase();
+        const code = (w.code || '').toLowerCase();
+        const address = (w.address || '').toLowerCase();
+        
+        return name.includes('tijuana') || 
+               name.includes('tijana') ||  // typo común
+               code.includes('tij') ||
+               address.includes('tijuana') ||
+               address.includes('tijana');
+      });
 
-      if (!tijuana) {
-        throw new Error('No se encontró el almacén de TIJUANA');
+      // Si no se encuentra, usar el primer almacén disponible
+      if (!tijuana && warehouses.length > 0) {
+        tijuana = warehouses[0];
+        console.warn(`⚠️ Almacén "TIJUANA" no encontrado, usando: ${tijuana.name}`);
       }
 
+      if (!tijuana) {
+        const warehouseList = warehouses.map(w => `"${w.name}"`).join(', ');
+        console.error('❌ No hay almacenes disponibles');
+        console.error('   Almacenes en base de datos:', warehouseList || 'ninguno');
+        throw new Error(
+          warehouses.length === 0 
+            ? 'No hay almacenes configurados. Por favor, crea un almacén primero.' 
+            : `No se encontró almacén "TIJUANA". Disponibles: ${warehouseList}`
+        );
+      }
+
+      console.log(`✅ Almacén seleccionado: ${tijuana.name} (ID: ${tijuana.id})`);
       setTijuanaWarehouse(tijuana);
 
       // Cargar TODOS los productos (sin límite de página)
@@ -702,13 +728,29 @@ const EnhancedTijuanaStore = ({ user }) => {
   if (error) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
-        <div className="text-center">
-          <div className="text-danger mb-3" style={{ fontSize: '4rem' }}>
+        <div className="text-center" style={{ maxWidth: '600px', padding: '2rem' }}>
+          <div className="text-danger mb-4" style={{ fontSize: '4rem' }}>
             <i className="bi bi-exclamation-triangle"></i>
           </div>
-          <h4 className="text-danger">Error al cargar la tienda</h4>
-          <p className="text-muted">{error}</p>
-          <button className="btn btn-primary" onClick={loadInitialData}>
+          <h3 className="text-danger mb-3">Error al cargar la tienda</h3>
+          <div className="alert alert-danger text-start mb-4">
+            <p className="mb-2"><strong>Mensaje de error:</strong></p>
+            <p className="mb-0">{error}</p>
+          </div>
+          
+          {error.includes('almacén') && (
+            <div className="alert alert-info text-start mb-4">
+              <p className="mb-2"><strong>💡 Posibles soluciones:</strong></p>
+              <ol className="mb-0 text-start">
+                <li>Verifica que exista un almacén en el sistema</li>
+                <li>Si el almacén existe, verifica que tenga productos en stock</li>
+                <li>Ejecuta la sincronización de stock: <code>python inicializar_stock.py</code></li>
+                <li>Contacta al administrador del sistema</li>
+              </ol>
+            </div>
+          )}
+          
+          <button className="btn btn-primary btn-lg" onClick={loadInitialData}>
             <i className="bi bi-arrow-clockwise me-2"></i>
             Reintentar
           </button>

@@ -1649,6 +1649,37 @@ def force_sync_warehouse_stock(request):
 
 
 @api_view(['GET'])
+def list_warehouses_debug(request):
+    """
+    Endpoint público para listar almacenes (debug)
+    GET /api/warehouses-debug/
+    """
+    try:
+        warehouses = Warehouse.objects.all()
+        
+        data = [{
+            'id': w.id,
+            'name': w.name,
+            'code': w.code or '',
+            'address': w.address or '',
+            'is_active': w.is_active,
+            'created_at': w.created_at
+        } for w in warehouses]
+        
+        return Response({
+            'success': True,
+            'total': warehouses.count(),
+            'warehouses': data
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def check_stock_health(request):
     """

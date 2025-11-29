@@ -127,6 +127,7 @@ urlpatterns = [
     # === ENDPOINTS PARA SINCRONIZACIÓN DE STOCK ===
     path('sync-warehouse-stock/', views.force_sync_warehouse_stock, name='sync-warehouse-stock'),
     path('check-stock-health/', views.check_stock_health, name='check-stock-health'),
+    path('warehouses-debug/', views.list_warehouses_debug, name='warehouses-debug'),
     
     path('', include(router.urls)),
 ]
