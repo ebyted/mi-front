@@ -24,11 +24,15 @@ function Quotations() {
   
   const [details, setDetails] = useState([{
     product_id: '',
+    product_name: '',
     quantity: 1,
-    unit_price: 0
+    unit_price: 0,
+    available_stock: 0
   }]);
   
   const [formError, setFormError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState([]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -63,6 +67,19 @@ function Quotations() {
     }
   };
 
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.position-relative')) {
+        setFilteredProducts([]);
+        setSearchTerm('');
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   // Handlers del formulario
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -81,11 +98,48 @@ function Quotations() {
     setDetails(newDetails);
   };
 
+  // Manejar selección de producto con autocompletado
+  const handleProductSelect = (index, productId) => {
+    const product = products.find(p => p.id === parseInt(productId));
+    if (product) {
+      const newDetails = [...details];
+      newDetails[index] = {
+        ...newDetails[index],
+        product_id: productId,
+        product_name: product.name,
+        unit_price: product.price || 0,
+        available_stock: product.current_stock || 0
+      };
+      setDetails(newDetails);
+    }
+  };
+
+  // Filtrar productos por búsqueda
+  const filterProducts = (term) => {
+    setSearchTerm(term);
+    
+    if (!term || term.length < 2) {
+      setFilteredProducts([]);
+      return;
+    }
+    
+    const searchLower = term.toLowerCase();
+    const filtered = products.filter(p => 
+      p.name?.toLowerCase().includes(searchLower) ||
+      p.sku?.toLowerCase().includes(searchLower) ||
+      p.barcode?.includes(term)
+    ).slice(0, 10); // Limitar a 10 resultados
+    
+    setFilteredProducts(filtered);
+  };
+
   const addDetail = () => {
     setDetails([...details, {
       product_id: '',
+      product_name: '',
       quantity: 1,
-      unit_price: 0
+      unit_price: 0,
+      available_stock: 0
     }]);
   };
 
@@ -172,11 +226,15 @@ function Quotations() {
     });
     setDetails([{
       product_id: '',
+      product_name: '',
       quantity: 1,
-      unit_price: 0
+      unit_price: 0,
+      available_stock: 0
     }]);
     setFormError('');
     setEditingQuotation(null);
+    setSearchTerm('');
+    setFilteredProducts([]);
   };
 
   // Editar cotización
@@ -455,53 +513,114 @@ function Quotations() {
                     </div>
 
                     {details.map((detail, index) => (
-                      <div key={index} className="row g-2 mb-2">
-                        <div className="col-md-5">
-                          <ProductSelect
-                            value={detail.product_id}
-                            onChange={val => handleDetailChange(index, 'product_id', val)}
-                            placeholder="Buscar producto por nombre o SKU..."
-                            required
-                          />
-                        </div>
-                        <div className="col-md-2">
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder="Cantidad"
-                            value={detail.quantity}
-                            onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
-                            required
-                            min="1"
-                            step="1"
-                          />
-                        </div>
-                        <div className="col-md-3">
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder="Precio unitario"
-                            value={detail.unit_price}
-                            onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
-                            required
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                        <div className="col-md-1">
-                          <div className="text-center fw-bold text-success">
-                            ${(parseFloat(detail.quantity) * parseFloat(detail.unit_price) || 0).toFixed(2)}
+                      <div key={index} className="mb-3">
+                        <div className="row g-2">
+                          {/* Product Search with Autocomplete */}
+                          <div className="col-md-5">
+                            <div className="position-relative">
+                              <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Buscar producto por nombre o SKU..."
+                                value={detail.product_name || ''}
+                                onChange={(e) => {
+                                  handleDetailChange(index, 'product_name', e.target.value);
+                                  filterProducts(e.target.value);
+                                }}
+                                onFocus={() => {
+                                  if (detail.product_name && detail.product_name.length >= 2) {
+                                    filterProducts(detail.product_name);
+                                  }
+                                }}
+                                required
+                              />
+                              
+                              {/* Autocomplete Dropdown */}
+                              {filteredProducts.length > 0 && searchTerm.length >= 2 && (
+                                <div className="position-absolute w-100 bg-white border rounded shadow-sm" 
+                                     style={{ zIndex: 1050, maxHeight: '250px', overflowY: 'auto' }}>
+                                  {filteredProducts.map(product => (
+                                    <div
+                                      key={product.id}
+                                      className="p-2 border-bottom cursor-pointer"
+                                      style={{ cursor: 'pointer' }}
+                                      onClick={() => {
+                                        handleProductSelect(index, product.id);
+                                        setFilteredProducts([]);
+                                        setSearchTerm('');
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                                    >
+                                      <div className="d-flex justify-content-between align-items-start">
+                                        <div className="flex-grow-1">
+                                          <div className="fw-bold">{product.name}</div>
+                                          <small className="text-muted">SKU: {product.sku}</small>
+                                        </div>
+                                        <div className="text-end ms-2">
+                                          <div className="fw-bold text-success">${parseFloat(product.price || 0).toFixed(2)}</div>
+                                          <small className={`badge ${product.stock > 0 ? 'bg-success' : 'bg-danger'}`}>
+                                            Stock: {product.stock || 0}
+                                          </small>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Stock indicator below input */}
+                            {detail.product_id && (
+                              <small className={`${detail.available_stock > 0 ? 'text-success' : 'text-danger'}`}>
+                                <i className="bi bi-box-seam me-1"></i>
+                                Disponible: {detail.available_stock || 0}
+                              </small>
+                            )}
                           </div>
-                        </div>
-                        <div className="col-md-1">
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm w-100"
-                            onClick={() => removeDetail(index)}
-                            disabled={details.length === 1}
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
+                          
+                          <div className="col-md-2">
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Cantidad"
+                              value={detail.quantity}
+                              onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
+                              required
+                              min="1"
+                              step="1"
+                            />
+                          </div>
+                          
+                          <div className="col-md-3">
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Precio unitario"
+                              value={detail.unit_price}
+                              onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
+                              required
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                          
+                          <div className="col-md-1">
+                            <div className="text-center fw-bold text-success">
+                              ${(parseFloat(detail.quantity) * parseFloat(detail.unit_price) || 0).toFixed(2)}
+                            </div>
+                          </div>
+                          
+                          <div className="col-md-1">
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger btn-sm w-100"
+                              onClick={() => removeDetail(index)}
+                              disabled={details.length === 1}
+                            >
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
