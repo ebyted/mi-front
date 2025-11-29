@@ -17,6 +17,7 @@ const EnhancedTijuanaStore = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tijuanaWarehouse, setTijuanaWarehouse] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   // Estados de filtros
   const [search, setSearch] = useState('');
@@ -178,6 +179,19 @@ const EnhancedTijuanaStore = ({ user }) => {
     loadFromLocalStorage();
   }, []);
 
+  // Auto-refresh cada 30 segundos para obtener cambios de inventario
+  useEffect(() => {
+    if (!tijuanaWarehouse) return;
+
+    const refreshInterval = setInterval(() => {
+      if (!loading) {
+        refreshProducts();
+      }
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(refreshInterval);
+  }, [tijuanaWarehouse, loading]);
+
   // Reset página cuando cambien los filtros
   useEffect(() => {
     setPage(1);
@@ -254,6 +268,47 @@ const EnhancedTijuanaStore = ({ user }) => {
     setTimeout(() => {
       setNotification({ show: false, message: '', type: 'success' });
     }, 3000);
+  };
+
+  // Función para refrescar solo los productos (sin recargar todo)
+  const refreshProducts = async () => {
+    if (!tijuanaWarehouse) return;
+    
+    try {
+      console.log('🔄 Refrescando productos...');
+      const stockRes = await api.get(`product-warehouse-stocks/?warehouse=${tijuanaWarehouse.id}&page_size=10000`);
+      
+      let stockData = [];
+      if (Array.isArray(stockRes.data)) {
+        stockData = stockRes.data;
+      } else if (stockRes.data && Array.isArray(stockRes.data.results)) {
+        stockData = stockRes.data.results;
+      }
+
+      const productsData = Array.isArray(stockData) ? stockData.map(stock => ({
+        id: stock.product_variant?.id || stock.product_variant?.product_id,
+        variant_id: stock.product_variant?.id,
+        name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
+        sku: stock.product_code || stock.product_variant?.sku || 'N/A',
+        price: parseFloat(stock.sale_price || stock.product_variant?.price || 0),
+        stock: parseFloat(stock.quantity || 0),
+        brand: { id: stock.brand_id, name: stock.brand_name || 'Sin marca' },
+        category: { id: stock.category_id, name: stock.category_name || 'Sin categoría' },
+        image: stock.product_variant?.image || stock.image,
+        description: stock.product_variant?.description || '',
+        warehouse_name: stock.warehouse_name,
+        is_active: true,
+        is_featured: Math.random() > 0.85,
+        rating: Math.floor(Math.random() * 5) + 1,
+        discount: Math.random() > 0.9 ? Math.floor(Math.random() * 30) + 5 : 0
+      })) : [];
+
+      setAllProducts(Array.isArray(productsData) ? productsData : []);
+      setLastUpdate(new Date());
+      console.log(`✅ Productos actualizados: ${productsData.length}`);
+    } catch (error) {
+      console.error('❌ Error refrescando productos:', error);
+    }
   };
 
   const loadInitialData = async () => {
@@ -1254,7 +1309,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 />
               </div>
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
               <button
                 className="btn btn-outline-secondary w-100"
                 onClick={() => {
@@ -1267,10 +1322,21 @@ const EnhancedTijuanaStore = ({ user }) => {
                 }}
               >
                 <i className="bi bi-eraser me-2"></i>
-                Limpiar filtros
+                Limpiar
               </button>
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
+              <button
+                className="btn btn-success w-100"
+                onClick={refreshProducts}
+                disabled={loading || !tijuanaWarehouse}
+                title="Actualizar inventario desde el servidor"
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Actualizar
+              </button>
+            </div>
+            <div className="col-md-2">
               <div className="form-check form-switch d-flex justify-content-center align-items-center">
                 <input
                   className="form-check-input me-2"
@@ -1297,7 +1363,7 @@ const EnhancedTijuanaStore = ({ user }) => {
         </div>
 
         {/* Indicador informativo */}
-        <div className="d-flex justify-content-center mb-3">
+        <div className="d-flex justify-content-between align-items-center mb-3">
           <div className={`alert ${hasActiveFilters ? 'alert-info' : 'alert-success'} d-inline-flex align-items-center py-2 px-3 mb-0`} role="alert" style={{ fontSize: '0.9rem' }}>
             <i className={`bi ${hasActiveFilters ? 'bi-funnel' : 'bi-star-fill'} me-2`}></i>
             <span className="fw-medium">
@@ -1322,6 +1388,15 @@ const EnhancedTijuanaStore = ({ user }) => {
               </button>
             )}
           </div>
+          
+          {lastUpdate && (
+            <div className="alert alert-secondary d-inline-flex align-items-center py-2 px-3 mb-0" style={{ fontSize: '0.85rem' }}>
+              <i className="bi bi-clock-history me-2"></i>
+              <span>
+                Última actualización: {lastUpdate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Lista de productos */}
