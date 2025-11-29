@@ -6,9 +6,11 @@ const menuItems = [
   { name: "Inicio", path: "/home", icon: "bi-house" },
   { name: "Resumen", path: "/summary", icon: "bi-graph-up" },
   { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
+  { name: "Productos New", path: "/products-new", icon: "bi-shop" },
+  { name: "Tienda Tijuana", path: "/enhanced-store", icon: "bi-shop" },
   { name: "Usuarios", path: "/users", icon: "bi-people" },
   { name: "Centro de Productos", path: "/product-center", icon: "bi-box-seam" },
-  { name: "Productos", path: "/products", icon: "bi-box-seam" },
+  //{ name: "Productos", path: "/products", icon: "bi-box-seam" },
   { name: "Almacenes", path: "/warehouses", icon: "bi-building" },
   //{ name: "Inventario General", path: "/inventory-general", icon: "bi-clipboard-data" },
   { name: "Órdenes de Compra", path: "/purchase-orders", icon: "bi-cart-plus" },
@@ -20,8 +22,7 @@ const menuItems = [
   { name: "Categorías", path: "/categories", icon: "bi-tags" },
   { name: "Marcas", path: "/brands", icon: "bi-star" },
   { name: "Tasas de Cambio", path: "/exchange-rates", icon: "bi-currency-exchange" },
-  { name: "Tienda Tijuana", path: "/enhanced-store", icon: "bi-shop" },
-  { name: "Productos New", path: "/products-new", icon: "bi-shop" },
+
 ];
 
 export default function Sidebar({ onClose }) {
