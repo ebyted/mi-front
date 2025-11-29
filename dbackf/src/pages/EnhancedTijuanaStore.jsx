@@ -279,8 +279,26 @@ const EnhancedTijuanaStore = ({ user }) => {
       // Cargar almacenes y encontrar TIJUANA
       console.log('📦 Cargando almacenes...');
       const warehousesRes = await api.get('warehouses/');
-      const warehousesData = warehousesRes.data || [];
-      const warehouses = Array.isArray(warehousesData) ? warehousesData : [];
+      
+      console.log('📊 Respuesta de warehouses:', warehousesRes.data);
+      console.log('📊 Tipo de data:', typeof warehousesRes.data);
+      console.log('📊 Es array?:', Array.isArray(warehousesRes.data));
+      console.log('📊 Tiene results?:', warehousesRes.data?.results);
+      
+      // Manejar respuesta paginada o simple
+      let warehouses = [];
+      if (Array.isArray(warehousesRes.data)) {
+        warehouses = warehousesRes.data;
+      } else if (warehousesRes.data && Array.isArray(warehousesRes.data.results)) {
+        warehouses = warehousesRes.data.results;
+      } else if (typeof warehousesRes.data === 'object' && warehousesRes.data !== null) {
+        // Si es un objeto pero no tiene results, intentar convertirlo a array
+        console.warn('⚠️ Formato inesperado de warehouses, convirtiendo objeto a array');
+        warehouses = Object.values(warehousesRes.data);
+      } else {
+        console.error('❌ Formato completamente inesperado:', warehousesRes.data);
+        warehouses = [];
+      }
       
       console.log(`🏢 Almacenes encontrados: ${warehouses.length}`);
       if (Array.isArray(warehouses)) {
@@ -368,7 +386,13 @@ const EnhancedTijuanaStore = ({ user }) => {
       // Cargar clientes
       try {
         const customersRes = await api.get('customers/');
-        setAllCustomers(Array.isArray(customersRes.data) ? customersRes.data : []);
+        let customersData = [];
+        if (Array.isArray(customersRes.data)) {
+          customersData = customersRes.data;
+        } else if (customersRes.data && Array.isArray(customersRes.data.results)) {
+          customersData = customersRes.data.results;
+        }
+        setAllCustomers(customersData);
       } catch (err) {
         console.warn('⚠️ Error cargando clientes:', err.message);
         setAllCustomers([]);
@@ -516,7 +540,12 @@ const EnhancedTijuanaStore = ({ user }) => {
     try {
       console.log('📋 Cargando clientes...');
       const response = await api.get('/customers/');
-      const customersData = Array.isArray(response.data) ? response.data : [];
+      let customersData = [];
+      if (Array.isArray(response.data)) {
+        customersData = response.data;
+      } else if (response.data && Array.isArray(response.data.results)) {
+        customersData = response.data.results;
+      }
       setAllCustomers(customersData);
       console.log('✅ Clientes cargados:', customersData.length || 0);
     } catch (error) {
