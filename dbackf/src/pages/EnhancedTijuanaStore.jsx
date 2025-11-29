@@ -13,7 +13,7 @@ import 'swiper/css/effect-coverflow';
 
 const EnhancedTijuanaStore = ({ user }) => {
   // Estados principales
-  const [allProducts, setAllProducts] = useState([]); // TODOS los productos (2000+)
+  const [allProducts, setAllProducts] = useState([]); // TODOS los productos (2000+) - DEBE inicializarse como array vacío
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tijuanaWarehouse, setTijuanaWarehouse] = useState(null);
@@ -339,13 +339,19 @@ const EnhancedTijuanaStore = ({ user }) => {
       const stockRes = await api.get(`product-warehouse-stocks/?warehouse=${tijuana.id}&page_size=10000`);
       
       // Mapear TODOS los productos
-      const stockData = Array.isArray(stockRes.data) 
-        ? stockRes.data 
-        : (stockRes.data.results || []);
+      let stockData = [];
+      if (Array.isArray(stockRes.data)) {
+        stockData = stockRes.data;
+      } else if (stockRes.data && Array.isArray(stockRes.data.results)) {
+        stockData = stockRes.data.results;
+      } else {
+        console.warn('⚠️ Respuesta de API no tiene formato esperado:', stockRes.data);
+        stockData = [];
+      }
 
       console.log(`✅ Productos cargados: ${stockData.length}`);
 
-      const productsData = stockData.map(stock => ({
+      const productsData = Array.isArray(stockData) ? stockData.map(stock => ({
         id: stock.product_variant?.id || stock.product_variant?.product_id,
         variant_id: stock.product_variant?.id,
         name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
@@ -367,9 +373,9 @@ const EnhancedTijuanaStore = ({ user }) => {
         is_featured: Math.random() > 0.85, // 15% son destacados
         rating: Math.floor(Math.random() * 5) + 1,
         discount: Math.random() > 0.9 ? Math.floor(Math.random() * 30) + 5 : 0
-      }));
+      })) : [];
 
-      setAllProducts(productsData);
+      setAllProducts(Array.isArray(productsData) ? productsData : []);
 
       // Cargar clientes
       const customersRes = await api.get('customers/');
