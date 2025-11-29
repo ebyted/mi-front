@@ -307,9 +307,15 @@ const EnhancedTijuanaStore = ({ user }) => {
       const stockRes = await api.get(`product-warehouse-stocks/?warehouse=${tijuana.id}&page_size=10000`);
       
       // Mapear TODOS los productos
-      const stockData = Array.isArray(stockRes.data) 
-        ? stockRes.data 
-        : (stockRes.data.results || []);
+      let stockData = [];
+      if (Array.isArray(stockRes.data)) {
+        stockData = stockRes.data;
+      } else if (stockRes.data && Array.isArray(stockRes.data.results)) {
+        stockData = stockRes.data.results;
+      } else {
+        console.warn('⚠️ Formato de respuesta inesperado:', stockRes.data);
+        stockData = [];
+      }
 
       console.log(`✅ Productos cargados: ${stockData.length}`);
 
@@ -340,14 +346,22 @@ const EnhancedTijuanaStore = ({ user }) => {
       setAllProducts(productsData);
 
       // Cargar clientes
-      const customersRes = await api.get('customers/');
-      setAllCustomers(customersRes.data || []);
+      try {
+        const customersRes = await api.get('customers/');
+        setAllCustomers(Array.isArray(customersRes.data) ? customersRes.data : []);
+      } catch (err) {
+        console.warn('⚠️ Error cargando clientes:', err.message);
+        setAllCustomers([]);
+      }
 
       console.log(`✅ Sistema listo: ${productsData.length} productos, ${productsData.filter(p => p.is_featured).length} destacados`);
 
     } catch (error) {
       console.error('❌ Error loading data:', error);
       setError(error.message || 'Error al cargar los datos');
+      // Asegurar que siempre haya arrays vacíos en caso de error
+      setAllProducts([]);
+      setAllCustomers([]);
     } finally {
       setLoading(false);
     }
