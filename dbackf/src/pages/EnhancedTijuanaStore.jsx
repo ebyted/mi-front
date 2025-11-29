@@ -78,18 +78,31 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   // Cargar marcas y categorías únicas desde allProducts
   const brands = useMemo(() => {
-    const uniqueBrands = [...new Set(allProducts.map(p => p.brand.name))];
-    return uniqueBrands.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
+    if (!Array.isArray(allProducts) || allProducts.length === 0) return [];
+    try {
+      const uniqueBrands = [...new Set(allProducts.map(p => p?.brand?.name).filter(Boolean))];
+      return uniqueBrands.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error('Error calculando marcas:', error);
+      return [];
+    }
   }, [allProducts]);
 
   const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(allProducts.map(p => p.category.name))];
-    return uniqueCategories.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
+    if (!Array.isArray(allProducts) || allProducts.length === 0) return [];
+    try {
+      const uniqueCategories = [...new Set(allProducts.map(p => p?.category?.name).filter(Boolean))];
+      return uniqueCategories.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error('Error calculando categorías:', error);
+      return [];
+    }
   }, [allProducts]);
 
   // Productos destacados (los primeros 8 con is_featured = true)
   const featuredProducts = useMemo(() => {
-    return allProducts.filter(p => p.is_featured).slice(0, 8);
+    if (!Array.isArray(allProducts)) return [];
+    return allProducts.filter(p => p?.is_featured).slice(0, 8);
   }, [allProducts]);
 
   // Verificar si hay ALGÚN filtro activo
@@ -108,10 +121,12 @@ const EnhancedTijuanaStore = ({ user }) => {
   const filteredProducts = useMemo(() => {
     // Si NO hay filtros activos, mostrar solo productos destacados
     if (!hasActiveFilters) {
-      return featuredProducts;
+      return Array.isArray(featuredProducts) ? featuredProducts : [];
     }
 
     // Si hay filtros, aplicarlos sobre TODOS los productos
+    if (!Array.isArray(allProducts)) return [];
+    
     return allProducts.filter(product => {
       // Filtro de búsqueda
       if (search) {
@@ -160,8 +175,10 @@ const EnhancedTijuanaStore = ({ user }) => {
   }, [allProducts, featuredProducts, hasActiveFilters, search, selectedBrand, selectedCategory, priceRange, showOutOfStock, sortBy]);
 
   // Paginación - Mostrar todos si pageSize es muy grande
-  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+  const totalPages = Math.ceil((Array.isArray(filteredProducts) ? filteredProducts.length : 0) / pageSize);
   const paginatedProducts = useMemo(() => {
+    if (!Array.isArray(filteredProducts)) return [];
+    
     // Si pageSize >= 1000, mostrar todos sin paginar
     if (pageSize >= 1000) {
       return filteredProducts;
