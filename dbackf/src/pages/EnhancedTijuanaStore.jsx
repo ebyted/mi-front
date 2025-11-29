@@ -279,15 +279,18 @@ const EnhancedTijuanaStore = ({ user }) => {
       // Cargar almacenes y encontrar TIJUANA
       console.log('📦 Cargando almacenes...');
       const warehousesRes = await api.get('warehouses/');
-      const warehouses = warehousesRes.data || [];
+      const warehousesData = warehousesRes.data || [];
+      const warehouses = Array.isArray(warehousesData) ? warehousesData : [];
       
       console.log(`🏢 Almacenes encontrados: ${warehouses.length}`);
-      warehouses.forEach((w, idx) => {
-        console.log(`   ${idx + 1}. ${w.name} (ID: ${w.id}, Código: ${w.code || 'N/A'}, Dirección: ${w.address || 'N/A'})`);
-      });
+      if (Array.isArray(warehouses)) {
+        warehouses.forEach((w, idx) => {
+          console.log(`   ${idx + 1}. ${w.name} (ID: ${w.id}, Código: ${w.code || 'N/A'}, Dirección: ${w.address || 'N/A'})`);
+        });
+      }
       
       // Buscar TIJUANA con múltiples criterios (case insensitive)
-      let tijuana = warehouses.find(w => {
+      let tijuana = Array.isArray(warehouses) ? warehouses.find(w => {
         const name = (w.name || '').toLowerCase();
         const code = (w.code || '').toLowerCase();
         const address = (w.address || '').toLowerCase();
@@ -297,10 +300,10 @@ const EnhancedTijuanaStore = ({ user }) => {
                code.includes('tij') ||
                address.includes('tijuana') ||
                address.includes('tijana');
-      });
+      }) : null;
 
       // Si no se encuentra, usar el primer almacén disponible
-      if (!tijuana && warehouses.length > 0) {
+      if (!tijuana && Array.isArray(warehouses) && warehouses.length > 0) {
         tijuana = warehouses[0];
         console.warn(`⚠️ Almacén "TIJUANA" no encontrado, usando: ${tijuana.name}`);
       }
