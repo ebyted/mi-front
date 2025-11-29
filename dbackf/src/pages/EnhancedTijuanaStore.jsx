@@ -110,9 +110,9 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   // Filtrar productos (solo cuando hay filtros activos)
   const filteredProducts = useMemo(() => {
-    // Si NO hay filtros activos, mostrar solo productos destacados
+    // Si NO hay filtros activos, mostrar TODOS los productos
     if (!hasActiveFilters) {
-      return featuredProducts;
+      return allProducts;
     }
 
     // Si hay filtros, aplicarlos sobre TODOS los productos
