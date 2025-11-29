@@ -2193,7 +2193,11 @@ const EnhancedTijuanaStore = ({ user }) => {
                             <button
                               type="button"
                               className="btn btn-primary"
-                              onClick={startNewCustomer}
+                              onClick={() => {
+                                setShowNewCustomerForm(true);
+                                setShowCustomerDropdown(false);
+                                setCustomerSearchTerm('');
+                              }}
                               title="Crear cliente nuevo"
                             >
                               <i className="bi bi-person-plus"></i>
