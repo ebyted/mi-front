@@ -1589,3 +1589,130 @@ from .serializers import ProductImageSerializer
 class ProductImageViewSet(viewsets.ModelViewSet):
     queryset = ProductImage.objects.all()
     serializer_class = ProductImageSerializer
+
+
+# ============================================
+# ENDPOINTS PARA SINCRONIZACIÓN DE STOCK
+# ============================================
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+from django.core.management import call_command
+from io import StringIO
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def force_sync_warehouse_stock(request):
+    """
+    Endpoint para forzar sincronización manual de stock
+    POST /api/sync-warehouse-stock/
+    
+    Body (opcional):
+    {
+        "warehouse": "TIJUANA",
+        "force": true,
+        "fix_discrepancies": false
+    }
+    """
+    # Solo admin puede forzar sincronización completa
+    if not request.user.is_staff and request.data.get('force'):
+        return Response({
+            'success': False,
+            'error': 'Solo administradores pueden forzar sincronización completa'
+        }, status=403)
+    
+    try:
+        warehouse = request.data.get('warehouse', 'TIJUANA')
+        force = request.data.get('force', False)
+        fix_only = request.data.get('fix_discrepancies', True)
+        
+        output = StringIO()
+        
+        args = ['--warehouse', warehouse]
+        if force:
+            args.append('--force')
+        if fix_only:
+            args.append('--fix-discrepancies')
+        
+        call_command('sync_warehouse_stock', *args, stdout=output)
+        
+        return Response({
+            'success': True,
+            'message': 'Sincronización completada exitosamente',
+            'output': output.getvalue()
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_stock_health(request):
+    """
+    Endpoint para verificar la salud de los stocks
+    GET /api/check-stock-health/?warehouse=TIJUANA&limit=50
+    
+    Retorna estadísticas de discrepancias
+    """
+    from core.signals import calculate_variant_stock
+    
+    try:
+        warehouse_name = request.query_params.get('warehouse', 'TIJUANA')
+        limit = int(request.query_params.get('limit', 50))
+        
+        # Buscar almacén
+        from django.db.models import Q
+        warehouse = Warehouse.objects.filter(
+            Q(name__icontains=warehouse_name) |
+            Q(code__icontains=warehouse_name)
+        ).first()
+        
+        if not warehouse:
+            return Response({
+                'success': False,
+                'error': f'Almacén "{warehouse_name}" no encontrado'
+            }, status=404)
+        
+        discrepancies = []
+        total_checked = 0
+        
+        stocks = ProductWarehouseStock.objects.filter(
+            warehouse=warehouse
+        ).select_related(
+            'product_variant__product', 
+            'warehouse'
+        )[:limit]
+        
+        for stock in stocks:
+            real_stock = calculate_variant_stock(stock.product_variant, stock.warehouse)
+            total_checked += 1
+            
+            if stock.quantity != real_stock:
+                discrepancies.append({
+                    'product': stock.product_variant.product.name,
+                    'warehouse': stock.warehouse.name,
+                    'registered_stock': float(stock.quantity),
+                    'real_stock': float(real_stock),
+                    'difference': float(real_stock - stock.quantity)
+                })
+        
+        health_score = ((total_checked - len(discrepancies)) / total_checked * 100) if total_checked > 0 else 100
+        
+        return Response({
+            'success': True,
+            'warehouse': warehouse.name,
+            'total_checked': total_checked,
+            'discrepancies_found': len(discrepancies),
+            'health_score': round(health_score, 2),
+            'discrepancies': discrepancies[:20],  # Limitar a 20 para no sobrecargar
+            'message': f'Salud del inventario: {round(health_score, 2)}%'
+        })
+        
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)

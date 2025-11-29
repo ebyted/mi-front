@@ -124,6 +124,10 @@ urlpatterns = [
     path('debug/filters/', DebugFiltersAPIView.as_view(), name='debug-filters'),
     path('dashboard/initialize-test-data/', InitializeTestDataAPIView.as_view(), name='initialize-test-data'),
     
+    # === ENDPOINTS PARA SINCRONIZACIÓN DE STOCK ===
+    path('sync-warehouse-stock/', views.force_sync_warehouse_stock, name='sync-warehouse-stock'),
+    path('check-stock-health/', views.check_stock_health, name='check-stock-health'),
+    
     path('', include(router.urls)),
 ]
 
