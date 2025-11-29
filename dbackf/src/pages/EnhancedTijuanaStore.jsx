@@ -79,17 +79,20 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   // Cargar marcas y categorías únicas desde allProducts
   const brands = useMemo(() => {
-    const uniqueBrands = [...new Set(allProducts.map(p => p.brand.name))];
+    if (!Array.isArray(allProducts)) return [];
+    const uniqueBrands = [...new Set(allProducts.map(p => p.brand?.name).filter(Boolean))];
     return uniqueBrands.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [allProducts]);
 
   const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(allProducts.map(p => p.category.name))];
+    if (!Array.isArray(allProducts)) return [];
+    const uniqueCategories = [...new Set(allProducts.map(p => p.category?.name).filter(Boolean))];
     return uniqueCategories.map(name => ({ name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [allProducts]);
 
   // Productos destacados (los primeros 8 con is_featured = true)
   const featuredProducts = useMemo(() => {
+    if (!Array.isArray(allProducts)) return [];
     return allProducts.filter(p => p.is_featured).slice(0, 8);
   }, [allProducts]);
 
