@@ -234,11 +234,11 @@ const EnhancedTijuanaStore = ({ user }) => {
   useEffect(() => {
     if (customerSearch.length >= 2) {
       const searchLower = customerSearch.toLowerCase();
-      const filtered = allCustomers.filter(customer =>
+      const filtered = Array.isArray(allCustomers) ? allCustomers.filter(customer =>
         customer.name?.toLowerCase().includes(searchLower) ||
         customer.email?.toLowerCase().includes(searchLower) ||
         customer.phone?.includes(customerSearch)
-      );
+      ) : [];
       setFilteredCustomers(filtered);
     } else {
       setFilteredCustomers([]);
@@ -309,7 +309,7 @@ const EnhancedTijuanaStore = ({ user }) => {
       }
 
       if (!tijuana) {
-        const warehouseList = warehouses.map(w => `"${w.name}"`).join(', ');
+        const warehouseList = Array.isArray(warehouses) ? warehouses.map(w => `"${w.name}"`).join(', ') : '';
         console.error('❌ No hay almacenes disponibles');
         console.error('   Almacenes en base de datos:', warehouseList || 'ninguno');
         throw new Error(
@@ -339,7 +339,7 @@ const EnhancedTijuanaStore = ({ user }) => {
 
       console.log(`✅ Productos cargados: ${stockData.length}`);
 
-      const productsData = stockData.map(stock => ({
+      const productsData = Array.isArray(stockData) ? stockData.map(stock => ({
         id: stock.product_variant?.id || stock.product_variant?.product_id,
         variant_id: stock.product_variant?.id,
         name: stock.product_name || stock.product_variant?.name || 'Sin nombre',
@@ -361,9 +361,9 @@ const EnhancedTijuanaStore = ({ user }) => {
         is_featured: Math.random() > 0.85, // 15% son destacados
         rating: Math.floor(Math.random() * 5) + 1,
         discount: Math.random() > 0.9 ? Math.floor(Math.random() * 30) + 5 : 0
-      }));
+      })) : [];
 
-      setAllProducts(productsData);
+      setAllProducts(Array.isArray(productsData) ? productsData : []);
 
       // Cargar clientes
       try {
@@ -516,8 +516,9 @@ const EnhancedTijuanaStore = ({ user }) => {
     try {
       console.log('📋 Cargando clientes...');
       const response = await api.get('/customers/');
-      setAllCustomers(response.data || []);
-      console.log('✅ Clientes cargados:', response.data?.length || 0);
+      const customersData = Array.isArray(response.data) ? response.data : [];
+      setAllCustomers(customersData);
+      console.log('✅ Clientes cargados:', customersData.length || 0);
     } catch (error) {
       console.error('❌ Error cargando clientes:', error);
       setAllCustomers([]);
@@ -1165,7 +1166,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 1024: { slidesPerView: 4 },
               }}
             >
-              {featuredProducts.map(product => (
+              {Array.isArray(featuredProducts) && featuredProducts.map(product => (
                 <SwiperSlide key={product.id}>
                   <div className="featured-product-card">
                     <div className="position-relative">
@@ -1243,7 +1244,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 }}
               >
                 <option value="">Todas las categorías</option>
-                {categories
+                {Array.isArray(categories) && categories
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map(cat => (
                     <option key={cat.name} value={cat.name}>{cat.name}</option>
@@ -1262,7 +1263,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 }}
               >
                 <option value="">Todas las marcas</option>
-                {brands
+                {Array.isArray(brands) && brands
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map(brand => (
                     <option key={brand.name} value={brand.name}>{brand.name}</option>
@@ -1434,7 +1435,7 @@ const EnhancedTijuanaStore = ({ user }) => {
         ) : (
           <>
             <div className={viewMode === 'grid' ? 'row g-4' : ''}>
-              {viewMode === 'grid' && paginatedProducts.map(product => {
+              {viewMode === 'grid' && Array.isArray(paginatedProducts) && paginatedProducts.map(product => {
                 const stockColor = product.stock > 10 ? 'success' : 
                                    product.stock > 5 ? 'warning' : 
                                    product.stock > 0 ? 'danger' : 'secondary';
@@ -1546,7 +1547,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                   width="100%"
                   className="mb-4"
                 >
-                  {paginatedProducts.map((product, index) => {
+                  {Array.isArray(paginatedProducts) && paginatedProducts.map((product, index) => {
                     const stockColor = product.stock > 10 ? 'success' : 
                                        product.stock > 5 ? 'warning' : 
                                        product.stock > 0 ? 'danger' : 'secondary';
@@ -1863,7 +1864,7 @@ const EnhancedTijuanaStore = ({ user }) => {
           ) : (
             <>
               <div className="mb-3" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {cart.map(item => {
+                {Array.isArray(cart) && cart.map(item => {
                   const finalPrice = item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price;
                   return (
                     <div key={item.id} className="d-flex align-items-center border-bottom py-3">
@@ -2213,7 +2214,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                                   Selecciona un cliente:
                                 </small>
                               </div>
-                              {filteredCustomers.map((customer, index) => (
+                              {Array.isArray(filteredCustomers) && filteredCustomers.map((customer, index) => (
                                 <div
                                   key={customer.id}
                                   className="p-3 border-bottom cursor-pointer hover-bg-light customer-item"
@@ -2552,7 +2553,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                     <div className="col-md-4">
                       <h6 className="border-bottom pb-2 mb-3">Resumen del Pedido</h6>
                       <div className="bg-light p-3 rounded">
-                        {cart.map(item => (
+                        {Array.isArray(cart) && cart.map(item => (
                           <div key={item.id} className="d-flex justify-content-between mb-2 small">
                             <span>{item.name} x{item.quantity}</span>
                             <span>{formatCurrency((item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price) * item.quantity)}</span>
