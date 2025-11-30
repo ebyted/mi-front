@@ -30,8 +30,12 @@ const ProductsNew = () => {
                 api.get('/brands/'),
                 api.get('/categories/')
             ]);
-            setBrands(brandsRes.data.results || brandsRes.data || []);
-            setCategories(categoriesRes.data.results || categoriesRes.data || []);
+            const brandsData = brandsRes.data.results || brandsRes.data || [];
+            const categoriesData = categoriesRes.data.results || categoriesRes.data || [];
+            
+            // Ordenar alfabéticamente por nombre
+            setBrands(brandsData.sort((a, b) => a.name.localeCompare(b.name)));
+            setCategories(categoriesData.sort((a, b) => a.name.localeCompare(b.name)));
         } catch (err) {
             console.error('Error cargando marcas y categorías:', err);
         }
