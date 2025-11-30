@@ -392,21 +392,33 @@ class CustomPageNumberPagination(PageNumberPagination):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'sku', 'code', 'barcode', 'brand__name', 'category__name']
+    filter_backends = [filters.OrderingFilter]
     ordering_fields = ['name', 'created_at', 'price']
     ordering = ['name']
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        
+        # Filtro por búsqueda manual
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(sku__icontains=search) |
+                Q(code__icontains=search) |
+                Q(barcode__icontains=search) |
+                Q(brand__name__icontains=search) |
+                Q(category__name__icontains=search)
+            )
+        
+        # Filtro por activo/inactivo
         is_active = self.request.query_params.get('is_active')
         if is_active is not None:
-            print("Filtro recibido is_active:", is_active)  # Para depuración
-            # Ajusta el valor según lo que envíes desde el frontend
             if is_active in ['true', 'True', '1', True]:
                 queryset = queryset.filter(is_active=True)
             elif is_active in ['false', 'False', '0', False]:
                 queryset = queryset.filter(is_active=False)
+        
         return queryset
     
     @action(detail=False, methods=['get'])
