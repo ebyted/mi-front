@@ -27,8 +27,8 @@ const ProductsNew = () => {
     const fetchBrandsAndCategories = async () => {
         try {
             const [brandsRes, categoriesRes] = await Promise.all([
-                api.get('/brands/'),
-                api.get('/categories/')
+                api.get('/brands/', { params: { page_size: 10000 } }),
+                api.get('/categories/', { params: { page_size: 10000 } })
             ]);
             const brandsData = brandsRes.data.results || brandsRes.data || [];
             const categoriesData = categoriesRes.data.results || categoriesRes.data || [];
