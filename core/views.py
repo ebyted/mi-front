@@ -1153,10 +1153,10 @@ class DashboardSummaryAPIView(APIView):
         # 1. ALERTAS CRÍTICAS
         # Productos sin stock
         zero_stock_query = ProductWarehouseStock.objects.filter(
-            stock_quantity=0
+            quantity=0
         ).select_related(
             'product_variant__product'
-        ).distinct('product_variant__product__id')[:10]
+        )[:10]
         
         zero_stock_products = []
         for stock in zero_stock_query:
@@ -1164,19 +1164,19 @@ class DashboardSummaryAPIView(APIView):
                 zero_stock_products.append({
                     'product_variant__product__id': stock.product_variant.product.id,
                     'product_variant__product__name': stock.product_variant.product.name,
-                    'product_variant__product__sku': stock.product_variant.product.sku,
+                    'product_variant__product__sku': stock.product_variant.product.sku or '',
                     'product_variant__sku': stock.product_variant.sku,
-                    'stock_quantity': stock.stock_quantity,
-                    'minimum_stock': stock.minimum_stock
+                    'stock_quantity': float(stock.quantity),
+                    'minimum_stock': float(stock.min_stock)
                 })
         
         # Productos con stock bajo
         low_stock_query = ProductWarehouseStock.objects.filter(
-            stock_quantity__gt=0,
-            stock_quantity__lte=F('minimum_stock')
+            quantity__gt=0,
+            quantity__lte=F('min_stock')
         ).select_related(
             'product_variant__product'
-        ).distinct('product_variant__product__id')[:10]
+        )[:10]
         
         low_stock_products = []
         for stock in low_stock_query:
@@ -1184,10 +1184,10 @@ class DashboardSummaryAPIView(APIView):
                 low_stock_products.append({
                     'product_variant__product__id': stock.product_variant.product.id,
                     'product_variant__product__name': stock.product_variant.product.name,
-                    'product_variant__product__sku': stock.product_variant.product.sku,
+                    'product_variant__product__sku': stock.product_variant.product.sku or '',
                     'product_variant__sku': stock.product_variant.sku,
-                    'stock_quantity': stock.stock_quantity,
-                    'minimum_stock': stock.minimum_stock
+                    'stock_quantity': float(stock.quantity),
+                    'minimum_stock': float(stock.min_stock)
                 })
         
         # Órdenes de compra pendientes
