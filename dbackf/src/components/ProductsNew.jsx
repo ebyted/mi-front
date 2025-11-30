@@ -13,10 +13,29 @@ const ProductsNew = () => {
     const [page, setPage] = useState(1);
     const [pageSize] = useState(52);
     const [totalPages, setTotalPages] = useState(1);
+    const [brands, setBrands] = useState([]);
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+        fetchBrandsAndCategories();
+    }, []);
 
     useEffect(() => {
         fetchProducts(search, isActive, page);
     }, [search, isActive, page]);
+
+    const fetchBrandsAndCategories = async () => {
+        try {
+            const [brandsRes, categoriesRes] = await Promise.all([
+                api.get('/brands/'),
+                api.get('/categories/')
+            ]);
+            setBrands(brandsRes.data.results || brandsRes.data || []);
+            setCategories(categoriesRes.data.results || categoriesRes.data || []);
+        } catch (err) {
+            console.error('Error cargando marcas y categorías:', err);
+        }
+    };
 
     const fetchProducts = async (searchTerm = '', activeFilter = null) => {
         setLoading(true);
@@ -173,6 +192,8 @@ const ProductsNew = () => {
                     show={showEditModal}
                     onHide={() => setShowEditModal(false)}
                     product={editProduct}
+                    brands={brands}
+                    categories={categories}
                     onSave={() => { setShowEditModal(false); fetchProducts(search, isActive, page); }}
                 />
                 </>
