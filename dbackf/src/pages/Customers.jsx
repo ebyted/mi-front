@@ -60,9 +60,15 @@ function Customers() {
 		setLoading(true);
 		try {
 			const res = await api.get('/customers/');
-			setCustomers(res.data || []);
+			// Manejar respuestas paginadas y directas
+			const customersData = Array.isArray(res.data) 
+				? res.data 
+				: (res.data.results || []);
+			setCustomers(customersData);
 		} catch (err) {
+			console.error('Error loading customers:', err);
 			setError('No se pudo cargar los clientes');
+			setCustomers([]); // Asegurar que siempre sea un array
 		} finally {
 			setLoading(false);
 		}
@@ -182,11 +188,11 @@ function Customers() {
 	};
 
 	// Búsqueda y paginación
-	const filtered = customers.filter(c =>
+	const filtered = Array.isArray(customers) ? customers.filter(c =>
 		c.name?.toLowerCase().includes(search.toLowerCase()) ||
 		c.email?.toLowerCase().includes(search.toLowerCase()) ||
 		c.code?.toLowerCase().includes(search.toLowerCase())
-	);
+	) : [];
 	const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 	const totalPages = Math.ceil(filtered.length / pageSize);
 
