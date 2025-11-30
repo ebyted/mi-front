@@ -11,12 +11,11 @@ function Quotations() {
   const [saving, setSaving] = useState(false);
   
   // Estados para datos relacionados
-  // customers eliminado - ahora usamos texto libre
   const [products, setProducts] = useState([]);
   
   // Estados del formulario
   const [formData, setFormData] = useState({
-    customer_name: '', // Cambiado a texto abierto
+    customer_name: '',
     quote_date: '',
     status: 'DRAFT',
     notes: ''
@@ -31,13 +30,14 @@ function Quotations() {
   }]);
   
   const [formError, setFormError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(null);
+  const [searchTerms, setSearchTerms] = useState({});
+  const [filteredProductsByIndex, setFilteredProductsByIndex] = useState({});
 
   // Cargar datos iniciales
   useEffect(() => {
     loadQuotations();
-    loadProducts(); // Ya no necesitamos cargar customers
+    loadProducts();
   }, []);
 
   const loadQuotations = async () => {
@@ -55,11 +55,8 @@ function Quotations() {
     }
   };
 
-  // loadCustomers eliminado - ya no necesitamos cargar customers
-
   const loadProducts = async () => {
     try {
-      // Cargar TODOS los productos sin límite de paginación
       const response = await api.get('/products/?page_size=10000');
       setProducts(response.data.results || response.data || []);
       console.log(`✅ Productos cargados para cotizaciones: ${(response.data.results || response.data || []).length}`);
@@ -72,9 +69,9 @@ function Quotations() {
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.position-relative')) {
-        setFilteredProducts([]);
-        setSearchTerm('');
+      if (!e.target.closest('.product-search-container')) {
+        setFilteredProductsByIndex({});
+        setActiveSearchIndex(null);
       }
     };
     
@@ -100,42 +97,47 @@ function Quotations() {
     setDetails(newDetails);
   };
 
-  // Manejar selección de producto con autocompletado
-  const handleProductSelect = (index, productId) => {
-    const product = products.find(p => p.id === parseInt(productId));
-    if (product) {
-      const newDetails = [...details];
-      newDetails[index] = {
-        ...newDetails[index],
-        product_id: productId,
-        product_name: product.name,
-        unit_price: product.price || 0,
-        available_stock: product.current_stock || 0
-      };
-      setDetails(newDetails);
-    }
+  // Manejar selección de producto
+  const handleProductSelect = (index, product) => {
+    const newDetails = [...details];
+    newDetails[index] = {
+      ...newDetails[index],
+      product_id: product.id,
+      product_name: product.name,
+      unit_price: product.price || 0,
+      available_stock: product.current_stock || 0
+    };
+    setDetails(newDetails);
+    
+    // Limpiar búsqueda para este índice
+    setSearchTerms(prev => ({ ...prev, [index]: '' }));
+    setFilteredProductsByIndex(prev => ({ ...prev, [index]: [] }));
+    setActiveSearchIndex(null);
   };
 
-  // Filtrar productos por búsqueda
-  const filterProducts = (term) => {
-    setSearchTerm(term);
+  // Filtrar productos por búsqueda para un índice específico
+  const filterProducts = (index, term) => {
+    setSearchTerms(prev => ({ ...prev, [index]: term }));
+    setActiveSearchIndex(index);
     
     if (!term || term.length < 2) {
-      setFilteredProducts([]);
+      setFilteredProductsByIndex(prev => ({ ...prev, [index]: [] }));
       return;
     }
     
     const searchLower = term.toLowerCase();
     const filtered = products.filter(p => 
-      p.name?.toLowerCase().includes(searchLower) ||
+      (p.name?.toLowerCase().includes(searchLower) ||
       p.sku?.toLowerCase().includes(searchLower) ||
-      p.barcode?.includes(term)
-    ).slice(0, 50); // Limitar a 50 resultados
+      p.barcode?.toLowerCase().includes(searchLower)) &&
+      p.is_active
+    ).slice(0, 100);
     
-    setFilteredProducts(filtered);
+    setFilteredProductsByIndex(prev => ({ ...prev, [index]: filtered }));
   };
 
   const addDetail = () => {
+    const newIndex = details.length;
     setDetails([...details, {
       product_id: '',
       product_name: '',
@@ -143,11 +145,19 @@ function Quotations() {
       unit_price: 0,
       available_stock: 0
     }]);
+    setSearchTerms(prev => ({ ...prev, [newIndex]: '' }));
   };
 
   const removeDetail = (index) => {
     if (details.length > 1) {
       setDetails(details.filter((_, i) => i !== index));
+      const newSearchTerms = { ...searchTerms };
+      delete newSearchTerms[index];
+      setSearchTerms(newSearchTerms);
+      
+      const newFilteredProducts = { ...filteredProductsByIndex };
+      delete newFilteredProducts[index];
+      setFilteredProductsByIndex(newFilteredProducts);
     }
   };
 
@@ -203,7 +213,6 @@ function Quotations() {
         alert('Cotización creada exitosamente');
       }
 
-      // Limpiar formulario y recargar datos
       resetForm();
       setShowForm(false);
       loadQuotations();
@@ -235,8 +244,9 @@ function Quotations() {
     }]);
     setFormError('');
     setEditingQuotation(null);
-    setSearchTerm('');
-    setFilteredProducts([]);
+    setSearchTerms({});
+    setFilteredProductsByIndex({});
+    setActiveSearchIndex(null);
   };
 
   // Editar cotización
@@ -250,12 +260,16 @@ function Quotations() {
     });
     setDetails(quotation.details?.length > 0 ? quotation.details.map(detail => ({
       product_id: detail.product_id?.toString() || '',
+      product_name: detail.product_name || '',
       quantity: detail.quantity || 1,
-      unit_price: detail.unit_price || 0
+      unit_price: detail.unit_price || 0,
+      available_stock: detail.available_stock || 0
     })) : [{
       product_id: '',
+      product_name: '',
       quantity: 1,
-      unit_price: 0
+      unit_price: 0,
+      available_stock: 0
     }]);
     setShowForm(true);
   };
@@ -274,14 +288,6 @@ function Quotations() {
       console.error('Error deleting quotation:', err);
       alert('Error al eliminar la cotización');
     }
-  };
-
-  // getCustomerName eliminado - ya no necesitamos buscar customers
-
-  // Obtener nombre del producto
-  const getProductName = (productId) => {
-    const product = products.find(p => p.id === parseInt(productId));
-    return product ? product.name : 'Seleccionar producto';
   };
 
   // Estados de cotización
@@ -423,7 +429,7 @@ function Quotations() {
       {/* Modal del formulario */}
       {showForm && (
         <div className="modal fade show d-block" tabIndex="-1" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header bg-info text-white">
                 <h5 className="modal-title">
@@ -510,59 +516,102 @@ function Quotations() {
                         onClick={addDetail}
                       >
                         <i className="bi bi-plus-lg me-1"></i>
-                        Agregar
+                        Agregar Producto
                       </button>
                     </div>
 
                     {details.map((detail, index) => (
-                      <div key={index} className="mb-3">
+                      <div key={index} className="mb-3 pb-3 border-bottom">
                         <div className="row g-2">
                           {/* Product Search with Autocomplete */}
                           <div className="col-md-5">
-                            <div className="position-relative">
+                            <div className="position-relative product-search-container">
+                              <label className="form-label small mb-1">Producto</label>
                               <input
                                 type="text"
                                 className="form-control"
-                                placeholder="Buscar producto por nombre o SKU..."
-                                value={detail.product_name || ''}
+                                placeholder="Escribe para buscar (nombre, SKU, código)..."
+                                value={searchTerms[index] || detail.product_name || ''}
                                 onChange={(e) => {
-                                  handleDetailChange(index, 'product_name', e.target.value);
-                                  filterProducts(e.target.value);
+                                  filterProducts(index, e.target.value);
                                 }}
                                 onFocus={() => {
-                                  if (detail.product_name && detail.product_name.length >= 2) {
-                                    filterProducts(detail.product_name);
+                                  setActiveSearchIndex(index);
+                                  if (searchTerms[index] && searchTerms[index].length >= 2) {
+                                    filterProducts(index, searchTerms[index]);
                                   }
                                 }}
-                                required
+                                required={!detail.product_id}
                               />
                               
+                              {/* Producto seleccionado */}
+                              {detail.product_id && !searchTerms[index] && (
+                                <div className="mt-1 p-2 bg-light border rounded">
+                                  <div className="d-flex justify-content-between align-items-start">
+                                    <div className="flex-grow-1">
+                                      <div className="fw-bold text-truncate">{detail.product_name}</div>
+                                      <small className={`badge ${detail.available_stock > 0 ? 'bg-success' : 'bg-danger'}`}>
+                                        Stock: {detail.available_stock || 0}
+                                      </small>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-secondary"
+                                      onClick={() => {
+                                        handleDetailChange(index, 'product_id', '');
+                                        handleDetailChange(index, 'product_name', '');
+                                        setSearchTerms(prev => ({ ...prev, [index]: '' }));
+                                      }}
+                                      title="Cambiar producto"
+                                    >
+                                      <i className="bi bi-x"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                              
                               {/* Autocomplete Dropdown */}
-                              {filteredProducts.length > 0 && searchTerm.length >= 2 && (
-                                <div className="position-absolute w-100 bg-white border rounded shadow-sm" 
-                                     style={{ zIndex: 1050, maxHeight: '250px', overflowY: 'auto' }}>
-                                  {filteredProducts.map(product => (
+                              {activeSearchIndex === index && 
+                               filteredProductsByIndex[index]?.length > 0 && 
+                               searchTerms[index]?.length >= 2 && (
+                                <div className="position-absolute w-100 bg-white border rounded shadow" 
+                                     style={{ zIndex: 1050, maxHeight: '300px', overflowY: 'auto', top: '100%', marginTop: '2px' }}>
+                                  <div className="p-2 bg-light border-bottom">
+                                    <small className="text-muted">
+                                      <i className="bi bi-search me-1"></i>
+                                      {filteredProductsByIndex[index].length} resultados
+                                    </small>
+                                  </div>
+                                  {filteredProductsByIndex[index].map(product => (
                                     <div
                                       key={product.id}
-                                      className="p-2 border-bottom cursor-pointer"
-                                      style={{ cursor: 'pointer' }}
-                                      onClick={() => {
-                                        handleProductSelect(index, product.id);
-                                        setFilteredProducts([]);
-                                        setSearchTerm('');
-                                      }}
+                                      className="p-2 border-bottom"
+                                      style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
+                                      onClick={() => handleProductSelect(index, product)}
                                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
                                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                                     >
                                       <div className="d-flex justify-content-between align-items-start">
-                                        <div className="flex-grow-1">
-                                          <div className="fw-bold">{product.name}</div>
-                                          <small className="text-muted">SKU: {product.sku}</small>
+                                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                                          <div className="fw-bold text-truncate" title={product.name}>
+                                            {product.name}
+                                          </div>
+                                          <div className="d-flex gap-2 flex-wrap">
+                                            <small className="text-muted">SKU: {product.sku}</small>
+                                            {product.barcode && (
+                                              <small className="text-muted">Código: {product.barcode}</small>
+                                            )}
+                                          </div>
+                                          {product.brand_name && (
+                                            <small className="badge bg-secondary">{product.brand_name}</small>
+                                          )}
                                         </div>
-                                        <div className="text-end ms-2">
-                                          <div className="fw-bold text-success">${parseFloat(product.price || 0).toFixed(2)}</div>
-                                          <small className={`badge ${product.stock > 0 ? 'bg-success' : 'bg-danger'}`}>
-                                            Stock: {product.stock || 0}
+                                        <div className="text-end ms-2" style={{ minWidth: '80px' }}>
+                                          <div className="fw-bold text-success">
+                                            ${parseFloat(product.price || 0).toFixed(2)}
+                                          </div>
+                                          <small className={`badge ${product.current_stock > 0 ? 'bg-success' : 'bg-danger'}`}>
+                                            Stock: {product.current_stock || 0}
                                           </small>
                                         </div>
                                       </div>
@@ -570,55 +619,66 @@ function Quotations() {
                                   ))}
                                 </div>
                               )}
+                              
+                              {/* Sin resultados */}
+                              {activeSearchIndex === index && 
+                               searchTerms[index]?.length >= 2 && 
+                               filteredProductsByIndex[index]?.length === 0 && (
+                                <div className="position-absolute w-100 bg-white border rounded shadow p-3 text-center text-muted" 
+                                     style={{ zIndex: 1050, top: '100%', marginTop: '2px' }}>
+                                  <i className="bi bi-search display-6"></i>
+                                  <div className="mt-2">No se encontraron productos</div>
+                                  <small>Intenta con otro término de búsqueda</small>
+                                </div>
+                              )}
                             </div>
-                            
-                            {/* Stock indicator below input */}
-                            {detail.product_id && (
-                              <small className={`${detail.available_stock > 0 ? 'text-success' : 'text-danger'}`}>
-                                <i className="bi bi-box-seam me-1"></i>
-                                Disponible: {detail.available_stock || 0}
-                              </small>
-                            )}
                           </div>
                           
                           <div className="col-md-2">
+                            <label className="form-label small mb-1">Cantidad</label>
                             <input
                               type="number"
                               className="form-control"
-                              placeholder="Cantidad"
+                              placeholder="Cant."
                               value={detail.quantity}
                               onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
                               required
                               min="1"
                               step="1"
+                              disabled={!detail.product_id}
                             />
                           </div>
                           
-                          <div className="col-md-3">
+                          <div className="col-md-2">
+                            <label className="form-label small mb-1">Precio Unit.</label>
                             <input
                               type="number"
                               className="form-control"
-                              placeholder="Precio unitario"
+                              placeholder="0.00"
                               value={detail.unit_price}
                               onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
                               required
                               min="0"
                               step="0.01"
+                              disabled={!detail.product_id}
                             />
                           </div>
                           
-                          <div className="col-md-1">
-                            <div className="text-center fw-bold text-success">
+                          <div className="col-md-2">
+                            <label className="form-label small mb-1">Total</label>
+                            <div className="p-2 bg-light border rounded text-center fw-bold text-success">
                               ${(parseFloat(detail.quantity) * parseFloat(detail.unit_price) || 0).toFixed(2)}
                             </div>
                           </div>
                           
                           <div className="col-md-1">
+                            <label className="form-label small mb-1 invisible">-</label>
                             <button
                               type="button"
                               className="btn btn-outline-danger btn-sm w-100"
                               onClick={() => removeDetail(index)}
                               disabled={details.length === 1}
+                              title="Eliminar producto"
                             >
                               <i className="bi bi-trash"></i>
                             </button>
@@ -629,7 +689,7 @@ function Quotations() {
 
                     <div className="text-end mt-3 pt-2 border-top">
                       <h5 className="text-success mb-0">
-                        Total: <span className="fw-bold">${calculateTotal()}</span>
+                        Total General: <span className="fw-bold">${calculateTotal()}</span>
                       </h5>
                     </div>
                   </div>
