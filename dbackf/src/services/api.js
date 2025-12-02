@@ -7,7 +7,7 @@ import axios from 'axios';
 
 // Usar la variable de entorno tal cual, sin modificar ni quitar /api/
 // Si necesitas endpoints con /api/, pásalos completos en las llamadas (ej: api.post('/api/login/', ...))
-let API_URL = import.meta.env.VITE_API_URL || 'https://sanchodistribuidora/api/';
+let API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8030/api/';
 console.log('API URL configurada:', API_URL); // Para debug
 
 const api = axios.create({

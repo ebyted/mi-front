@@ -6,7 +6,7 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 # Variable de entorno para la URL del API en producción
-ENV VITE_API_URL=https://www.sanchodistribuidora.com/api/
+ENV VITE_API_URL=http://localhost:8030/api/
 RUN npm run build
 
 # Production stage

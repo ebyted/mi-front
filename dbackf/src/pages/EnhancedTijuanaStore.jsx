@@ -109,6 +109,10 @@ const EnhancedTijuanaStore = ({ user }) => {
     );
   }, [search, selectedBrand, selectedCategory, priceRange.min, priceRange.max, showOutOfStock]);
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, selectedBrand, selectedCategory, priceRange.min, priceRange.max, showOutOfStock, sortBy]);
+
   // Filtrar productos (solo cuando hay filtros activos)
   const filteredProducts = useMemo(() => {
     // Si NO hay filtros activos, mostrar TODOS los productos
@@ -749,6 +753,8 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   // Debounce para la búsqueda
   const [debouncedSearch] = useDebounce(search, 300);
+  const PAGE_SIZE = 12;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   if (loading) {
     return (
@@ -1443,7 +1449,7 @@ const EnhancedTijuanaStore = ({ user }) => {
         ) : (
           <>
             <div className={viewMode === 'grid' ? 'row g-4' : ''}>
-              {viewMode === 'grid' && paginatedProducts.map(product => {
+              {viewMode === 'grid' && paginatedProducts.slice(0, visibleCount).map(product => {
                 const stockColor = product.stock > 10 ? 'success' : 
                                    product.stock > 5 ? 'warning' : 
                                    product.stock > 0 ? 'danger' : 'secondary';
@@ -1688,106 +1694,42 @@ const EnhancedTijuanaStore = ({ user }) => {
                   </div>
                 </div>
 
-                {/* Paginación mejorada - solo si no estamos mostrando todos */}
-                {totalPages > 1 && pageSize < 1000 && (
-                  <nav>
-                    <ul className="pagination justify-content-center flex-wrap">
-                      {/* Primera página */}
-                      <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
-                        <button
-                          className="page-link"
-                          onClick={() => setPage(1)}
-                          disabled={page === 1}
-                          title="Primera página"
-                        >
-                          <i className="bi bi-chevron-double-left"></i>
-                        </button>
-                      </li>
-
-                      {/* Anterior */}
-                      <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
-                        <button
-                          className="page-link"
-                          onClick={() => setPage(page - 1)}
-                          disabled={page === 1}
-                        >
-                          <i className="bi bi-chevron-left"></i> Anterior
-                        </button>
-                      </li>
-                      
-                      {/* Números de página (mostrar máximo 7 páginas) */}
-                      {(() => {
-                        const maxPagesToShow = 7;
-                        let startPage = Math.max(1, page - Math.floor(maxPagesToShow / 2));
-                        let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-                        
-                        // Ajustar si estamos cerca del final
-                        if (endPage - startPage < maxPagesToShow - 1) {
-                          startPage = Math.max(1, endPage - maxPagesToShow + 1);
-                        }
-
-                        const pages = [];
-                        
-                        // Mostrar "..." si no empezamos en 1
-                        if (startPage > 1) {
-                          pages.push(
-                            <li key="start-ellipsis" className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          );
-                        }
-
-                        // Páginas numeradas
-                        for (let i = startPage; i <= endPage; i++) {
-                          pages.push(
-                            <li key={i} className={`page-item ${page === i ? 'active' : ''}`}>
-                              <button
-                                className={`page-link ${page === i ? 'bg-primary border-primary text-white' : 'text-primary'}`}
-                                onClick={() => setPage(i)}
-                              >
-                                {i}
-                              </button>
-                            </li>
-                          );
-                        }
-
-                        // Mostrar "..." si no terminamos en la última
-                        if (endPage < totalPages) {
-                          pages.push(
-                            <li key="end-ellipsis" className="page-item disabled">
-                              <span className="page-link">...</span>
-                            </li>
-                          );
-                        }
-
-                        return pages;
-                      })()}
-                      
-                      {/* Siguiente */}
-                      <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
-                        <button
-                          className="page-link"
-                          onClick={() => setPage(page + 1)}
-                          disabled={page === totalPages}
-                        >
-                          Siguiente <i className="bi bi-chevron-right"></i>
-                        </button>
-                      </li>
-
-                      {/* Última página */}
-                      <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
-                        <button
-                          className="page-link"
-                          onClick={() => setPage(totalPages)}
-                          disabled={page === totalPages}
-                          title="Última página"
-                        >
-                          <i className="bi bi-chevron-double-right"></i>
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                )}
+                {/* Paginación simple de 4 botones, siempre visible si hay productos */}
+                  {paginatedProducts.length > 0 && (
+                    <div className="d-flex justify-content-center align-items-center my-4 gap-2">
+                      <button
+                        className="btn btn-outline-primary"
+                        onClick={() => setVisibleCount(PAGE_SIZE)}
+                        disabled={visibleCount <= PAGE_SIZE}
+                      >
+                        « Primera
+                      </button>
+                      <button
+                        className="btn btn-outline-primary"
+                        onClick={() => setVisibleCount(Math.max(visibleCount - PAGE_SIZE, PAGE_SIZE))}
+                        disabled={visibleCount <= PAGE_SIZE}
+                      >
+                        ‹ Anterior
+                      </button>
+                      <span className="mx-2 fw-bold">
+                        Página {Math.ceil(visibleCount / PAGE_SIZE)} de {Math.max(1, Math.ceil(paginatedProducts.length / PAGE_SIZE))}
+                      </span>
+                      <button
+                        className="btn btn-outline-primary"
+                        onClick={() => setVisibleCount(Math.min(visibleCount + PAGE_SIZE, paginatedProducts.length))}
+                        disabled={visibleCount >= paginatedProducts.length}
+                      >
+                        Siguiente ›
+                      </button>
+                      <button
+                        className="btn btn-outline-primary"
+                        onClick={() => setVisibleCount(Math.ceil(paginatedProducts.length / PAGE_SIZE) * PAGE_SIZE)}
+                        disabled={visibleCount >= paginatedProducts.length}
+                      >
+                        Última »
+                      </button>
+                    </div>
+                  )}
               </div>
             )}
           </>
@@ -1885,7 +1827,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                       />
                       <div className="flex-grow-1">
                         <h6 className="mb-1 text-truncate">{item.name}</h6>
-                        <div className="text-muted small">
+                        <div className="text-muted small mb-2">
                           {item.discount > 0 ? (
                             <>
                               {formatCurrency(finalPrice)}
@@ -1914,6 +1856,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                           >
                             <i className="bi bi-dash"></i>
                           </button>
+
                           <span className="mx-3 fw-bold">{item.quantity}</span>
                           <button
                             className="btn btn-outline-secondary btn-sm"
@@ -1969,6 +1912,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                       console.log('🚀 Botón verde clickeado - Abriendo checkout');
                       console.log('🛒 Cart items:', cart.length);
                       console.log('⏳ Checkout loading:', checkoutLoading);
+                      console.log('👤 Cliente seleccionado:', selectedCustomer);
                       // Abrir modal de checkout para búsqueda de cliente
                       setShowCheckout(true);
                       console.log('✅ showCheckout establecido a true');
@@ -2253,7 +2197,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                                     </div>
                                     <div className="flex-grow-1">
                                       <div className="fw-bold text-dark">{customer.name}</div>
-                                      <div className="text-muted small">
+                                      <div className="text-muted small mb-2">
                                         {customer.email && (
                                           <div className="mb-1">
                                             <i className="bi bi-envelope me-1 text-primary"></i>
