@@ -77,6 +77,7 @@ const EnhancedTijuanaStore = ({ user }) => {
   const [customerFormErrors, setCustomerFormErrors] = useState({});
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   // Cargar marcas y categorías únicas desde allProducts
   const brands = useMemo(() => {
@@ -231,7 +232,11 @@ const EnhancedTijuanaStore = ({ user }) => {
   // Cargar clientes cuando se abra el checkout
   useEffect(() => {
     if (showCheckout) {
-      loadCustomers();
+      setLoadingCustomers(true);
+      
+     /* loadCustomers().then(() => {
+        //setLoadingCustomers(false);
+      });*/
     }
   }, [showCheckout]);
 
@@ -790,7 +795,7 @@ const EnhancedTijuanaStore = ({ user }) => {
 
   return (
     <div className="enhanced-tijuana-store">
-      <style jsx>{`
+      <style jsx="true">{`
         .enhanced-tijuana-store {
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           min-height: 100vh;
@@ -1085,6 +1090,627 @@ const EnhancedTijuanaStore = ({ user }) => {
           border-left-width: 4px !important;
         }
       `}</style>
+
+      {/* Modal de vista rápida */}
+      <div className="quick-view-modal" onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowQuickView(false);
+          setQuickViewProduct(null);
+        }
+      }}>
+        {quickViewProduct && (
+          <div className="quick-view-content p-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h4 className="mb-0">Vista Rápida</h4>
+              <button
+                className="btn btn-link p-0"
+                onClick={() => {
+                  setShowQuickView(false);
+                  setQuickViewProduct(null);
+                }}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            
+            <div className="row">
+              <div className="col-md-6">
+                <img
+                  src={isValidUrl(quickViewProduct.image) ? quickViewProduct.image : '/img/producto-fallback.svg'}
+                  alt={quickViewProduct.name}
+                  className="img-fluid rounded"
+                  onError={e => { e.target.src = '/img/producto-fallback.svg'; }}
+                />
+              </div>
+              <div className="col-md-6">
+                <h5 className="fw-bold">{quickViewProduct.name}</h5>
+                <p className="text-muted">SKU: {quickViewProduct.sku}</p>
+                
+                <div className="rating mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <i key={i} className={`bi bi-star${i < quickViewProduct.rating ? '-fill' : ''}`}></i>
+                  ))}
+                  <small className="text-muted ms-2">({quickViewProduct.rating}/5)</small>
+                </div>
+                
+                <div className="mb-3">
+                  {quickViewProduct.discount > 0 ? (
+                    <div>
+                      <span className="h4 text-success">
+                        {formatCurrency(getDiscountedPrice(quickViewProduct.price, quickViewProduct.discount))}
+                      </span>
+                      <br />
+                      <span className="text-muted text-decoration-line-through">
+                        {formatCurrency(quickViewProduct.price)}
+                      </span>
+                      <span className="badge bg-danger ms-2">-{quickViewProduct.discount}%</span>
+                    </div>
+                  ) : (
+                    <span className="h4 text-success">{formatCurrency(quickViewProduct.price)}</span>
+                  )}
+                </div>
+                
+                <p><strong>Marca:</strong> {quickViewProduct.brand.name}</p>
+                <p><strong>Categoría:</strong> {quickViewProduct.category.name}</p>
+                <p><strong>Stock disponible:</strong> {quickViewProduct.stock} unidades</p>
+                
+                {quickViewProduct.description && (
+                  <p><strong>Descripción:</strong> {quickViewProduct.description}</p>
+                )}
+                
+                <div className="d-grid gap-2 mt-4">
+                  <button
+                    className={`btn btn-lg ${quickViewProduct?.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
+                    onClick={() => {
+                      addToCart(quickViewProduct);
+                      setShowQuickView(false);
+                      setQuickViewProduct(null);
+                    }}
+                  >
+                    <i className={`bi ${quickViewProduct?.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
+                    {quickViewProduct?.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
+                  </button>
+                  <div className="row">
+                    <div className="col">
+                      <button
+                        className={`btn w-100 ${isInWishlist(quickViewProduct.id) ? 'btn-danger' : 'btn-outline-danger'}`}
+                        onClick={() => toggleWishlist(quickViewProduct)}
+                      >
+                        <i className={`bi bi-heart${isInWishlist(quickViewProduct.id) ? '-fill' : ''} me-2`}></i>
+                        {isInWishlist(quickViewProduct.id) ? 'En favoritos' : 'Agregar a favoritos'}
+                      </button>
+                    </div>
+                    <div className="col">
+                      <button
+                        className={`btn w-100 ${isInCompare(quickViewProduct.id) ? 'btn-warning' : 'btn-outline-warning'}`}
+                        onClick={() => toggleCompare(quickViewProduct)}
+                      >
+                        <i className="bi bi-arrow-left-right me-2"></i>
+                        {isInCompare(quickViewProduct.id) ? 'En comparación' : 'Comparar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Checkout */}
+        {showCheckout && (
+          <div style={{
+            backgroundColor: 'rgba(255,0,0,0.98)',
+            zIndex: 9999999,
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            visibility: 'visible',
+            opacity: 1
+          }}>
+           {console.time("Modal")}
+            <div className="modal-dialog modal-lg" style={{ margin: 'auto', maxWidth: '800px', width: '90%' }}>
+              <div className="modal-content" style={{ border: '3px solid #28a745', boxShadow: '0 0 30px rgba(0,0,0,0.5)' }}>
+                <div className="modal-header bg-success text-white">
+                  <h5 className="modal-title">
+                    <i className="bi bi-credit-card me-2"></i>
+                    Finalizar Compra
+                  </h5>
+                  <button
+                    type="button"
+                    className="btn-close btn-close-white"
+                    onClick={() => {
+                      setShowCheckout(true);
+                    }}
+                  ></button>
+                </div>
+                
+                <div className="modal-body">
+                  {loadingCustomers ? (
+                    <div className="text-center py-5">
+                      <span className="spinner-border text-success" style={{ width: '3rem', height: '3rem' }}></span>
+                      <div className="mt-3">Cargando clientes...</div>
+                    </div>
+                  ) : (
+                    <div className="row">
+                      <div className="col-md-8">
+                        <h6 className="border-bottom pb-2 mb-3">
+                          <i className="bi bi-person-circle me-2"></i>
+                          Información del Cliente
+                        </h6>
+                        
+                        {/* Búsqueda de clientes mejorada */}
+                        <div className="mb-4">
+                          <label className="form-label fw-bold">
+                            <i className="bi bi-search me-2 text-primary"></i>
+                            Buscar Cliente Existente
+                          </label>
+                          <div className="position-relative">
+                            <div className="input-group">
+                              <span className="input-group-text bg-light">
+                                <i className="bi bi-person-search"></i>
+                              </span>
+                              <input
+                                type="text"
+                                className="form-control form-control-lg"
+                                value={customerSearchTerm}
+                                onChange={(e) => handleCustomerSearch(e.target.value)}
+                                placeholder="Escribe nombre, email, teléfono o dirección del cliente..."
+                                onFocus={() => customerSearchTerm.length >= 2 && setShowCustomerDropdown(true)}
+                                style={{ fontSize: '16px' }}
+                                disabled={showNewCustomerForm}
+                              />
+                              {customerSearchTerm && !showNewCustomerForm && (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-secondary"
+                                  onClick={clearCustomerSelection}
+                                  title="Limpiar búsqueda"
+                                >
+                                  <i className="bi bi-x-lg"></i>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => {
+                                  setShowNewCustomerForm(true);
+                                  setShowCustomerDropdown(false);
+                                  setCustomerSearchTerm('');
+                                }}
+                                title="Crear cliente nuevo"
+                              >
+                                <i className="bi bi-person-plus"></i>
+                              </button>
+                            </div>
+                            
+                            {/* Indicador de búsqueda */}
+                            {customerSearchTerm && customerSearchTerm.length >= 2 && (
+                              <div className="mt-2">
+                                <small className="text-muted">
+                                  <i className="bi bi-info-circle me-1"></i>
+                                  {filteredCustomers.length > 0 
+                                    ? `${filteredCustomers.length} cliente(s) encontrado(s)` 
+                                    : 'No se encontraron clientes con ese criterio'
+                                  }
+                                </small>
+                              </div>
+                            )}
+                            
+                            {/* Dropdown de resultados mejorado */}
+                            {showCustomerDropdown && filteredCustomers.length > 0 && (
+                              <div className="position-absolute w-100 bg-white border rounded-3 shadow-lg mt-1" style={{ zIndex: 1000, maxHeight: '400px', overflowY: 'auto' }}>
+                                <div className="p-2 bg-light border-bottom">
+                                  <small className="text-muted fw-bold">
+                                    <i className="bi bi-people me-1"></i>
+                                    Selecciona un cliente:
+                                  </small>
+                                </div>
+                                {filteredCustomers.map((customer, index) => (
+                                  <div
+                                    key={customer.id}
+                                    className="p-3 border-bottom cursor-pointer hover-bg-light customer-item"
+                                    onClick={() => selectCustomer(customer)}
+                                    style={{ 
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s ease',
+                                      borderLeft: '4px solid transparent'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#f8f9fa';
+                                      e.currentTarget.style.borderLeftColor = '#007bff';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'white';
+                                      e.currentTarget.style.borderLeftColor = 'transparent';
+                                    }}
+                                  >
+                                    <div className="d-flex align-items-center">
+                                      <div className="me-3">
+                                        <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                                          <i className="bi bi-person-fill"></i>
+                                        </div>
+                                      </div>
+                                      <div className="flex-grow-1">
+                                        <div className="fw-bold text-dark">{customer.name}</div>
+                                        <div className="text-muted small mb-2">
+                                          {customer.email && (
+                                            <div className="mb-1">
+                                              <i className="bi bi-envelope me-1 text-primary"></i>
+                                              {customer.email}
+                                            </div>
+                                          )}
+                                          {customer.phone && (
+                                            <div className="mb-1">
+                                              <i className="bi bi-telephone me-1 text-success"></i>
+                                              {customer.phone}
+                                            </div>
+                                          )}
+                                          {customer.address && (
+                                            <div className="mb-1">
+                                              <i className="bi bi-geo-alt me-1 text-warning"></i>
+                                              {customer.address}
+                                            </div>
+                                          )}
+                                          {/* Mostrar nivel del cliente */}
+                                          <div>
+                                            <span className={`badge ${getLevelBadgeClass(customer.level || 1)} badge-sm`}>
+                                              <i className="bi bi-star-fill me-1"></i>
+                                              Nivel {customer.level || 1}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <i className="bi bi-chevron-right text-muted"></i>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                                {filteredCustomers.length === 10 && (
+                                  <div className="p-2 text-center bg-light">
+                                    <small className="text-muted">
+                                      <i className="bi bi-info-circle me-1"></i>
+                                      Mostrando los primeros 10 resultados. Refina tu búsqueda para ver más.
+                                    </small>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Cliente seleccionado */}
+                          {selectedCustomer && (
+                            <div className="alert alert-success mt-3 border-start border-4 border-success" style={{ borderLeft: '4px solid #198754 !important' }}>
+                              <div className="d-flex align-items-center">
+                                <div className="me-3">
+                                  <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '50px', height: '50px' }}>
+                                    <i className="bi bi-person-check-fill fs-5"></i>
+                                  </div>
+                                </div>
+                                <div className="flex-grow-1">
+                                  <h6 className="mb-1 text-success">
+                                    <i className="bi bi-check-circle me-2"></i>
+                                    Cliente seleccionado exitosamente
+                                  </h6>
+                                  <div className="fw-bold text-dark">{selectedCustomer.name}</div>
+                                  <div className="text-muted small mb-2">
+                                    {selectedCustomer.email && (
+                                      <span className="me-3">
+                                        <i className="bi bi-envelope me-1"></i>
+                                        {selectedCustomer.email}
+                                      </span>
+                                    )}
+                                    {selectedCustomer.phone && (
+                                      <span>
+                                        <i className="bi bi-telephone me-1"></i>
+                                        {selectedCustomer.phone}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {/* Mostrar nivel del cliente */}
+                                  <div className="mb-1">
+                                    <span className={`badge ${getLevelBadgeClass(selectedCustomer.level || 1)}`}>
+                                      <i className="bi bi-star-fill me-1"></i>
+                                      Nivel {selectedCustomer.level || 1}
+                                      {selectedCustomer.level === 1 && ' - Básico'}
+                                      {selectedCustomer.level === 2 && ' - Estándar'}
+                                      {selectedCustomer.level === 3 && ' - Premium'}
+                                      {selectedCustomer.level === 4 && ' - VIP'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-warning btn-sm"
+                                    onClick={enableCustomerEditing}
+                                    title="Editar cliente"
+                                  >
+                                    <i className="bi bi-pencil me-1"></i>
+                                    Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-success btn-sm"
+                                    onClick={clearCustomerSelection}
+                                    title="Cambiar cliente"
+                                  >
+                                    <i className="bi bi-arrow-repeat me-1"></i>
+                                    Cambiar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Alerta cuando no hay cliente seleccionado */}
+                          {!selectedCustomer && !showNewCustomerForm && (!customerSearchTerm || customerSearchTerm.length < 2) && (
+                            <div className="alert alert-warning mt-3 border-start border-4 border-warning">
+                              <div className="d-flex align-items-center">
+                                <i className="bi bi-exclamation-triangle me-3 fs-4 text-warning"></i>
+                                <div className="flex-grow-1">
+                                  <h6 className="mb-1 text-warning">
+                                    <i className="bi bi-person-x me-2"></i>
+                                    Cliente requerido para completar la venta
+                                  </h6>
+                                  <p className="mb-0 small">
+                                    Debe seleccionar un cliente existente o crear uno nuevo para proceder con el checkout.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Opción para crear cliente nuevo */}
+                          {!selectedCustomer && customerSearchTerm && customerSearchTerm.length >= 2 && filteredCustomers.length === 0 && (
+                            <div className="alert alert-info mt-3">
+                              <div className="d-flex align-items-center">
+                                <i className="bi bi-info-circle me-3 fs-4 text-info"></i>
+                                <div className="flex-grow-1">
+                                  <h6 className="mb-1">No se encontró el cliente</h6>
+                                  <p className="mb-2 small">No hay clientes registrados con el criterio "<strong>{customerSearchTerm}</strong>"</p>
+                                  <small className="text-muted">
+                                    Puedes completar los campos a continuación para crear un cliente nuevo o continuar como venta sin cliente registrado.
+                                  </small>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Formulario de cliente */}
+                        {(showNewCustomerForm || isEditingCustomer || !selectedCustomer) && (
+                          <div className="border rounded-3 p-3 mb-4" style={{ backgroundColor: '#f8f9fa' }}>
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                              <h6 className="mb-0">
+                                <i className={`bi ${isEditingCustomer ? 'bi-pencil' : 'bi-person-plus'} me-2 text-primary`}></i>
+                                {isEditingCustomer ? 'Editar Cliente' : 'Datos del Cliente'}
+                              </h6>
+                              {(showNewCustomerForm || isEditingCustomer) && (
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-success btn-sm"
+                                    onClick={saveCustomer}
+                                    disabled={savingCustomer}
+                                  >
+                                    {savingCustomer ? (
+                                      <>
+                                        <span className="spinner-border spinner-border-sm me-1"></span>
+                                        Guardando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <i className="bi bi-check me-1"></i>
+                                        Guardar
+                                      </>
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-secondary btn-sm"
+                                    onClick={cancelCustomerEditing}
+                                  >
+                                    <i className="bi bi-x me-1"></i>
+                                    Cancelar
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="row g-3">
+                              <div className="col-md-6">
+                                <label className="form-label fw-bold">
+                                  Nombre *
+                                  {customerFormErrors.name && (
+                                    <span className="text-danger ms-2 small">
+                                      <i className="bi bi-exclamation-triangle"></i>
+                                      {customerFormErrors.name}
+                                    </span>
+                                  )}
+                                </label>
+                                <input
+                                  type="text"
+                                  className={`form-control ${customerFormErrors.name ? 'is-invalid' : ''}`}
+                                  value={customerData.name}
+                                  onChange={(e) => handleCustomerDataChange('name', e.target.value)}
+                                  placeholder="Nombre completo del cliente"
+                                  disabled={selectedCustomer && !isEditingCustomer}
+                                />
+                              </div>
+                              <div className="col-md-6">
+                                <label className="form-label fw-bold">
+                                  Email
+                                  {customerFormErrors.email && (
+                                    <span className="text-danger ms-2 small">
+                                      <i className="bi bi-exclamation-triangle"></i>
+                                      {customerFormErrors.email}
+                                    </span>
+                                  )}
+                                </label>
+                                <input
+                                  type="email"
+                                  className={`form-control ${customerFormErrors.email ? 'is-invalid' : ''}`}
+                                  value={customerData.email}
+                                  onChange={(e) => handleCustomerDataChange('email', e.target.value)}
+                                  placeholder="cliente@email.com"
+                                  disabled={selectedCustomer && !isEditingCustomer}
+                                />
+                              </div>
+                              <div className="col-md-6">
+                                <label className="form-label fw-bold">
+                                  Teléfono
+                                  {customerFormErrors.phone && (
+                                    <span className="text-danger ms-2 small">
+                                      <i className="bi bi-exclamation-triangle"></i>
+                                      {customerFormErrors.phone}
+                                    </span>
+                                  )}
+                                </label>
+                                <input
+                                  type="tel"
+                                  className={`form-control ${customerFormErrors.phone ? 'is-invalid' : ''}`}
+                                  value={customerData.phone}
+                                  onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
+                                  placeholder="664-123-4567"
+                                  disabled={selectedCustomer && !isEditingCustomer}
+                                />
+                              </div>
+                              <div className="col-md-6">
+                                <label className="form-label fw-bold">Dirección</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={customerData.address}
+                                  onChange={(e) => handleCustomerDataChange('address', e.target.value)}
+                                  placeholder="Dirección completa"
+                                  disabled={selectedCustomer && !isEditingCustomer}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Fila adicional para el nivel */}
+                            <div className="row g-3 mt-2">
+                              <div className="col-md-6">
+                                <label className="form-label fw-bold">
+                                  <i className="bi bi-star-fill me-2 text-warning"></i>
+                                  Nivel de Cliente
+                                </label>
+                                <select
+                                  className="form-select"
+                                  value={customerData.level}
+                                  onChange={(e) => handleCustomerDataChange('level', parseInt(e.target.value))}
+                                  disabled={selectedCustomer && !isEditingCustomer}
+                                >
+                                  <option value={1}>🥉 Nivel 1 - Básico</option>
+                                  <option value={2}>🥈 Nivel 2 - Estándar</option>
+                                  <option value={3}>🥇 Nivel 3 - Premium</option>
+                                  <option value={4}>💎 Nivel 4 - VIP</option>
+                                </select>
+                                <div className="form-text">
+                                  <small className="text-muted">
+                                    <i className="bi bi-info-circle me-1"></i>
+                                    El nivel determina descuentos y beneficios especiales
+                                  </small>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="row g-3">
+                          <div className="col-12">
+                            <label className="form-label fw-bold">Notas del pedido</label>
+                            <textarea
+                              className="form-control"
+                              rows="3"
+                              value={orderNotes}
+                              onChange={(e) => setOrderNotes(e.target.value)}
+                              placeholder="Instrucciones especiales o comentarios..."
+                            ></textarea>
+                          </div>
+                          
+                          {!selectedCustomer && !showNewCustomerForm && (
+                            <div className="col-12">
+                              <div className="alert alert-info">
+                                <i className="bi bi-info-circle me-2"></i>
+                                <strong>Tip:</strong> Puedes buscar un cliente existente arriba, crear uno nuevo con el botón <strong>+</strong>, o proceder sin cliente específico.
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="col-md-4">
+                        <h6 className="border-bottom pb-2 mb-3">Resumen del Pedido</h6>
+                        <div className="bg-light p-3 rounded">
+                          {cart.map(item => (
+                            <div key={item.id} className="d-flex justify-content-between mb-2 small">
+                              <span>{item.name} x{item.quantity}</span>
+                              <span>{formatCurrency((item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price) * item.quantity)}</span>
+                            </div>
+                          ))}
+                          <hr />
+                          <div className="d-flex justify-content-between fw-bold">
+                            <span>Total:</span>
+                            <span className="text-success">{formatCurrency(getCartTotal())}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowCheckout(true)}
+                  >
+                    <i className="bi bi-x-circle me-2"></i>
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={() => {
+                      console.log('🔘 Botón de checkout clickeado');
+                      console.log('🛒 Estado del cart antes de processSale:', cart);
+                      console.log('💰 Total antes de processSale:', getCartTotal());
+                      console.log('👤 Cliente seleccionado antes de processSale:', selectedCustomer);
+                      console.log('📦 Contenido detallado del cart:', JSON.stringify(cart, null, 2));
+                      processSale();
+                    }}
+                    disabled={checkoutLoading || cart.length === 0 || !selectedCustomer}
+                  >
+                    {checkoutLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-check-circle me-2"></i>
+                        {selectedCustomer 
+                          ? `Finalizar Compra (${formatCurrency(getCartTotal())})` 
+                          : 'Seleccione un Cliente'
+                        }
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+            {console.timeEnd("Modal")}
+          </div>
+          
+        )}
+      </div>
 
       {/* Notificación */}
       <div className={`notification alert alert-${notification.type}`}>
@@ -1908,15 +2534,7 @@ const EnhancedTijuanaStore = ({ user }) => {
                 <div className="d-grid gap-2">
                   <button 
                     className="btn btn-success btn-lg"
-                    onClick={() => {
-                      console.log('🚀 Botón verde clickeado - Abriendo checkout');
-                      console.log('🛒 Cart items:', cart.length);
-                      console.log('⏳ Checkout loading:', checkoutLoading);
-                      console.log('👤 Cliente seleccionado:', selectedCustomer);
-                      // Abrir modal de checkout para búsqueda de cliente
-                      setShowCheckout(true);
-                      console.log('✅ showCheckout establecido a true');
-                    }}
+                    onClick={() => setShowCheckout(true)}
                     disabled={cart.length === 0 || checkoutLoading}
                   >
                     {checkoutLoading ? (
@@ -1948,626 +2566,7 @@ const EnhancedTijuanaStore = ({ user }) => {
         </div>
       </div>
 
-      {/* Modal de vista rápida */}
-      <div className="quick-view-modal" onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          setShowQuickView(false);
-          setQuickViewProduct(null);
-        }
-      }}>
-        {quickViewProduct && (
-          <div className="quick-view-content p-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h4 className="mb-0">Vista Rápida</h4>
-              <button
-                className="btn btn-link p-0"
-                onClick={() => {
-                  setShowQuickView(false);
-                  setQuickViewProduct(null);
-                }}
-              >
-                <i className="bi bi-x-lg"></i>
-              </button>
-            </div>
-            
-            <div className="row">
-              <div className="col-md-6">
-                <img
-                  src={isValidUrl(quickViewProduct.image) ? quickViewProduct.image : '/img/producto-fallback.svg'}
-                  alt={quickViewProduct.name}
-                  className="img-fluid rounded"
-                  onError={e => { e.target.src = '/img/producto-fallback.svg'; }}
-                />
-              </div>
-              <div className="col-md-6">
-                <h5 className="fw-bold">{quickViewProduct.name}</h5>
-                <p className="text-muted">SKU: {quickViewProduct.sku}</p>
-                
-                <div className="rating mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <i key={i} className={`bi bi-star${i < quickViewProduct.rating ? '-fill' : ''}`}></i>
-                  ))}
-                  <small className="text-muted ms-2">({quickViewProduct.rating}/5)</small>
-                </div>
-                
-                <div className="mb-3">
-                  {quickViewProduct.discount > 0 ? (
-                    <div>
-                      <span className="h4 text-success">
-                        {formatCurrency(getDiscountedPrice(quickViewProduct.price, quickViewProduct.discount))}
-                      </span>
-                      <br />
-                      <span className="text-muted text-decoration-line-through">
-                        {formatCurrency(quickViewProduct.price)}
-                      </span>
-                      <span className="badge bg-danger ms-2">-{quickViewProduct.discount}%</span>
-                    </div>
-                  ) : (
-                    <span className="h4 text-success">{formatCurrency(quickViewProduct.price)}</span>
-                  )}
-                </div>
-                
-                <p><strong>Marca:</strong> {quickViewProduct.brand.name}</p>
-                <p><strong>Categoría:</strong> {quickViewProduct.category.name}</p>
-                <p><strong>Stock disponible:</strong> {quickViewProduct.stock} unidades</p>
-                
-                {quickViewProduct.description && (
-                  <p><strong>Descripción:</strong> {quickViewProduct.description}</p>
-                )}
-                
-                <div className="d-grid gap-2 mt-4">
-                  <button
-                    className={`btn btn-lg ${quickViewProduct?.stock > 0 ? 'btn-primary' : 'btn-warning'}`}
-                    onClick={() => {
-                      addToCart(quickViewProduct);
-                      setShowQuickView(false);
-                      setQuickViewProduct(null);
-                    }}
-                  >
-                    <i className={`bi ${quickViewProduct?.stock > 0 ? 'bi-cart-plus' : 'bi-cart-dash'} me-2`}></i>
-                    {quickViewProduct?.stock > 0 ? 'Agregar al carrito' : 'Pedido especial'}
-                  </button>
-                  <div className="row">
-                    <div className="col">
-                      <button
-                        className={`btn w-100 ${isInWishlist(quickViewProduct.id) ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={() => toggleWishlist(quickViewProduct)}
-                      >
-                        <i className={`bi bi-heart${isInWishlist(quickViewProduct.id) ? '-fill' : ''} me-2`}></i>
-                        {isInWishlist(quickViewProduct.id) ? 'En favoritos' : 'Agregar a favoritos'}
-                      </button>
-                    </div>
-                    <div className="col">
-                      <button
-                        className={`btn w-100 ${isInCompare(quickViewProduct.id) ? 'btn-warning' : 'btn-outline-warning'}`}
-                        onClick={() => toggleCompare(quickViewProduct)}
-                      >
-                        <i className="bi bi-arrow-left-right me-2"></i>
-                        {isInCompare(quickViewProduct.id) ? 'En comparación' : 'Comparar'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Checkout */}
-        {showCheckout && (
-          <div 
-            style={{ 
-              backgroundColor: 'rgba(255,0,0,0.98)', 
-              zIndex: 9999999,
-             
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100vw',
-              height: '100vh',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              visibility: 'visible',
-              opacity: 1
-            }}
-            onClick={(e) => {
-              console.log('🎯 Modal backdrop clickeado');
-              if (e.target === e.currentTarget) {
-                setShowCheckout(false);
-              }
-            }}
-          >
-            <div className="modal-dialog modal-lg" style={{ margin: 'auto', maxWidth: '800px', width: '90%' }}>
-              <div className="modal-content" style={{ border: '3px solid #28a745', boxShadow: '0 0 30px rgba(0,0,0,0.5)' }}>
-                <div className="modal-header bg-success text-white">
-                  <h5 className="modal-title">
-                    <i className="bi bi-credit-card me-2"></i>
-                    Finalizar Compra
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close btn-close-white"
-                    onClick={() => {
-                      setShowCheckout(false);
-                    }}
-                  ></button>
-                </div>
-                
-                <div className="modal-body">
-                  {/* Resumen del pedido */}
-                  <div className="row">
-                    <div className="col-md-8">
-                      <h6 className="border-bottom pb-2 mb-3">
-                        <i className="bi bi-person-circle me-2"></i>
-                        Información del Cliente
-                      </h6>
-                      
-                      {/* Búsqueda de clientes mejorada */}
-                      <div className="mb-4">
-                        <label className="form-label fw-bold">
-                          <i className="bi bi-search me-2 text-primary"></i>
-                          Buscar Cliente Existente
-                        </label>
-                        <div className="position-relative">
-                          <div className="input-group">
-                            <span className="input-group-text bg-light">
-                              <i className="bi bi-person-search"></i>
-                            </span>
-                            <input
-                              type="text"
-                              className="form-control form-control-lg"
-                              value={customerSearchTerm}
-                              onChange={(e) => handleCustomerSearch(e.target.value)}
-                              placeholder="Escribe nombre, email, teléfono o dirección del cliente..."
-                              onFocus={() => customerSearchTerm.length >= 2 && setShowCustomerDropdown(true)}
-                              style={{ fontSize: '16px' }}
-                              disabled={showNewCustomerForm}
-                            />
-                            {customerSearchTerm && !showNewCustomerForm && (
-                              <button
-                                type="button"
-                                className="btn btn-outline-secondary"
-                                onClick={clearCustomerSelection}
-                                title="Limpiar búsqueda"
-                              >
-                                <i className="bi bi-x-lg"></i>
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => {
-                                setShowNewCustomerForm(true);
-                                setShowCustomerDropdown(false);
-                                setCustomerSearchTerm('');
-                              }}
-                              title="Crear cliente nuevo"
-                            >
-                              <i className="bi bi-person-plus"></i>
-                            </button>
-                          </div>
-                          
-                          {/* Indicador de búsqueda */}
-                          {customerSearchTerm && customerSearchTerm.length >= 2 && (
-                            <div className="mt-2">
-                              <small className="text-muted">
-                                <i className="bi bi-info-circle me-1"></i>
-                                {filteredCustomers.length > 0 
-                                  ? `${filteredCustomers.length} cliente(s) encontrado(s)` 
-                                  : 'No se encontraron clientes con ese criterio'
-                                }
-                              </small>
-                            </div>
-                          )}
-                          
-                          {/* Dropdown de resultados mejorado */}
-                          {showCustomerDropdown && filteredCustomers.length > 0 && (
-                            <div className="position-absolute w-100 bg-white border rounded-3 shadow-lg mt-1" style={{ zIndex: 1000, maxHeight: '400px', overflowY: 'auto' }}>
-                              <div className="p-2 bg-light border-bottom">
-                                <small className="text-muted fw-bold">
-                                  <i className="bi bi-people me-1"></i>
-                                  Selecciona un cliente:
-                                </small>
-                              </div>
-                              {filteredCustomers.map((customer, index) => (
-                                <div
-                                  key={customer.id}
-                                  className="p-3 border-bottom cursor-pointer hover-bg-light customer-item"
-                                  onClick={() => selectCustomer(customer)}
-                                  style={{ 
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    borderLeft: '4px solid transparent'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = '#f8f9fa';
-                                    e.currentTarget.style.borderLeftColor = '#007bff';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'white';
-                                    e.currentTarget.style.borderLeftColor = 'transparent';
-                                  }}
-                                >
-                                  <div className="d-flex align-items-center">
-                                    <div className="me-3">
-                                      <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
-                                        <i className="bi bi-person-fill"></i>
-                                      </div>
-                                    </div>
-                                    <div className="flex-grow-1">
-                                      <div className="fw-bold text-dark">{customer.name}</div>
-                                      <div className="text-muted small mb-2">
-                                        {customer.email && (
-                                          <div className="mb-1">
-                                            <i className="bi bi-envelope me-1 text-primary"></i>
-                                            {customer.email}
-                                          </div>
-                                        )}
-                                        {customer.phone && (
-                                          <div className="mb-1">
-                                            <i className="bi bi-telephone me-1 text-success"></i>
-                                            {customer.phone}
-                                          </div>
-                                        )}
-                                        {customer.address && (
-                                          <div className="mb-1">
-                                            <i className="bi bi-geo-alt me-1 text-warning"></i>
-                                            {customer.address}
-                                          </div>
-                                        )}
-                                        {/* Mostrar nivel del cliente */}
-                                        <div>
-                                          <span className={`badge ${getLevelBadgeClass(customer.level || 1)} badge-sm`}>
-                                            <i className="bi bi-star-fill me-1"></i>
-                                            Nivel {customer.level || 1}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <i className="bi bi-chevron-right text-muted"></i>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                              {filteredCustomers.length === 10 && (
-                                <div className="p-2 text-center bg-light">
-                                  <small className="text-muted">
-                                    <i className="bi bi-info-circle me-1"></i>
-                                    Mostrando los primeros 10 resultados. Refina tu búsqueda para ver más.
-                                  </small>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Cliente seleccionado */}
-                        {selectedCustomer && (
-                          <div className="alert alert-success mt-3 border-start border-4 border-success" style={{ borderLeft: '4px solid #198754 !important' }}>
-                            <div className="d-flex align-items-center">
-                              <div className="me-3">
-                                <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '50px', height: '50px' }}>
-                                  <i className="bi bi-person-check-fill fs-5"></i>
-                                </div>
-                              </div>
-                              <div className="flex-grow-1">
-                                <h6 className="mb-1 text-success">
-                                  <i className="bi bi-check-circle me-2"></i>
-                                  Cliente seleccionado exitosamente
-                                </h6>
-                                <div className="fw-bold text-dark">{selectedCustomer.name}</div>
-                                <div className="text-muted small mb-2">
-                                  {selectedCustomer.email && (
-                                    <span className="me-3">
-                                      <i className="bi bi-envelope me-1"></i>
-                                      {selectedCustomer.email}
-                                    </span>
-                                  )}
-                                  {selectedCustomer.phone && (
-                                    <span>
-                                      <i className="bi bi-telephone me-1"></i>
-                                      {selectedCustomer.phone}
-                                    </span>
-                                  )}
-                                </div>
-                                {/* Mostrar nivel del cliente */}
-                                <div className="mb-1">
-                                  <span className={`badge ${getLevelBadgeClass(selectedCustomer.level || 1)}`}>
-                                    <i className="bi bi-star-fill me-1"></i>
-                                    Nivel {selectedCustomer.level || 1}
-                                    {selectedCustomer.level === 1 && ' - Básico'}
-                                    {selectedCustomer.level === 2 && ' - Estándar'}
-                                    {selectedCustomer.level === 3 && ' - Premium'}
-                                    {selectedCustomer.level === 4 && ' - VIP'}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="d-flex gap-2">
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-warning btn-sm"
-                                  onClick={enableCustomerEditing}
-                                  title="Editar cliente"
-                                >
-                                  <i className="bi bi-pencil me-1"></i>
-                                  Editar
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-success btn-sm"
-                                  onClick={clearCustomerSelection}
-                                  title="Cambiar cliente"
-                                >
-                                  <i className="bi bi-arrow-repeat me-1"></i>
-                                  Cambiar
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Alerta cuando no hay cliente seleccionado */}
-                        {!selectedCustomer && !showNewCustomerForm && (!customerSearchTerm || customerSearchTerm.length < 2) && (
-                          <div className="alert alert-warning mt-3 border-start border-4 border-warning">
-                            <div className="d-flex align-items-center">
-                              <i className="bi bi-exclamation-triangle me-3 fs-4 text-warning"></i>
-                              <div className="flex-grow-1">
-                                <h6 className="mb-1 text-warning">
-                                  <i className="bi bi-person-x me-2"></i>
-                                  Cliente requerido para completar la venta
-                                </h6>
-                                <p className="mb-0 small">
-                                  Debe seleccionar un cliente existente o crear uno nuevo para proceder con el checkout.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Opción para crear cliente nuevo */}
-                        {!selectedCustomer && customerSearchTerm && customerSearchTerm.length >= 2 && filteredCustomers.length === 0 && (
-                          <div className="alert alert-info mt-3">
-                            <div className="d-flex align-items-center">
-                              <i className="bi bi-info-circle me-3 fs-4 text-info"></i>
-                              <div className="flex-grow-1">
-                                <h6 className="mb-1">No se encontró el cliente</h6>
-                                <p className="mb-2 small">No hay clientes registrados con el criterio "<strong>{customerSearchTerm}</strong>"</p>
-                                <small className="text-muted">
-                                  Puedes completar los campos a continuación para crear un cliente nuevo o continuar como venta sin cliente registrado.
-                                </small>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Formulario de cliente */}
-                      {(showNewCustomerForm || isEditingCustomer || !selectedCustomer) && (
-                        <div className="border rounded-3 p-3 mb-4" style={{ backgroundColor: '#f8f9fa' }}>
-                          <div className="d-flex justify-content-between align-items-center mb-3">
-                            <h6 className="mb-0">
-                              <i className={`bi ${isEditingCustomer ? 'bi-pencil' : 'bi-person-plus'} me-2 text-primary`}></i>
-                              {isEditingCustomer ? 'Editar Cliente' : 'Datos del Cliente'}
-                            </h6>
-                            {(showNewCustomerForm || isEditingCustomer) && (
-                              <div className="d-flex gap-2">
-                                <button
-                                  type="button"
-                                  className="btn btn-success btn-sm"
-                                  onClick={saveCustomer}
-                                  disabled={savingCustomer}
-                                >
-                                  {savingCustomer ? (
-                                    <>
-                                      <span className="spinner-border spinner-border-sm me-1"></span>
-                                      Guardando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <i className="bi bi-check me-1"></i>
-                                      Guardar
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-secondary btn-sm"
-                                  onClick={cancelCustomerEditing}
-                                >
-                                  <i className="bi bi-x me-1"></i>
-                                  Cancelar
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="row g-3">
-                            <div className="col-md-6">
-                              <label className="form-label fw-bold">
-                                Nombre *
-                                {customerFormErrors.name && (
-                                  <span className="text-danger ms-2 small">
-                                    <i className="bi bi-exclamation-triangle"></i>
-                                    {customerFormErrors.name}
-                                  </span>
-                                )}
-                              </label>
-                              <input
-                                type="text"
-                                className={`form-control ${customerFormErrors.name ? 'is-invalid' : ''}`}
-                                value={customerData.name}
-                                onChange={(e) => handleCustomerDataChange('name', e.target.value)}
-                                placeholder="Nombre completo del cliente"
-                                disabled={selectedCustomer && !isEditingCustomer}
-                              />
-                            </div>
-                            <div className="col-md-6">
-                              <label className="form-label fw-bold">
-                                Email
-                                {customerFormErrors.email && (
-                                  <span className="text-danger ms-2 small">
-                                    <i className="bi bi-exclamation-triangle"></i>
-                                    {customerFormErrors.email}
-                                  </span>
-                                )}
-                              </label>
-                              <input
-                                type="email"
-                                className={`form-control ${customerFormErrors.email ? 'is-invalid' : ''}`}
-                                value={customerData.email}
-                                onChange={(e) => handleCustomerDataChange('email', e.target.value)}
-                                placeholder="cliente@email.com"
-                                disabled={selectedCustomer && !isEditingCustomer}
-                              />
-                            </div>
-                            <div className="col-md-6">
-                              <label className="form-label fw-bold">
-                                Teléfono
-                                {customerFormErrors.phone && (
-                                  <span className="text-danger ms-2 small">
-                                    <i className="bi bi-exclamation-triangle"></i>
-                                    {customerFormErrors.phone}
-                                  </span>
-                                )}
-                              </label>
-                              <input
-                                type="tel"
-                                className={`form-control ${customerFormErrors.phone ? 'is-invalid' : ''}`}
-                                value={customerData.phone}
-                                onChange={(e) => handleCustomerDataChange('phone', e.target.value)}
-                                placeholder="664-123-4567"
-                                disabled={selectedCustomer && !isEditingCustomer}
-                              />
-                            </div>
-                            <div className="col-md-6">
-                              <label className="form-label fw-bold">Dirección</label>
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={customerData.address}
-                                onChange={(e) => handleCustomerDataChange('address', e.target.value)}
-                                placeholder="Dirección completa"
-                                disabled={selectedCustomer && !isEditingCustomer}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Fila adicional para el nivel */}
-                          <div className="row g-3 mt-2">
-                            <div className="col-md-6">
-                              <label className="form-label fw-bold">
-                                <i className="bi bi-star-fill me-2 text-warning"></i>
-                                Nivel de Cliente
-                              </label>
-                              <select
-                                className="form-select"
-                                value={customerData.level}
-                                onChange={(e) => handleCustomerDataChange('level', parseInt(e.target.value))}
-                                disabled={selectedCustomer && !isEditingCustomer}
-                              >
-                                <option value={1}>🥉 Nivel 1 - Básico</option>
-                                <option value={2}>🥈 Nivel 2 - Estándar</option>
-                                <option value={3}>🥇 Nivel 3 - Premium</option>
-                                <option value={4}>💎 Nivel 4 - VIP</option>
-                              </select>
-                              <div className="form-text">
-                                <small className="text-muted">
-                                  <i className="bi bi-info-circle me-1"></i>
-                                  El nivel determina descuentos y beneficios especiales
-                                </small>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="row g-3">
-                        <div className="col-12">
-                          <label className="form-label fw-bold">Notas del pedido</label>
-                          <textarea
-                            className="form-control"
-                            rows="3"
-                            value={orderNotes}
-                            onChange={(e) => setOrderNotes(e.target.value)}
-                            placeholder="Instrucciones especiales o comentarios..."
-                          ></textarea>
-                        </div>
-                        
-                        {!selectedCustomer && !showNewCustomerForm && (
-                          <div className="col-12">
-                            <div className="alert alert-info">
-                              <i className="bi bi-info-circle me-2"></i>
-                              <strong>Tip:</strong> Puedes buscar un cliente existente arriba, crear uno nuevo con el botón <strong>+</strong>, o proceder sin cliente específico.
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="col-md-4">
-                      <h6 className="border-bottom pb-2 mb-3">Resumen del Pedido</h6>
-                      <div className="bg-light p-3 rounded">
-                        {cart.map(item => (
-                          <div key={item.id} className="d-flex justify-content-between mb-2 small">
-                            <span>{item.name} x{item.quantity}</span>
-                            <span>{formatCurrency((item.discount > 0 ? getDiscountedPrice(item.price, item.discount) : item.price) * item.quantity)}</span>
-                          </div>
-                        ))}
-                        <hr />
-                        <div className="d-flex justify-content-between fw-bold">
-                          <span>Total:</span>
-                          <span className="text-success">{formatCurrency(getCartTotal())}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowCheckout(false)}
-                  >
-                    <i className="bi bi-x-circle me-2"></i>
-                    Cancelar
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-success"
-                    onClick={() => {
-                      console.log('🔘 Botón de checkout clickeado');
-                      console.log('🛒 Estado del cart antes de processSale:', cart);
-                      console.log('💰 Total antes de processSale:', getCartTotal());
-                      console.log('👤 Cliente seleccionado antes de processSale:', selectedCustomer);
-                      console.log('📦 Contenido detallado del cart:', JSON.stringify(cart, null, 2));
-                      processSale();
-                    }}
-                    disabled={checkoutLoading || cart.length === 0 || !selectedCustomer}
-                  >
-                    {checkoutLoading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2"></span>
-                        Procesando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="bi bi-check-circle me-2"></i>
-                        {selectedCustomer 
-                          ? `Finalizar Compra (${formatCurrency(getCartTotal())})` 
-                          : 'Seleccione un Cliente'
-                        }
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      
     </div>
   );
 };
