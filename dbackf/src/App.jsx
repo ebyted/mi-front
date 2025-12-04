@@ -25,12 +25,14 @@ import ExchangeRates from './pages/ExchangeRates';
 import Customers from './pages/Customers';
 import TestCustomers from './pages/TestCustomers';
 import Suppliers from './pages/Suppliers';
-import EnhancedTijuanaStore from './pages/EnhancedTijuanaStore.jsx';
+import EnhancedTijuanaStore from './pages/EnhancedTijuanaStoreNew.jsx';
 // ...existing code...
 import InventoryGeneral from './pages/InventoryGeneral';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import ProductsNew from './components/ProductsNew.jsx';
+import EnhancedTijuanaStoreNew from './pages/EnhancedTijuanaStoreNew.jsx';
+
 
 
 function AppContent() {
@@ -101,7 +103,8 @@ function AppContent() {
         <Route path="/suppliers" element={renderWithSidebar(Suppliers)} />
         <Route path="/test-customers" element={renderWithSidebar(TestCustomers)} />
         <Route path="/enhanced-store" element={renderWithSidebar(() => <EnhancedTijuanaStore user={null} />)} />
-        <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
+        <Route path="/enhanced-store-new" element={renderWithSidebar(() => <EnhancedTijuanaStoreNew user={null} />)} />
+                <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
         <Route path="/products-new" element={renderWithSidebar(ProductsNew)} />
   {/* <Route path="/product-investigation" element={renderWithSidebar(ProductInvestigation)} /> */}
         
