@@ -1598,10 +1598,3 @@ class DebugFiltersAPIView(APIView):
         }
         
         return Response(data)
-
-from .models import ProductImage
-from .serializers import ProductImageSerializer
-
-class ProductImageViewSet(viewsets.ModelViewSet):
-    queryset = ProductImage.objects.all()
-    serializer_class = ProductImageSerializer

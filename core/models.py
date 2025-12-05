@@ -1,3 +1,4 @@
+from xml.parsers.expat import model
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -838,3 +839,25 @@ class ProductImage(models.Model):
     product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='product_images/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+class ConsultaTienda(models.Model):
+    id = models.CharField(max_length=50, primary_key=True)
+    sku = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
+    image = models.TextField()
+    telefono = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    brand_name   = models.CharField(max_length=100)
+    category_name = models.CharField(max_length=100)
+    warehouse_id = models.CharField(max_length=50)
+    price = models.DecimalField(max_digits=15, decimal_places=2)
+    warehouse_name = models.CharField(max_length=100)
+    cantidad = models.IntegerField()
+    min_stock = models.IntegerField()
+
+    class Meta:
+        managed=False
+        db_table = 'consulta_tienda'
+        verbose_name = "Consulta Tienda"

@@ -78,8 +78,7 @@ router.register(r'sales', SaleViewSet)
 router.register(r'sale-payments', SalePaymentViewSet)
 router.register(r'customer-payments', CustomerPaymentViewSet)
 router.register(r'supplier-payments', SupplierPaymentViewSet)
-from .views import ProductImageViewSet
-router.register(r'product-images', ProductImageViewSet)
+
 
 urlpatterns = [
     # Endpoints nuevos para Product Center
@@ -126,6 +125,3 @@ urlpatterns = [
     
     path('', include(router.urls)),
 ]
-
-
-

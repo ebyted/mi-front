@@ -103,7 +103,7 @@ function AppContent() {
         <Route path="/suppliers" element={renderWithSidebar(Suppliers)} />
         <Route path="/test-customers" element={renderWithSidebar(TestCustomers)} />
         <Route path="/enhanced-store" element={renderWithSidebar(() => <EnhancedTijuanaStore user={null} />)} />
-        <Route path="/enhanced-store-new" element={renderWithSidebar(() => <EnhancedTijuanaStoreNew user={null} />)} />
+        <Route path="/store" element={renderWithSidebar(() => <EnhancedTijuanaStoreNew user={null} />)} />
                 <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
         <Route path="/products-new" element={renderWithSidebar(ProductsNew)} />
   {/* <Route path="/product-investigation" element={renderWithSidebar(ProductInvestigation)} /> */}
