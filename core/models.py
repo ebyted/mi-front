@@ -846,7 +846,6 @@ class ConsultaTienda(models.Model):
     sku = models.CharField(max_length=100)
     name = models.CharField(max_length=200)
     image = models.TextField()
-    telefono = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     brand_name   = models.CharField(max_length=100)
@@ -861,3 +860,4 @@ class ConsultaTienda(models.Model):
         managed=False
         db_table = 'consulta_tienda'
         verbose_name = "Consulta Tienda"
+        ordering = ['name']

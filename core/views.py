@@ -1598,3 +1598,10 @@ class DebugFiltersAPIView(APIView):
         }
         
         return Response(data)
+from rest_framework import generics
+from .models import ConsultaTienda
+from .serializers import ConsultaTiendaSerializer
+
+class ConsultaTiendaListView(generics.ListAPIView):
+    queryset = ConsultaTienda.objects.all()
+    serializer_class = ConsultaTiendaSerializer
