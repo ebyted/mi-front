@@ -3,7 +3,7 @@ import api from "../services/api";
 import ProductList from "./ProductList";
 import TijuanaStoreHeader from "./TijuanaStoreHeader";
 
-const EnhancedTijuanaStoreNew = () => {
+const Store = () => {
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -115,4 +115,4 @@ const EnhancedTijuanaStoreNew = () => {
   );
 };
 
-export default EnhancedTijuanaStoreNew;
+export default Store;
