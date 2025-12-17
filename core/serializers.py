@@ -6,7 +6,7 @@ from .models import (
     Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem,
     InventoryMovement, ExchangeRate, CustomerType, Customer, SalesOrder, SalesOrderItem, Quotation, QuotationItem,
     Role, MenuOption, InventoryMovementDetail, CustomerProductDiscount, PurchaseOrderPayment, Sale, SalePayment,
-    ProductImage
+    ProductImage, ConsultaTienda
 )
 
 
@@ -1114,3 +1114,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
         fields = ['id', 'image', 'uploaded_at', 'product']
+
+class ConsultaTiendaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultaTienda
+        fields = '__all__'

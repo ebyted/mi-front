@@ -31,6 +31,8 @@ import InventoryGeneral from './pages/InventoryGeneral';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import ProductsNew from './components/ProductsNew.jsx';
+import Store from './pages/Store.jsx';
+
 
 
 function AppContent() {
@@ -101,7 +103,8 @@ function AppContent() {
         <Route path="/suppliers" element={renderWithSidebar(Suppliers)} />
         <Route path="/test-customers" element={renderWithSidebar(TestCustomers)} />
         <Route path="/enhanced-store" element={renderWithSidebar(() => <EnhancedTijuanaStore user={null} />)} />
-        <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
+        <Route path="/store" element={renderWithSidebar(() => <Store user={null} />)} />
+                <Route path="/inventory-general" element={renderWithSidebar(InventoryGeneral)} />
         <Route path="/products-new" element={renderWithSidebar(ProductsNew)} />
   {/* <Route path="/product-investigation" element={renderWithSidebar(ProductInvestigation)} /> */}
         

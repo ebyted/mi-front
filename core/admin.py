@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Business, Category, Brand, Unit, Product, ProductVariant, Warehouse, ProductWarehouseStock, Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem, InventoryMovement, CustomerType, ExchangeRate, Customer, SalesOrder, SalesOrderItem, Quotation, QuotationItem, Role, MenuOption
+from .models import User, Business, Category, Brand, Unit, Product, ProductVariant, Warehouse, ProductWarehouseStock, Supplier, SupplierProduct, PurchaseOrder, PurchaseOrderItem, PurchaseOrderReceipt, PurchaseOrderReceiptItem, InventoryMovement, CustomerType, ExchangeRate, Customer, SalesOrder, SalesOrderItem, Quotation, QuotationItem, Role, MenuOption, CustomerProductDiscount, PurchaseOrderPayment, Sale, SalePayment, ConsultaTienda
 
 admin.site.register(User)
 admin.site.register(Business)
@@ -28,8 +28,6 @@ admin.site.register(Role)
 admin.site.register(MenuOption)
 
 # Registrar los nuevos modelos
-from .models import CustomerProductDiscount, PurchaseOrderPayment, Sale, SalePayment
-
 @admin.register(CustomerProductDiscount)
 class CustomerProductDiscountAdmin(admin.ModelAdmin):
     list_display = ['customer', 'product', 'discount_percentage', 'is_active', 'created_at']
@@ -57,3 +55,18 @@ class SalePaymentAdmin(admin.ModelAdmin):
     list_filter = ['payment_method', 'payment_date']
     search_fields = ['sale__sale_number', 'reference_number']
     readonly_fields = ['payment_date']
+
+@admin.register(ConsultaTienda)
+class ConsultaTiendaAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'sku', 'name', 'brand_name', 'category_name', 'warehouse_name', 'cantidad', 'price', 'min_stock'
+    )
+    search_fields = ('sku', 'name', 'brand_name', 'category_name', 'warehouse_name')
+    readonly_fields = [field.name for field in ConsultaTienda._meta.fields]
+    
+    def has_add_permission(self, request):
+        return False
+    def has_delete_permission(self, request, obj=None):
+        return False
+    def has_change_permission(self, request, obj=None):
+        return False

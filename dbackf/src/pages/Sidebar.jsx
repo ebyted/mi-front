@@ -8,6 +8,7 @@ const menuItems = [
   { name: "Dashboard", path: "/dashboard", icon: "bi-speedometer2" },
   { name: "Productos New", path: "/products-new", icon: "bi-shop" },
   { name: "Tienda Tijuana", path: "/enhanced-store", icon: "bi-shop" },
+  { name: "Tienda Tijuana New", path: "/enhanced-store-new", icon: "bi-shop" },
   { name: "Usuarios", path: "/users", icon: "bi-people" },
   { name: "Centro de Productos", path: "/product-center", icon: "bi-box-seam" },
   //{ name: "Productos", path: "/products", icon: "bi-box-seam" },

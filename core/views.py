@@ -1598,10 +1598,10 @@ class DebugFiltersAPIView(APIView):
         }
         
         return Response(data)
+from rest_framework import generics
+from .models import ConsultaTienda
+from .serializers import ConsultaTiendaSerializer
 
-from .models import ProductImage
-from .serializers import ProductImageSerializer
-
-class ProductImageViewSet(viewsets.ModelViewSet):
-    queryset = ProductImage.objects.all()
-    serializer_class = ProductImageSerializer
+class ConsultaTiendaListView(generics.ListAPIView):
+    queryset = ConsultaTienda.objects.all()
+    serializer_class = ConsultaTiendaSerializer

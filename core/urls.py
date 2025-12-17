@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from .views_welcome import welcome
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework import routers
-from .views import CustomTokenObtainPairView
+from .views import ConsultaTiendaListView, CustomTokenObtainPairView
 from .views import (
     PCProductSearchView,
     PCProductDetailView,
@@ -78,8 +78,7 @@ router.register(r'sales', SaleViewSet)
 router.register(r'sale-payments', SalePaymentViewSet)
 router.register(r'customer-payments', CustomerPaymentViewSet)
 router.register(r'supplier-payments', SupplierPaymentViewSet)
-from .views import ProductImageViewSet
-router.register(r'product-images', ProductImageViewSet)
+
 
 urlpatterns = [
     # Endpoints nuevos para Product Center
@@ -124,8 +123,6 @@ urlpatterns = [
     path('debug/filters/', DebugFiltersAPIView.as_view(), name='debug-filters'),
     path('dashboard/initialize-test-data/', InitializeTestDataAPIView.as_view(), name='initialize-test-data'),
     
+    path('consulta_tienda/', ConsultaTiendaListView.as_view(), name='consulta_tienda-list'),
     path('', include(router.urls)),
 ]
-
-
-
